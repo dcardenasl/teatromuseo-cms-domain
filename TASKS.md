@@ -14,6 +14,17 @@
 *(vacío — las fases Controller→Model y la auditoría de bloques owner-scoped quedaron cerradas;
 las decisiones de producto pendientes se mantienen en el tracker global.)*
 
+## ✅ Completadas
+
+- **CMS-ENTRY-REF-001 — Bloques de referencia cruzada entre entradas (`entry_reference`):**
+  `EntryReferenceResolver`, `BlockReferenceValidator`, `EntryRelationSynchronizer` +
+  9 presets de colección propios de TeatroMuseo (`TeatroMuseoCollectionPresets`, separado del
+  motor genérico `CollectionBlockPresets` para no acoplar el starter kit a este cliente).
+  Auditoría posterior: se revirtió una activación prematura de `fr`/`pt` sin contenido real,
+  se envolvió `EntryRelationSynchronizer::sync()` en transacción, y se agregaron tests de
+  integración para el resolver y el sincronizador (fallback de idioma, exclusión de
+  auto-referencia, limpieza de relaciones huérfanas).
+
 ## ⚪ Backlog
 
 *(vacío)*
