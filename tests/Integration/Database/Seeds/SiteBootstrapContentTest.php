@@ -65,6 +65,19 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
         $seeder = \Config\Database::seeder();
         $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
 
+        $this->assertSame(
+            ['es', 'en'],
+            array_column(
+                $this->db->table('cms_languages')
+                    ->select('code')
+                    ->where('is_active', 1)
+                    ->orderBy('sort_order', 'ASC')
+                    ->get()
+                    ->getResultArray(),
+                'code'
+            )
+        );
+
         $pages = $this->db->table('cms_pages')->whereIn('page_type', ['home', 'contact', 'generic', 'collection_index'])->get()->getResultArray();
         $this->assertNotEmpty($pages);
 
@@ -138,5 +151,42 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
 
         $config = json_decode((string) $contactInstance['block_config'], true);
         $this->assertSame('contact', $config['form_key'] ?? null);
+    }
+
+    public function testEditorialCollectionsExposeOptionalMediaBlocksWithoutAutoCreatingThem(): void
+    {
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
+
+        $collection = $this->db->table('cms_collections')
+            ->where('collection_key', 'obras')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($collection);
+
+        $template = json_decode((string) $collection['block_template'], true);
+        $this->assertIsArray($template);
+
+        $blocks = [];
+        foreach (($template['blocks'] ?? []) as $block) {
+            if (is_array($block) && isset($block['block_key'])) {
+                $blocks[(string) $block['block_key']] = $block;
+            }
+        }
+
+        $this->assertArrayHasKey('obra_ficha', $blocks);
+        $this->assertArrayHasKey('gallery', $blocks);
+        $this->assertArrayHasKey('video_gallery', $blocks);
+        $this->assertFalse($blocks['gallery']['auto_create'] ?? true);
+        $this->assertFalse($blocks['video_gallery']['auto_create'] ?? true);
+
+        foreach (['gallery', 'gallery_item', 'video_gallery'] as $blockKey) {
+            $block = $this->db->table('cms_content_blocks')
+                ->where('block_key', $blockKey)
+                ->get()
+                ->getRowArray();
+            $this->assertNotNull($block, "Missing {$blockKey} block type.");
+            $this->assertSame(1, (int) $block['supports_entries'], "{$blockKey} must support entry content.");
+        }
     }
 }

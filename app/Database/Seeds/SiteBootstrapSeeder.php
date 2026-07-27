@@ -24,6 +24,9 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(AnalyticsSeeder::class);
         $this->call(SiteSocialLinksSeeder::class);
         $this->call(CmsBlockTypeSeeder::class);
+        $this->call(TeatroMuseoBlockTypeSeeder::class);
+        $this->call(CmsTeatroMuseoCollectionSeeder::class);
+        $this->call(CmsTeatroMuseoPageStructureSeeder::class);
         $this->call(SitePagesSeeder::class);
         $this->call(NewsCollectionSeeder::class);
         $this->call(SiteNewsPageSeeder::class);
@@ -41,6 +44,7 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(SiteLegalPagesSeederChile::class);
         $this->call(SiteLegalMenuSeeder::class);
         $this->call(SiteMenuSeeder::class);
+        $this->call(CmsTeatroMuseoNavigationSeeder::class);
 
         // Seeders write directly for deterministic bootstrap performance, so
         // finish through the same canonical reference synchronizer used by the

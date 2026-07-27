@@ -74,9 +74,17 @@ final class SiteMenuSeederTest extends CIUnitTestCase
 
         $mainLabels = $this->menuLabels((int) $mainMenu['id'], 'es', null);
         $this->assertSame(
-            ['Inicio', 'Nosotros', 'Portafolio', 'Multimedia', 'Ejemplos', 'Noticias', 'Contacto'],
+            ['Inicio', 'Cartelera', 'Festivales', 'Museo', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
             $mainLabels
         );
+
+        $carteleraId = $this->menuItemId((int) $mainMenu['id'], 'Cartelera');
+        $this->assertNotNull($carteleraId);
+        $this->assertSame(['Obras', 'Compañías'], $this->menuLabels((int) $mainMenu['id'], 'es', $carteleraId));
+
+        $museoId = $this->menuItemId((int) $mainMenu['id'], 'Museo');
+        $this->assertNotNull($museoId);
+        $this->assertSame(['Exposiciones', 'Personas'], $this->menuLabels((int) $mainMenu['id'], 'es', $museoId));
 
         $footerMenu = $this->db->table('cms_menus')
             ->where('menu_key', 'footer')
@@ -87,7 +95,7 @@ final class SiteMenuSeederTest extends CIUnitTestCase
 
         $footerLabels = $this->menuLabels((int) $footerMenu['id'], 'es', null);
         $this->assertSame(
-            ['Inicio', 'Quiénes Somos', 'Historia', 'Portafolio', 'Bloques', 'Multimedia', 'Noticias', 'Landing Page', 'Contacto'],
+            ['Inicio', 'Obras', 'Festivales', 'Exposiciones', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
             $footerLabels
         );
 
@@ -103,6 +111,22 @@ final class SiteMenuSeederTest extends CIUnitTestCase
             ['Aviso Legal', 'Política de Privacidad', 'Política de Cookies', 'Derechos de Datos', 'Términos de Servicio', 'Transparencia', 'Accesibilidad'],
             $legalLabels
         );
+    }
+
+    private function menuItemId(int $menuId, string $label): ?int
+    {
+        $row = $this->db->table('cms_menu_items mi')
+            ->select('mi.id')
+            ->join('cms_menu_item_translations mt', 'mt.menu_item_id = mi.id')
+            ->join('cms_languages l', 'l.id = mt.language_id')
+            ->where('mi.menu_id', $menuId)
+            ->where('mi.parent_id IS NULL', null, false)
+            ->where('l.code', 'es')
+            ->where('mt.label', $label)
+            ->get()
+            ->getRowArray();
+
+        return $row !== null ? (int) $row['id'] : null;
     }
 
     /**
