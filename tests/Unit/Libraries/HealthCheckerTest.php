@@ -54,7 +54,7 @@ class HealthCheckerTest extends CIUnitTestCase
 
         // In test environment, folders should be writable
         $this->assertEquals('healthy', $result['status']);
-        $this->assertStringContainsString('accessible', $result['message']);
+        $this->assertSame(lang('Health.writableFoldersAccessible'), $result['message']);
     }
 
     public function testCheckEmailReturnsUnconfiguredInTestEnvironment(): void

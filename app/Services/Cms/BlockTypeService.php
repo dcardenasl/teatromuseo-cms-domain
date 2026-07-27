@@ -221,23 +221,71 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
     private function assertValidSchemaDefinition(array $schemaDefinition): void
     {
         $contentSource = $schemaDefinition['content_source'] ?? null;
-        if ($contentSource === null) {
-            return;
-        }
-
-        if (! is_array($contentSource)) {
+        if ($contentSource !== null && ! is_array($contentSource)) {
             throw new ValidationException(
                 lang('Api.validationFailed'),
                 ['schema_definition' => lang('BlockTypes.invalid_content_source')]
             );
         }
 
-        $sourceType = (string) ($contentSource['type'] ?? '');
-        if ($sourceType === '' || ! in_array($sourceType, self::ALLOWED_CONTENT_SOURCES, true)) {
+        if (is_array($contentSource)) {
+            $sourceType = (string) ($contentSource['type'] ?? '');
+            if ($sourceType === '' || ! in_array($sourceType, self::ALLOWED_CONTENT_SOURCES, true)) {
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    ['schema_definition' => lang('BlockTypes.invalid_content_source')]
+                );
+            }
+        }
+
+        $fields = $schemaDefinition['fields'] ?? [];
+        if ($fields !== [] && ! is_array($fields)) {
             throw new ValidationException(
                 lang('Api.validationFailed'),
-                ['schema_definition' => lang('BlockTypes.invalid_content_source')]
+                ['schema_definition' => lang('BlockTypes.invalid_schema_fields')]
             );
+        }
+
+        foreach ((array) $fields as $fieldKey => $field) {
+            if (! is_array($field) || ! in_array((string) ($field['type'] ?? ''), ['entry_reference', 'entry_reference_list'], true)) {
+                continue;
+            }
+
+            $collections = $field['collection_keys'] ?? $field['allowed_collections'] ?? [];
+            if (isset($field['collection_key']) && is_string($field['collection_key'])) {
+                $collections = [$field['collection_key']];
+            }
+            $collections = is_array($collections)
+                ? array_values(array_filter(array_map(static fn (mixed $value): string => trim((string) $value), $collections)))
+                : [];
+
+            $min = isset($field['min_items']) ? max(0, (int) $field['min_items']) : 0;
+            $max = isset($field['max_items']) ? max(0, (int) $field['max_items']) : null;
+            if ($max !== null && $max < $min) {
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    ['schema_definition' => lang('BlockTypes.invalid_reference_limits', [(string) $fieldKey])]
+                );
+            }
+
+            if ($collections === []) {
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    ['schema_definition' => lang('BlockTypes.reference_collection_required', [(string) $fieldKey])]
+                );
+            }
+
+            foreach ($collections as $collectionKey) {
+                $exists = $this->db->table('cms_collections')
+                    ->where('collection_key', $collectionKey)
+                    ->countAllResults() > 0;
+                if (! $exists) {
+                    throw new ValidationException(
+                        lang('Api.validationFailed'),
+                        ['schema_definition' => lang('BlockTypes.reference_collection_missing', [$collectionKey])]
+                    );
+                }
+            }
         }
     }
 }

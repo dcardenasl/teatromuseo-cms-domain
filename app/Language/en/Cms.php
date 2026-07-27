@@ -28,4 +28,14 @@ return [
         'unsupported_resource' => 'Unsupported CMS file reference resource type: {0}.',
         'sync_failed' => 'Unable to synchronize CMS file references for {0} #{1}.',
     ],
+    'entry_references' => [
+        'required' => 'The entry reference field {0} is required.',
+        'min_items' => 'The entry reference list {0} does not contain enough entries.',
+        'max_items' => 'The entry reference list {0} contains too many entries.',
+        'collection' => 'The entry reference field {0} targets an invalid collection.',
+        'self' => 'The entry reference field {0} cannot reference its owner entry.',
+        'not_found' => 'One or more entries referenced by {0} do not exist in the expected collection.',
+        'shape' => 'The entry reference field {0} has an invalid value.',
+        'sync_failed' => 'Unable to synchronize entry relations for entry #{0}.',
+    ],
 ];

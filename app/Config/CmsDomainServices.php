@@ -135,7 +135,10 @@ trait CmsDomainServices
             return static::getSharedInstance('blockInstanceSerializer');
         }
 
-        return new \App\Libraries\Cms\BlockInstanceSerializer(static::fileUrlResolver());
+        return new \App\Libraries\Cms\BlockInstanceSerializer(
+            static::fileUrlResolver(),
+            static::entryReferenceResolver()
+        );
     }
 
     public static function publicEntryReader(bool $getShared = true): \App\Services\Cms\PublicEntryReader
@@ -297,8 +300,37 @@ trait CmsDomainServices
             static::fileUrlResolver(),
             static::fileReferenceSynchronizer(),
             static::cacheInvalidationClient(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::blockReferenceValidator(),
+            static::entryRelationSynchronizer()
         );
+    }
+
+    public static function blockReferenceValidator(bool $getShared = true): \App\Libraries\Cms\BlockReferenceValidator
+    {
+        if ($getShared) {
+            return static::getSharedInstance('blockReferenceValidator');
+        }
+
+        return new \App\Libraries\Cms\BlockReferenceValidator(\Config\Database::connect());
+    }
+
+    public static function entryReferenceResolver(bool $getShared = true): \App\Libraries\Cms\EntryReferenceResolver
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryReferenceResolver');
+        }
+
+        return new \App\Libraries\Cms\EntryReferenceResolver(\Config\Database::connect());
+    }
+
+    public static function entryRelationSynchronizer(bool $getShared = true): \App\Libraries\Cms\EntryRelationSynchronizer
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryRelationSynchronizer');
+        }
+
+        return new \App\Libraries\Cms\EntryRelationSynchronizer(\Config\Database::connect());
     }
     public static function collectionResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {

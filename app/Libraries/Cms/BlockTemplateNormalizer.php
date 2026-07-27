@@ -120,6 +120,12 @@ final class BlockTemplateNormalizer
             'locked' => self::normalizeBool($block['locked'] ?? false, false),
         ];
 
+        // Keep the optional flag out of legacy canonical payloads while still
+        // preserving it for presets that explicitly opt into auto creation.
+        if (array_key_exists('auto_create', $block)) {
+            $normalized['auto_create'] = self::normalizeBool($block['auto_create'], false);
+        }
+
         $label = self::normalizeString($block['label'] ?? null, 100);
         if ($label !== null) {
             $normalized['label'] = $label;
@@ -197,6 +203,10 @@ final class BlockTemplateNormalizer
 
             if (! array_key_exists('locked', $block) || ! is_bool($block['locked'])) {
                 throw new BlockTemplateValidationException("Block at index {$index}: locked must be a boolean");
+            }
+
+            if (array_key_exists('auto_create', $block) && ! is_bool($block['auto_create'])) {
+                throw new BlockTemplateValidationException("Block at index {$index}: auto_create must be a boolean");
             }
 
             if (! array_key_exists('block_config_defaults', $block)) {

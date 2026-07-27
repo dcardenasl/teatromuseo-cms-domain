@@ -8,9 +8,12 @@ class BlockInstanceSerializer
 {
     private FileUrlResolver $fileUrlResolver;
 
-    public function __construct(FileUrlResolver $fileUrlResolver)
+    private ?EntryReferenceResolver $entryReferenceResolver;
+
+    public function __construct(FileUrlResolver $fileUrlResolver, ?EntryReferenceResolver $entryReferenceResolver = null)
     {
         $this->fileUrlResolver = $fileUrlResolver;
+        $this->entryReferenceResolver = $entryReferenceResolver;
     }
 
     /**
@@ -71,6 +74,22 @@ class BlockInstanceSerializer
         $instanceIds = array_column($instances, 'id');
 
         $translationsMap = $this->batchResolveBlockTranslations($instanceIds, $langCode, $db);
+
+        $referenceMap = [];
+        if ($this->entryReferenceResolver !== null) {
+            $references = [];
+            foreach ($instances as $instance) {
+                $translationData = $translationsMap[(int) $instance['id']] ?? [];
+                $rawData = $translationData['block_data'] ?? null;
+                $blockData = is_string($rawData) ? (json_decode($rawData, true) ?? []) : (array) $rawData;
+                $schemaDefinition = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
+                $references = array_merge(
+                    $references,
+                    $this->entryReferenceResolver->collectReferences($blockData, (array) ($schemaDefinition['fields'] ?? []))
+                );
+            }
+            $referenceMap = $this->entryReferenceResolver->resolve($references, $langCode);
+        }
 
         // Collect all file IDs in a single pre-pass via schema field declarations
         $allFileIds = [];
@@ -150,6 +169,13 @@ class BlockInstanceSerializer
                 $schemaFields,
                 $fileMetaMap
             );
+            if ($this->entryReferenceResolver !== null) {
+                $blockPayload['block_data'] = $this->entryReferenceResolver->hydrateBlockData(
+                    $blockPayload['block_data'],
+                    $schemaFields,
+                    $referenceMap
+                );
+            }
 
             $serializedMap[$instanceId] = $blockPayload;
             $ownerByInstanceId[$instanceId] = (int) $instance['owner_id'];

@@ -59,8 +59,15 @@ class EntryBlockTemplateInitializer
 
             /** @var list<\App\Entities\LanguageEntity> $activeLanguages */
             $activeLanguages = $languageModel->where('is_active', 1)->findAll();
+            $createdBlockCount = 0;
 
             foreach ($blocks as $blockDef) {
+                // Legacy templates did not carry this flag and therefore keep
+                // the historical behavior of creating every declared block.
+                if (array_key_exists('auto_create', $blockDef) && ! (bool) $blockDef['auto_create']) {
+                    continue;
+                }
+
                 $blockKey = (string) ($blockDef['block_key'] ?? '');
                 $blockType = $blockTypeModel->where('block_key', $blockKey)->first();
 
@@ -113,6 +120,8 @@ class EntryBlockTemplateInitializer
                         throw new \RuntimeException(lang('Entries.block_translation_insert_failed', [$language->id]));
                     }
                 }
+
+                $createdBlockCount++;
             }
 
             $db->transComplete();
@@ -121,8 +130,7 @@ class EntryBlockTemplateInitializer
                 throw new \RuntimeException(lang('Entries.block_template_init_tx_failed'));
             }
 
-            $blockCount = count($blocks);
-            log_message('info', "[EntryBlockTemplateInitializer] Initialized {$blockCount} block(s) for entry {$entry->id} (collection {$collectionId}).");
+            log_message('info', "[EntryBlockTemplateInitializer] Initialized {$createdBlockCount} block(s) for entry {$entry->id} (collection {$collectionId}).");
 
             if ($wizardExtra !== null && $wizardExtra !== []) {
                 $unconsumed = array_diff(array_keys($wizardExtra), $consumedKeys);

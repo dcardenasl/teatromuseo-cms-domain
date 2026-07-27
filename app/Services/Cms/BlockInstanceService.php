@@ -6,6 +6,8 @@ namespace App\Services\Cms;
 
 use App\Entities\BlockInstanceEntity;
 use App\Interfaces\Cms\BlockInstanceServiceInterface;
+use App\Libraries\Cms\BlockReferenceValidator;
+use App\Libraries\Cms\EntryRelationSynchronizer;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
 use App\Libraries\Cms\HtmlSanitizer;
@@ -33,6 +35,10 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
+    private ?BlockReferenceValidator $blockReferenceValidator;
+
+    private ?EntryRelationSynchronizer $entryRelationSynchronizer;
+
     public function setOwnerContext(string $ownerType, int $ownerId): void
     {
         $this->filterOwnerType = $ownerType;
@@ -48,19 +54,24 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         FileUrlResolver $fileUrlResolver,
         FileReferenceSynchronizer $fileReferenceSynchronizer,
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?BlockReferenceValidator $blockReferenceValidator = null,
+        ?EntryRelationSynchronizer $entryRelationSynchronizer = null
     ) {
         parent::__construct($blockInstanceRepository, $responseMapper);
         $this->fileUrlResolver = $fileUrlResolver;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
         $this->cacheInvalidator = $cacheInvalidator;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->blockReferenceValidator = $blockReferenceValidator;
+        $this->entryRelationSynchronizer = $entryRelationSynchronizer;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeStore($data, $context);
         $data = $this->normalizeBlockConfig($data);
+        $data = $this->normalizeEntryReferencesFromPayload($data);
 
         return $this->deferTranslationsFromUpdate($data);
     }
@@ -77,6 +88,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     {
         $data = parent::beforeUpdate($id, $data, $context);
         $data = $this->normalizeBlockConfig($data);
+        $data = $this->normalizeEntryReferencesFromPayload($data, $id);
 
         return $this->deferTranslationsFromUpdate($data);
     }
@@ -208,14 +220,23 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         /** @var \App\Models\BlockInstanceTranslationModel $translationModel */
         $translationModel = model(\App\Models\BlockInstanceTranslationModel::class);
         $blockSchemaFields = $this->blockSchemaFields($instanceId);
+        $ownerEntryId = $this->blockOwnerEntryId($instanceId);
 
         $rows = [];
+        $normalizedTranslations = [];
         foreach ($translations as $translation) {
             $blockData = $translation['block_data'] ?? [];
             if (! is_array($blockData)) {
                 $blockData = [];
             } else {
                 $blockData = $this->sanitizeBlockData($blockData);
+                if ($this->blockReferenceValidator !== null) {
+                    $blockData = $this->blockReferenceValidator->normalizeBlockData(
+                        $blockData,
+                        $blockSchemaFields,
+                        $ownerEntryId
+                    );
+                }
                 if ($blockSchemaFields !== []) {
                     $blockData = $this->fileUrlResolver->normalizeBlockData($blockData, $blockSchemaFields);
                 }
@@ -226,6 +247,9 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
                 'block_data'   => json_encode($blockData),
                 'is_published' => (bool) ($translation['is_published'] ?? true),
             ];
+            $normalizedTranslations[] = [
+                'block_data' => $blockData,
+            ];
         }
 
         ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
@@ -234,6 +258,54 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             $instanceId,
             $rows,
             static fn (array $row): array => $row,
+        );
+        $this->syncSemanticRelations($instanceId, $normalizedTranslations);
+    }
+
+    /** @param array<mixed> $translations */
+    private function syncSemanticRelations(int $instanceId, array $translations): void
+    {
+        if ($this->entryRelationSynchronizer === null) {
+            return;
+        }
+
+        $instance = $this->repository->find($instanceId);
+        if (! isset($instance->owner_type, $instance->owner_id, $instance->block_id)
+            || (string) $instance->owner_type !== 'entry') {
+            return;
+        }
+
+        $blockType = $this->blockTypeById((int) $instance->block_id);
+        if ($blockType === null || (string) $blockType->block_key !== 'related_entries') {
+            return;
+        }
+
+        $references = [];
+        $relationType = 'related';
+        foreach ($translations as $translation) {
+            $data = is_array($translation['block_data'] ?? null) ? $translation['block_data'] : [];
+            if (in_array((string) ($data['relation_type'] ?? ''), ['related', 'recommended', 'prerequisite', 'sequel'], true)) {
+                $relationType = (string) $data['relation_type'];
+            }
+            foreach ((array) ($data['entries'] ?? []) as $reference) {
+                if (is_array($reference) && isset($reference['entry_id'], $reference['collection_key'])) {
+                    $references[] = [
+                        'entry_id' => (int) $reference['entry_id'],
+                        'collection_key' => (string) $reference['collection_key'],
+                    ];
+                }
+            }
+        }
+
+        $unique = [];
+        foreach ($references as $reference) {
+            $unique[$reference['collection_key'] . ':' . $reference['entry_id']] = $reference;
+        }
+        $this->entryRelationSynchronizer->sync(
+            (int) $instance->owner_id,
+            $instanceId,
+            $relationType,
+            array_values($unique)
         );
     }
 
@@ -314,6 +386,72 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         $fields = $schemaDefinition['fields'] ?? [];
 
         return is_array($fields) ? $fields : [];
+    }
+
+    /**
+     * Validate references before the parent row is written. Translation rows
+     * are persisted in afterStore/afterUpdate by design, so doing this early
+     * prevents an invalid reference from leaving a partially updated block.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function normalizeEntryReferencesFromPayload(array $data, ?int $instanceId = null): array
+    {
+        if ($this->blockReferenceValidator === null || ! array_key_exists('translations', $data)) {
+            return $data;
+        }
+
+        $translations = $data['translations'];
+        if (! is_array($translations)) {
+            return $data;
+        }
+
+        $blockId = isset($data['block_id']) ? (int) $data['block_id'] : 0;
+        $ownerType = (string) ($data['owner_type'] ?? '');
+        $ownerId = isset($data['owner_id']) ? (int) $data['owner_id'] : null;
+        if ($instanceId !== null) {
+            $instance = $this->repository->find($instanceId);
+            if ($blockId <= 0 && isset($instance->block_id)) {
+                $blockId = (int) $instance->block_id;
+            }
+            if ($ownerType === '' && isset($instance->owner_type)) {
+                $ownerType = (string) $instance->owner_type;
+            }
+            if ($ownerId === null && isset($instance->owner_id)) {
+                $ownerId = (int) $instance->owner_id;
+            }
+        }
+
+        $fields = $blockId > 0 ? $this->blockSchemaDefinition($blockId)['fields'] ?? [] : [];
+        if (! is_array($fields)) {
+            return $data;
+        }
+
+        $ownerEntryId = $ownerType === 'entry' ? $ownerId : null;
+        foreach ($translations as $index => $translation) {
+            if (! is_array($translation) || ! is_array($translation['block_data'] ?? null)) {
+                continue;
+            }
+            $translations[$index]['block_data'] = $this->blockReferenceValidator->normalizeBlockData(
+                $translation['block_data'],
+                $fields,
+                $ownerEntryId
+            );
+        }
+        $data['translations'] = $translations;
+
+        return $data;
+    }
+
+    private function blockOwnerEntryId(int $instanceId): ?int
+    {
+        $instance = $this->repository->find($instanceId);
+        if (! isset($instance->owner_type, $instance->owner_id) || $instance->owner_type !== 'entry') {
+            return null;
+        }
+
+        return (int) $instance->owner_id;
     }
 
     /**

@@ -113,6 +113,10 @@ final class CollectionBlockPresets
      * Collection-type key => preset, for repair passes that must cover every
      * starter collection type without hand-listing them at each call site.
      *
+     * Project-specific collections live in `TeatroMuseoCollectionPresets` —
+     * merge that in at the call site if you need both (see
+     * `CmsTeatroMuseoCollectionSeeder`).
+     *
      * @return array<string, array{block_template: array<string, mixed>, wizard_config: array<string, mixed>}>
      */
     public static function all(): array

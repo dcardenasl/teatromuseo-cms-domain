@@ -93,6 +93,19 @@ class CreateCmsBlocks extends Migration
         $this->forge->addForeignKey('language_id', 'cms_languages', 'id', '', 'CASCADE', 'fk_blocktrans_lang');
 
         $this->forge->createTable('cms_block_instance_translations', false, ['ENGINE' => 'InnoDB']);
+
+        // `cms_entry_related` is created immediately before this migration, while
+        // `cms_block_instances` is created here. Add the cross-table FK only after
+        // both canonical tables exist.
+        $this->forge->addForeignKey(
+            'source_block_instance_id',
+            'cms_block_instances',
+            'id',
+            'CASCADE',
+            'SET NULL',
+            'fk_related_source_block'
+        );
+        $this->forge->processIndexes('cms_entry_related');
     }
 
     public function down(): void

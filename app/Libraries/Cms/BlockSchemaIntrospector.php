@@ -25,6 +25,7 @@ final class BlockSchemaIntrospector
      *     required_fields: list<string>,
      *     translatable_fields: list<string>,
      *     unsupported_fields: list<string>,
+     *     reference_fields: array<string, array{type: string, collection_keys: list<string>, min_items: int|null, max_items: int|null}>,
      *     fields: array<string, array<string, mixed>>
      * }
      */
@@ -36,6 +37,7 @@ final class BlockSchemaIntrospector
         $required = [];
         $translatable = [];
         $unsupported = [];
+        $referenceFields = [];
 
         foreach ($fields as $fieldKey => $definition) {
             if (! is_string($fieldKey)) {
@@ -61,6 +63,21 @@ final class BlockSchemaIntrospector
             if (! $this->registry->isSupported($primitive)) {
                 $unsupported[] = $fieldKey;
             }
+
+            if ($this->registry->isEntryReference($primitive)) {
+                $collectionKeys = $fieldDefinition['collection_keys'] ?? $fieldDefinition['allowed_collections'] ?? [];
+                if (isset($fieldDefinition['collection_key']) && is_string($fieldDefinition['collection_key'])) {
+                    $collectionKeys = [$fieldDefinition['collection_key']];
+                }
+                $referenceFields[$fieldKey] = [
+                    'type' => $primitive,
+                    'collection_keys' => is_array($collectionKeys)
+                        ? array_values(array_filter(array_map(static fn (mixed $key): string => trim((string) $key), $collectionKeys)))
+                        : [],
+                    'min_items' => isset($fieldDefinition['min_items']) ? max(0, (int) $fieldDefinition['min_items']) : null,
+                    'max_items' => isset($fieldDefinition['max_items']) ? max(0, (int) $fieldDefinition['max_items']) : null,
+                ];
+            }
         }
 
         $primitives = array_column($normalizedFields, 'primitive');
@@ -73,6 +90,7 @@ final class BlockSchemaIntrospector
             'required_fields' => $required,
             'translatable_fields' => $translatable,
             'unsupported_fields' => $unsupported,
+            'reference_fields' => $referenceFields,
             'fields' => $normalizedFields,
         ];
     }
