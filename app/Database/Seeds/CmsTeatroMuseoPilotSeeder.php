@@ -53,8 +53,8 @@ final class CmsTeatroMuseoPilotSeeder extends Seeder
             'image',
         ]);
 
-        if (! isset($this->languages['es'])) {
-            echo "CmsTeatroMuseoPilotSeeder: missing Spanish language; skipping.\n";
+        if (! isset($this->languages['es'], $this->languages['en'], $this->languages['fr'], $this->languages['pt'])) {
+            echo "CmsTeatroMuseoPilotSeeder: missing one or more required languages; skipping.\n";
 
             return;
         }
@@ -278,15 +278,27 @@ final class CmsTeatroMuseoPilotSeeder extends Seeder
     {
         $contentLanguage = $this->contentLanguage($language);
         $title = $this->entryTitle($collectionKey, $variant, $contentLanguage);
-        $isEnglish = $contentLanguage === 'en';
-        $description = $isEnglish
-            ? '<p>This synthetic pilot block verifies the complete editorial shape before legacy migration.</p>'
-            : '<p>Este bloque piloto sintético verifica la estructura editorial completa antes de migrar el legacy.</p>';
+        $description = $this->localeText($contentLanguage, [
+            'es' => '<p>Este bloque piloto sintético verifica la estructura editorial completa antes de migrar el contenido real.</p>',
+            'en' => '<p>This synthetic pilot block validates the full editorial structure before migrating real content.</p>',
+            'fr' => '<p>Ce bloc pilote synthétique valide la structure éditoriale complète avant la migration du contenu réel.</p>',
+            'pt' => '<p>Este bloco piloto sintético valida a estrutura editorial completa antes de migrar o conteúdo real.</p>',
+        ]);
 
         if ($collectionKey === 'noticias') {
             return match ($blockKey) {
-                'rich_text' => ['content' => $description . ($isEnglish ? '<p>It is intentionally replaceable test content.</p>' : '<p>Es contenido de prueba reemplazable.</p>')],
-                'image' => ['alt' => $title, 'caption' => $isEnglish ? 'Pilot cover image' : 'Imagen de portada piloto'],
+                'rich_text' => ['content' => $description . $this->localeText($contentLanguage, [
+                    'es' => '<p>Es contenido de prueba reemplazable.</p>',
+                    'en' => '<p>It is intentionally replaceable test content.</p>',
+                    'fr' => '<p>Il s’agit volontairement d’un contenu de test remplaçable.</p>',
+                    'pt' => '<p>É um conteúdo de teste substituível de forma intencional.</p>',
+                ])],
+                'image' => ['alt' => $title, 'caption' => $this->localeText($contentLanguage, [
+                    'es' => 'Imagen de portada piloto',
+                    'en' => 'Pilot cover image',
+                    'fr' => 'Image de couverture pilote',
+                    'pt' => 'Imagem de capa piloto',
+                ])],
                 default => [],
             };
         }
@@ -301,18 +313,33 @@ final class CmsTeatroMuseoPilotSeeder extends Seeder
         return match ($collectionKey) {
             'companias' => [
                 'name' => $title,
-                'summary' => $isEnglish ? 'Synthetic company profile for template validation.' : 'Ficha sintética de compañía para validar el template.',
+                'summary' => $this->localeText($contentLanguage, [
+                    'es' => 'Ficha sintética de compañía para validar el template.',
+                    'en' => 'Synthetic company profile for template validation.',
+                    'fr' => 'Fiche synthétique de compagnie pour valider le modèle.',
+                    'pt' => 'Ficha sintética de companhia para validar o template.',
+                ]),
                 'description' => $description,
                 'website' => 'https://example.test/companias/' . $variant,
             ],
             'personas' => [
                 'name' => $title,
-                'role' => $isEnglish ? 'Artist and educator' : 'Artista y docente',
+                'role' => $this->localeText($contentLanguage, [
+                    'es' => 'Artista y docente',
+                    'en' => 'Artist and educator',
+                    'fr' => 'Artiste et enseignant',
+                    'pt' => 'Artista e docente',
+                ]),
                 'bio' => $description,
                 'website' => 'https://example.test/personas/' . $variant,
             ],
             'obras' => [
-                'subtitle' => $isEnglish ? 'A synthetic work record' : 'Registro sintético de obra',
+                'subtitle' => $this->localeText($contentLanguage, [
+                    'es' => 'Registro sintético de obra',
+                    'en' => 'A synthetic work record',
+                    'fr' => 'Fiche synthétique d’œuvre',
+                    'pt' => 'Registro sintético de obra',
+                ]),
                 'synopsis' => $description,
                 'duration' => '90 min',
                 'premiere_date' => '2026-01-15',
@@ -327,7 +354,12 @@ final class CmsTeatroMuseoPilotSeeder extends Seeder
                 'video_id' => 'pilot-' . $variant,
                 'video_url' => 'https://www.youtube.com/watch?v=pilot-' . $variant,
                 'duration' => '08:30',
-                'credit' => $isEnglish ? 'TeatroMuseo pilot archive' : 'Archivo piloto TeatroMuseo',
+                'credit' => $this->localeText($contentLanguage, [
+                    'es' => 'Archivo piloto TeatroMuseo',
+                    'en' => 'TeatroMuseo pilot archive',
+                    'fr' => 'Archives pilotes TeatroMuseo',
+                    'pt' => 'Arquivo piloto TeatroMuseo',
+                ]),
                 'related_works' => $variant === 'complete' ? $this->references([
                     ['collection_key' => 'obras', 'variant' => 'complete'],
                 ]) : [],
@@ -336,7 +368,12 @@ final class CmsTeatroMuseoPilotSeeder extends Seeder
                 'edition' => '2026',
                 'start_date' => '2026-09-01',
                 'end_date' => '2026-09-10',
-                'venue' => $isEnglish ? 'TeatroMuseo venues' : 'Espacios TeatroMuseo',
+                'venue' => $this->localeText($contentLanguage, [
+                    'es' => 'Espacios TeatroMuseo',
+                    'en' => 'TeatroMuseo venues',
+                    'fr' => 'Espaces TeatroMuseo',
+                    'pt' => 'Espaços TeatroMuseo',
+                ]),
                 'status' => 'upcoming',
                 'works' => $variant === 'complete' ? $this->references([
                     ['collection_key' => 'obras', 'variant' => 'complete'],
@@ -355,15 +392,30 @@ final class CmsTeatroMuseoPilotSeeder extends Seeder
                 ]) : [],
                 'opening_date' => '2026-05-01',
                 'closing_date' => '2026-11-30',
-                'venue' => $isEnglish ? 'Museum gallery' : 'Galería del museo',
+                'venue' => $this->localeText($contentLanguage, [
+                    'es' => 'Galería del museo',
+                    'en' => 'Museum gallery',
+                    'fr' => 'Galerie du musée',
+                    'pt' => 'Galeria do museu',
+                ]),
                 'description' => $description,
             ],
             'cursos' => [
                 'modality' => 'hibrido',
                 'start_date' => '2026-04-05',
                 'end_date' => '2026-05-05',
-                'schedule' => $isEnglish ? 'Tuesdays, 18:00' : 'Martes, 18:00',
-                'venue' => $isEnglish ? 'Classroom and online' : 'Sala y online',
+                'schedule' => $this->localeText($contentLanguage, [
+                    'es' => 'Martes, 18:00',
+                    'en' => 'Tuesdays, 18:00',
+                    'fr' => 'Mardis, 18h00',
+                    'pt' => 'Terças-feiras, 18h00',
+                ]),
+                'venue' => $this->localeText($contentLanguage, [
+                    'es' => 'Sala y online',
+                    'en' => 'Classroom and online',
+                    'fr' => 'En salle et en ligne',
+                    'pt' => 'Sala e online',
+                ]),
                 'capacity' => 20,
                 'price' => 35000,
                 'instructors' => $variant === 'complete' ? $this->references([
@@ -512,13 +564,12 @@ final class CmsTeatroMuseoPilotSeeder extends Seeder
     }
 
     /**
-     * The pilot has only Spanish and English fixture text. Other configured
-     * locales still receive rows so the locale matrix is exercised, while
-     * Spanish remains the explicit source/fallback instead of inventing copy.
+     * The pilot ships with explicit copy for every configured locale so the
+     * content matrix can be validated end to end without fallback text.
      */
     private function contentLanguage(string $language): string
     {
-        return $language === 'en' ? 'en' : 'es';
+        return in_array($language, ['es', 'en', 'fr', 'pt'], true) ? $language : 'es';
     }
 
     /** @return array<string, int> */
@@ -568,52 +619,96 @@ final class CmsTeatroMuseoPilotSeeder extends Seeder
     private function entrySlug(string $collectionKey, string $variant, string $language): string
     {
         $language = $this->contentLanguage($language);
-        $englishKey = $collectionKey === 'noticias' ? 'news' : match ($collectionKey) {
-            'companias' => 'companies',
-            'personas' => 'people',
-            'obras' => 'works',
-            'festivales' => 'festivals',
-            'exposiciones' => 'exhibitions',
-            'cursos' => 'courses',
-            'publicaciones' => 'publications',
-            default => $collectionKey,
-        };
+        $baseSlug = $this->collectionSlug($collectionKey, $language);
         $suffix = $variant === 'minimal' ? 'pilot-minimal' : 'pilot-complete';
 
-        return ($language === 'es' ? $collectionKey : $englishKey) . '-' . $suffix;
+        return $baseSlug . '-' . $suffix;
     }
 
     private function entryTitle(string $collectionKey, string $variant, string $language): string
     {
         $language = $this->contentLanguage($language);
         $names = [
-            'companias' => ['es' => 'Compañía piloto', 'en' => 'Pilot company'],
-            'personas' => ['es' => 'Persona piloto', 'en' => 'Pilot person'],
-            'obras' => ['es' => 'Obra piloto', 'en' => 'Pilot work'],
-            'videos' => ['es' => 'Video piloto', 'en' => 'Pilot video'],
-            'festivales' => ['es' => 'Festival piloto', 'en' => 'Pilot festival'],
-            'exposiciones' => ['es' => 'Exposición piloto', 'en' => 'Pilot exhibition'],
-            'cursos' => ['es' => 'Curso piloto', 'en' => 'Pilot course'],
-            'publicaciones' => ['es' => 'Publicación piloto', 'en' => 'Pilot publication'],
-            'noticias' => ['es' => 'Noticia piloto', 'en' => 'Pilot news'],
+            'companias' => ['es' => 'Compañía piloto', 'en' => 'Pilot company', 'fr' => 'Compagnie pilote', 'pt' => 'Companhia piloto'],
+            'personas' => ['es' => 'Persona piloto', 'en' => 'Pilot person', 'fr' => 'Personne pilote', 'pt' => 'Pessoa piloto'],
+            'obras' => ['es' => 'Obra piloto', 'en' => 'Pilot work', 'fr' => 'Œuvre pilote', 'pt' => 'Obra piloto'],
+            'videos' => ['es' => 'Video piloto', 'en' => 'Pilot video', 'fr' => 'Vidéo pilote', 'pt' => 'Vídeo piloto'],
+            'festivales' => ['es' => 'Festival piloto', 'en' => 'Pilot festival', 'fr' => 'Festival pilote', 'pt' => 'Festival piloto'],
+            'exposiciones' => ['es' => 'Exposición piloto', 'en' => 'Pilot exhibition', 'fr' => 'Exposition pilote', 'pt' => 'Exposição piloto'],
+            'cursos' => ['es' => 'Curso piloto', 'en' => 'Pilot course', 'fr' => 'Cours pilote', 'pt' => 'Curso piloto'],
+            'publicaciones' => ['es' => 'Publicación piloto', 'en' => 'Pilot publication', 'fr' => 'Publication pilote', 'pt' => 'Publicação piloto'],
+            'noticias' => ['es' => 'Noticia piloto', 'en' => 'Pilot news', 'fr' => 'Actualité pilote', 'pt' => 'Notícia piloto'],
         ];
         $base = $names[$collectionKey][$language] ?? ucfirst($collectionKey);
 
         return $base . ($variant === 'minimal'
-            ? ($language === 'es' ? ' mínima' : ' minimal')
-            : ($language === 'es' ? ' completa' : ' complete'));
+            ? $this->localeText($language, ['es' => ' mínima', 'en' => ' minimal', 'fr' => ' minimale', 'pt' => ' mínima'])
+            : $this->localeText($language, ['es' => ' completa', 'en' => ' complete', 'fr' => ' complète', 'pt' => ' completa']));
     }
 
     private function entryExcerpt(string $collectionKey, string $variant, string $language): string
     {
         $language = $this->contentLanguage($language);
-        return $language === 'es'
-            ? sprintf('Entrada piloto %s de %s para validar la estructura del CMS.', $variant === 'minimal' ? 'mínima' : 'completa', $collectionKey)
-            : sprintf('%s pilot %s entry for validating the CMS structure.', ucfirst($collectionKey), $variant);
+        $collectionLabel = $this->collectionLabel($collectionKey, $language);
+
+        return match ($language) {
+            'en' => sprintf('%s pilot %s entry for validating the CMS structure.', $collectionLabel, $variant),
+            'fr' => sprintf('Entrée pilote %s de %s pour valider la structure du CMS.', $variant === 'minimal' ? 'minimale' : 'complète', $collectionLabel),
+            'pt' => sprintf('Entrada piloto %s de %s para validar a estrutura do CMS.', $variant === 'minimal' ? 'mínima' : 'completa', $collectionLabel),
+            default => sprintf('Entrada piloto %s de %s para validar la estructura del CMS.', $variant === 'minimal' ? 'mínima' : 'completa', $collectionLabel),
+        };
     }
 
     private function mediaUrl(string $collectionKey, string $variant): string
     {
         return sprintf('https://picsum.photos/seed/teatromuseo-%s-%s/1200/800', $collectionKey, $variant);
+    }
+
+    /**
+     * @param array{es: string, en: string, fr: string, pt: string} $texts
+     */
+    private function localeText(string $language, array $texts): string
+    {
+        $language = $this->contentLanguage($language);
+
+        return $texts[$language] ?? $texts['es'];
+    }
+
+    private function collectionSlug(string $collectionKey, string $language): string
+    {
+        $slugs = [
+            'companias' => ['es' => 'companias', 'en' => 'companies', 'fr' => 'compagnies', 'pt' => 'companhias'],
+            'personas' => ['es' => 'personas', 'en' => 'people', 'fr' => 'personnes', 'pt' => 'pessoas'],
+            'obras' => ['es' => 'obras', 'en' => 'works', 'fr' => 'oeuvres', 'pt' => 'obras'],
+            'videos' => ['es' => 'videos', 'en' => 'videos', 'fr' => 'videos', 'pt' => 'videos'],
+            'festivales' => ['es' => 'festivales', 'en' => 'festivals', 'fr' => 'festivals', 'pt' => 'festivais'],
+            'exposiciones' => ['es' => 'exposiciones', 'en' => 'exhibitions', 'fr' => 'expositions', 'pt' => 'exposicoes'],
+            'cursos' => ['es' => 'cursos', 'en' => 'courses', 'fr' => 'cours', 'pt' => 'cursos'],
+            'publicaciones' => ['es' => 'publicaciones', 'en' => 'publications', 'fr' => 'publications', 'pt' => 'publicacoes'],
+            'noticias' => ['es' => 'noticias', 'en' => 'news', 'fr' => 'actualites', 'pt' => 'noticias'],
+        ];
+
+        $language = $this->contentLanguage($language);
+
+        return $slugs[$collectionKey][$language] ?? $collectionKey;
+    }
+
+    private function collectionLabel(string $collectionKey, string $language): string
+    {
+        $labels = [
+            'companias' => ['es' => 'compañías', 'en' => 'companies', 'fr' => 'compagnies', 'pt' => 'companhias'],
+            'personas' => ['es' => 'personas', 'en' => 'people', 'fr' => 'personnes', 'pt' => 'pessoas'],
+            'obras' => ['es' => 'obras', 'en' => 'works', 'fr' => 'œuvres', 'pt' => 'obras'],
+            'videos' => ['es' => 'videos', 'en' => 'videos', 'fr' => 'vidéos', 'pt' => 'vídeos'],
+            'festivales' => ['es' => 'festivales', 'en' => 'festivals', 'fr' => 'festivals', 'pt' => 'festivais'],
+            'exposiciones' => ['es' => 'exposiciones', 'en' => 'exhibitions', 'fr' => 'expositions', 'pt' => 'exposições'],
+            'cursos' => ['es' => 'cursos', 'en' => 'courses', 'fr' => 'cours', 'pt' => 'cursos'],
+            'publicaciones' => ['es' => 'publicaciones', 'en' => 'publications', 'fr' => 'publications', 'pt' => 'publicações'],
+            'noticias' => ['es' => 'noticias', 'en' => 'news', 'fr' => 'actualités', 'pt' => 'notícias'],
+        ];
+
+        $language = $this->contentLanguage($language);
+
+        return $labels[$collectionKey][$language] ?? $collectionKey;
     }
 }

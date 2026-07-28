@@ -8,7 +8,7 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 
 /**
- * Verifies the bootstrap seeds the starter's demo content set.
+ * Verifies the bootstrap seeds the TeatroMuseo content set.
  *
  * @internal
  */
@@ -35,6 +35,7 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
             'cms_form_fields',
             'cms_form_translations',
             'cms_forms',
+            'cms_menu_translations',
             'cms_entry_categories',
             'cms_entry_tags',
             'cms_entry_translations',
@@ -66,7 +67,7 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
         $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
 
         $this->assertSame(
-            ['es', 'en'],
+            ['es', 'en', 'fr', 'pt'],
             array_column(
                 $this->db->table('cms_languages')
                     ->select('code')
@@ -78,24 +79,12 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
             )
         );
 
-        $pages = $this->db->table('cms_pages')->whereIn('page_type', ['home', 'contact', 'generic', 'collection_index'])->get()->getResultArray();
-        $this->assertNotEmpty($pages);
+        $this->assertSame(27, $this->db->table('cms_pages')->countAllResults());
+        $this->assertSame(10, $this->db->table('cms_collections')->countAllResults());
+        $this->assertSame(20, $this->db->table('cms_entries')->countAllResults());
 
-        $pageTypes = array_map(static fn (array $row): string => (string) $row['page_type'], $pages);
-        foreach (['home', 'contact', 'generic'] as $pageType) {
-            $this->assertContains($pageType, $pageTypes, sprintf('Missing %s page in bootstrap.', $pageType));
-        }
-
-        $mediaPage = $this->db->table('cms_page_translations')
-            ->whereIn('slug', ['multimedia', 'media'])
-            ->get()->getRowArray();
-        $this->assertNotNull($mediaPage, 'Missing media page in bootstrap.');
-
-        $collectionIndexCount = count(array_filter($pageTypes, static fn (string $pageType): bool => $pageType === 'collection_index'));
-        $this->assertGreaterThanOrEqual(2, $collectionIndexCount);
-
-        $menu = $this->db->table('cms_menus')->whereIn('menu_key', ['main', 'footer'])->get()->getResultArray();
-        $this->assertCount(2, $menu);
+        $menu = $this->db->table('cms_menus')->whereIn('menu_key', ['main', 'footer', 'legal'])->get()->getResultArray();
+        $this->assertCount(3, $menu);
 
         $newsCollection = $this->db->table('cms_collections')
             ->where('collection_key', 'noticias')
@@ -151,6 +140,41 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
 
         $config = json_decode((string) $contactInstance['block_config'], true);
         $this->assertSame('contact', $config['form_key'] ?? null);
+
+        $mainMenu = $this->db->table('cms_menus')
+            ->where('menu_key', 'main')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($mainMenu);
+        $this->assertSame(
+            ['Inicio', 'Nosotros', 'Cartelera', 'Festivales', 'Museo', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
+            $this->menuLabels((int) $mainMenu['id'], 'es', null)
+        );
+
+        $footerMenu = $this->db->table('cms_menus')
+            ->where('menu_key', 'footer')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($footerMenu);
+        $this->assertSame(
+            ['Inicio', 'Quiénes Somos', 'Historia', 'Obras', 'Festivales', 'Exposiciones', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
+            $this->menuLabels((int) $footerMenu['id'], 'es', null)
+        );
+
+        $legalMenu = $this->db->table('cms_menus')
+            ->where('menu_key', 'legal')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($legalMenu);
+        $this->assertCount(7, $this->menuLabels((int) $legalMenu['id'], 'es', null));
+
+        $aboutPage = $this->pageBySlug(['nosotros', 'about', 'a-propos', 'sobre-nos']);
+        $this->assertNotNull($aboutPage);
+        $this->assertSame(['page_header', 'hero_banner', 'rich_text', 'cards_grid', 'cards_slider', 'asset_showcase', 'accordion', 'cta'], $this->pageBlockKeys((int) $aboutPage['id']));
+
+        $historyPage = $this->pageBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
+        $this->assertNotNull($historyPage);
+        $this->assertSame(['page_header', 'rich_text', 'image', 'timeline', 'metrics_grid', 'cta'], $this->pageBlockKeys((int) $historyPage['id']));
     }
 
     public function testEditorialCollectionsExposeOptionalMediaBlocksWithoutAutoCreatingThem(): void
@@ -188,5 +212,66 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
             $this->assertNotNull($block, "Missing {$blockKey} block type.");
             $this->assertSame(1, (int) $block['supports_entries'], "{$blockKey} must support entry content.");
         }
+    }
+
+    /**
+     * @param list<string> $slugs
+     */
+    private function pageBySlug(array $slugs): ?array
+    {
+        $row = $this->db->table('cms_pages')
+            ->select('cms_pages.id')
+            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
+            ->whereIn('cms_page_translations.slug', $slugs)
+            ->where('cms_pages.deleted_at IS NULL', null, false)
+            ->orderBy('cms_pages.id', 'ASC')
+            ->get()
+            ->getRowArray();
+
+        return $row;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function pageBlockKeys(int $pageId): array
+    {
+        $rows = $this->db->table('cms_block_instances bi')
+            ->select('cb.block_key')
+            ->join('cms_content_blocks cb', 'cb.id = bi.block_id')
+            ->where('bi.owner_type', 'page')
+            ->where('bi.owner_id', $pageId)
+            ->where('bi.parent_instance_id IS NULL', null, false)
+            ->orderBy('bi.sort_order', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        return array_map(static fn (array $row): string => (string) ($row['block_key'] ?? ''), $rows);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function menuLabels(int $menuId, string $langCode, ?int $parentId): array
+    {
+        $builder = $this->db->table('cms_menu_items mi')
+            ->select('mt.label')
+            ->join('cms_menu_item_translations mt', 'mt.menu_item_id = mi.id')
+            ->join('cms_languages l', 'l.id = mt.language_id')
+            ->where('mi.menu_id', $menuId)
+            ->where('mi.is_active', 1)
+            ->where('l.code', $langCode)
+            ->orderBy('mi.sort_order', 'ASC')
+            ->orderBy('mi.id', 'ASC');
+
+        if ($parentId === null) {
+            $builder->where('mi.parent_id IS NULL', null, false);
+        } else {
+            $builder->where('mi.parent_id', $parentId);
+        }
+
+        $rows = $builder->get()->getResultArray();
+
+        return array_map(static fn (array $row): string => (string) ($row['label'] ?? ''), $rows);
     }
 }

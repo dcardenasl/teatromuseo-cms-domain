@@ -20,9 +20,9 @@ class CmsFormSeeder extends Seeder
 
     public function run(): void
     {
-        $langIds = $this->langIds(['es', 'en']);
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
 
-        if (! isset($langIds['es'])) {
+        if (! isset($langIds['es'], $langIds['en'], $langIds['fr'], $langIds['pt'])) {
             echo "CmsFormSeeder: language 'es' not found. Seed CmsLanguageSeeder first.\n";
             return;
         }
@@ -42,15 +42,29 @@ class CmsFormSeeder extends Seeder
                 'name'            => 'Formulario de Contacto',
                 'description'     => null,
                 'submit_label'    => 'Enviar mensaje',
-                'success_message' => '¡Gracias por escribirnos! Te responderemos a la brevedad.',
+                'success_message' => '¡Gracias por escribir a TeatroMuseo! Te responderemos a la brevedad.',
                 'error_message'   => 'Ocurrió un error al enviar tu mensaje. Por favor inténtalo de nuevo.',
             ],
             'en' => [
                 'name'            => 'Contact Form',
                 'description'     => null,
                 'submit_label'    => 'Send message',
-                'success_message' => 'Thank you for reaching out! We will get back to you shortly.',
+                'success_message' => 'Thank you for reaching out to TeatroMuseo! We will get back to you shortly.',
                 'error_message'   => 'There was an error submitting your message. Please try again.',
+            ],
+            'fr' => [
+                'name'            => 'Formulaire de contact',
+                'description'     => null,
+                'submit_label'    => 'Envoyer le message',
+                'success_message' => 'Merci d’avoir contacté TeatroMuseo ! Nous vous répondrons sous peu.',
+                'error_message'   => 'Une erreur est survenue lors de l’envoi du message. Veuillez réessayer.',
+            ],
+            'pt' => [
+                'name'            => 'Formulário de contato',
+                'description'     => null,
+                'submit_label'    => 'Enviar mensagem',
+                'success_message' => 'Obrigado por entrar em contato com o TeatroMuseo! Responderemos em breve.',
+                'error_message'   => 'Ocorreu um erro ao enviar sua mensagem. Tente novamente.',
             ],
         ];
 
@@ -71,6 +85,8 @@ class CmsFormSeeder extends Seeder
                 'translations' => [
                     'es' => ['label' => 'Nombre completo', 'placeholder' => 'Su nombre completo', 'help_text' => null, 'error_required' => 'Por favor ingresa tu nombre.', 'error_invalid' => null],
                     'en' => ['label' => 'Full name', 'placeholder' => 'Your full name', 'help_text' => null, 'error_required' => 'Please enter your name.', 'error_invalid' => null],
+                    'fr' => ['label' => 'Nom complet', 'placeholder' => 'Votre nom complet', 'help_text' => null, 'error_required' => 'Veuillez saisir votre nom.', 'error_invalid' => null],
+                    'pt' => ['label' => 'Nome completo', 'placeholder' => 'Seu nome completo', 'help_text' => null, 'error_required' => 'Por favor, informe seu nome.', 'error_invalid' => null],
                 ],
             ],
             [
@@ -81,6 +97,8 @@ class CmsFormSeeder extends Seeder
                 'translations' => [
                     'es' => ['label' => 'Email', 'placeholder' => 'correo@ejemplo.com', 'help_text' => null, 'error_required' => 'Por favor ingresa tu email.', 'error_invalid' => 'Ingresa un email válido.'],
                     'en' => ['label' => 'Email', 'placeholder' => 'you@example.com', 'help_text' => null, 'error_required' => 'Please enter your email.', 'error_invalid' => 'Enter a valid email address.'],
+                    'fr' => ['label' => 'Courriel', 'placeholder' => 'vous@exemple.com', 'help_text' => null, 'error_required' => 'Veuillez saisir votre courriel.', 'error_invalid' => 'Saisissez une adresse valide.'],
+                    'pt' => ['label' => 'Email', 'placeholder' => 'voce@exemplo.com', 'help_text' => null, 'error_required' => 'Por favor, informe seu email.', 'error_invalid' => 'Insira um endereço de email válido.'],
                 ],
             ],
             [
@@ -91,6 +109,8 @@ class CmsFormSeeder extends Seeder
                 'translations' => [
                     'es' => ['label' => 'Mensaje', 'placeholder' => 'Escribe tu mensaje aquí...', 'help_text' => null, 'error_required' => 'Por favor escribe tu mensaje.', 'error_invalid' => null],
                     'en' => ['label' => 'Message', 'placeholder' => 'Write your message here...', 'help_text' => null, 'error_required' => 'Please write your message.', 'error_invalid' => null],
+                    'fr' => ['label' => 'Message', 'placeholder' => 'Écrivez votre message ici...', 'help_text' => null, 'error_required' => 'Veuillez écrire votre message.', 'error_invalid' => null],
+                    'pt' => ['label' => 'Mensagem', 'placeholder' => 'Escreva sua mensagem aqui...', 'help_text' => null, 'error_required' => 'Por favor, escreva sua mensagem.', 'error_invalid' => null],
                 ],
             ],
         ];
@@ -122,17 +142,31 @@ class CmsFormSeeder extends Seeder
         $gdprTranslations = [
             'es' => [
                 'name'            => 'Solicitud de Derechos de Datos (ARCO)',
-                'description'     => 'Utilice este formulario para ejercer sus derechos de protección de datos personales de acuerdo con el RGPD.',
+                'description'     => 'Utilice este formulario para ejercer sus derechos de protección de datos personales.',
                 'submit_label'    => 'Enviar solicitud',
-                'success_message' => '¡Su solicitud ha sido recibida! Responderemos a su requerimiento en el plazo legal.',
+                'success_message' => '¡Su solicitud ha sido recibida! Responderemos dentro del plazo legal.',
                 'error_message'   => 'Ocurrió un error al enviar su solicitud. Por favor inténtelo de nuevo.',
             ],
             'en' => [
                 'name'            => 'Data Subject Rights Request (GDPR)',
-                'description'     => 'Use this form to exercise your personal data protection rights in accordance with GDPR.',
+                'description'     => 'Use this form to exercise your personal data protection rights.',
                 'submit_label'    => 'Submit request',
-                'success_message' => 'Your request has been received! We will respond within the legally required timeframe.',
+                'success_message' => 'Your request has been received! We will respond within the required timeframe.',
                 'error_message'   => 'There was an error submitting your request. Please try again.',
+            ],
+            'fr' => [
+                'name'            => 'Demande de droits sur les données',
+                'description'     => 'Utilisez ce formulaire pour exercer vos droits relatifs aux données personnelles.',
+                'submit_label'    => 'Envoyer la demande',
+                'success_message' => 'Votre demande a bien été reçue ! Nous répondrons dans les délais prévus.',
+                'error_message'   => 'Une erreur est survenue lors de l’envoi de votre demande. Veuillez réessayer.',
+            ],
+            'pt' => [
+                'name'            => 'Solicitação de direitos sobre dados',
+                'description'     => 'Use este formulário para exercer seus direitos sobre dados pessoais.',
+                'submit_label'    => 'Enviar solicitação',
+                'success_message' => 'Sua solicitação foi recebida! Responderemos dentro do prazo previsto.',
+                'error_message'   => 'Ocorreu um erro ao enviar sua solicitação. Tente novamente.',
             ],
         ];
 
@@ -153,6 +187,8 @@ class CmsFormSeeder extends Seeder
                 'translations'  => [
                     'es' => ['label' => 'Nombre completo', 'placeholder' => 'Su nombre y apellidos', 'help_text' => null, 'error_required' => 'Por favor ingrese su nombre.', 'error_invalid' => null],
                     'en' => ['label' => 'Full name', 'placeholder' => 'Your first and last name', 'help_text' => null, 'error_required' => 'Please enter your full name.', 'error_invalid' => null],
+                    'fr' => ['label' => 'Nom complet', 'placeholder' => 'Votre nom et prénom', 'help_text' => null, 'error_required' => 'Veuillez saisir votre nom.', 'error_invalid' => null],
+                    'pt' => ['label' => 'Nome completo', 'placeholder' => 'Seu nome e sobrenome', 'help_text' => null, 'error_required' => 'Por favor, informe seu nome completo.', 'error_invalid' => null],
                 ],
             ],
             [
@@ -163,6 +199,8 @@ class CmsFormSeeder extends Seeder
                 'translations'  => [
                     'es' => ['label' => 'Correo electrónico', 'placeholder' => 'correo@ejemplo.com', 'help_text' => null, 'error_required' => 'Por favor ingrese su email.', 'error_invalid' => 'Ingrese un correo electrónico válido.'],
                     'en' => ['label' => 'Email address', 'placeholder' => 'you@example.com', 'help_text' => null, 'error_required' => 'Please enter your email.', 'error_invalid' => 'Enter a valid email address.'],
+                    'fr' => ['label' => 'Courriel', 'placeholder' => 'vous@exemple.com', 'help_text' => null, 'error_required' => 'Veuillez saisir votre courriel.', 'error_invalid' => 'Saisissez une adresse valide.'],
+                    'pt' => ['label' => 'Email', 'placeholder' => 'voce@exemplo.com', 'help_text' => null, 'error_required' => 'Por favor, informe seu email.', 'error_invalid' => 'Digite um endereço de email válido.'],
                 ],
             ],
             [
@@ -200,6 +238,34 @@ class CmsFormSeeder extends Seeder
                             'portability'   => 'Portability (Receive my data in structured format)',
                         ],
                     ],
+                    'fr' => [
+                        'label'          => 'Droit à exercer',
+                        'placeholder'    => 'Sélectionnez une option',
+                        'help_text'      => 'Sélectionnez le droit que vous souhaitez exercer sur vos données.',
+                        'error_required' => 'Veuillez sélectionner une option.',
+                        'error_invalid'  => null,
+                        'option_labels'  => [
+                            'access'        => 'Accès (Connaître les données détenues)',
+                            'rectification' => 'Rectification (Corriger des données inexactes)',
+                            'erasure'       => 'Suppression / Effacement (Supprimer mes données)',
+                            'objection'     => 'Opposition (Refuser certains traitements)',
+                            'portability'   => 'Portabilité (Recevoir mes données dans un format structuré)',
+                        ],
+                    ],
+                    'pt' => [
+                        'label'          => 'Direito a exercer',
+                        'placeholder'    => 'Selecione uma opção',
+                        'help_text'      => 'Selecione o direito que deseja exercer sobre seus dados.',
+                        'error_required' => 'Selecione uma opção.',
+                        'error_invalid'  => null,
+                        'option_labels'  => [
+                            'access'        => 'Acesso (Saber quais dados temos)',
+                            'rectification' => 'Retificação (Corrigir dados incorretos)',
+                            'erasure'       => 'Exclusão / Esquecimento (Excluir meus dados)',
+                            'objection'     => 'Oposição (Recusar determinados tratamentos)',
+                            'portability'   => 'Portabilidade (Receber meus dados em formato estruturado)',
+                        ],
+                    ],
                 ],
             ],
             [
@@ -210,6 +276,8 @@ class CmsFormSeeder extends Seeder
                 'translations'  => [
                     'es' => ['label' => 'Detalles de la solicitud', 'placeholder' => 'Describa detalladamente su petición...', 'help_text' => 'Especifique la información afectada o el cambio requerido.', 'error_required' => 'Por favor especifique los detalles.', 'error_invalid' => null],
                     'en' => ['label' => 'Details of the request', 'placeholder' => 'Describe your request in detail...', 'help_text' => 'Specify the affected information or the required change.', 'error_required' => 'Please specify request details.', 'error_invalid' => null],
+                    'fr' => ['label' => 'Détails de la demande', 'placeholder' => 'Décrivez votre demande en détail...', 'help_text' => 'Précisez les informations concernées ou le changement requis.', 'error_required' => 'Veuillez préciser les détails.', 'error_invalid' => null],
+                    'pt' => ['label' => 'Detalhes da solicitação', 'placeholder' => 'Descreva sua solicitação em detalhes...', 'help_text' => 'Especifique a informação afetada ou a alteração necessária.', 'error_required' => 'Especifique os detalhes.', 'error_invalid' => null],
                 ],
             ],
         ];

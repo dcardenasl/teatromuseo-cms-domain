@@ -8,7 +8,7 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 
 /**
- * Verifies the bootstrap seeds the contact form contract.
+ * Verifies the bootstrap seeds the TeatroMuseo CMS contract.
  *
  * @internal
  */
@@ -35,6 +35,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
             'cms_form_fields',
             'cms_form_translations',
             'cms_forms',
+            'cms_menu_translations',
             'cms_menu_item_translations',
             'cms_menu_items',
             'cms_menus',
@@ -60,10 +61,26 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $this->db->enableForeignKeyChecks();
     }
 
-    public function testBootstrapSeedsContactFormAndConnectsContactBlock(): void
+    public function testBootstrapSeedsContactFormAndTheTeatroMuseoCms(): void
     {
         $seeder = \Config\Database::seeder();
         $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
+
+        $languageCodes = array_column(
+            $this->db->table('cms_languages')
+                ->select('code')
+                ->where('is_active', 1)
+                ->orderBy('sort_order', 'ASC')
+                ->get()
+                ->getResultArray(),
+            'code'
+        );
+        $this->assertSame(['es', 'en', 'fr', 'pt'], $languageCodes);
+
+        $this->assertSame(27, $this->db->table('cms_pages')->countAllResults());
+        $this->assertSame(10, $this->db->table('cms_collections')->countAllResults());
+        $this->assertSame(20, $this->db->table('cms_entries')->countAllResults());
+        $this->assertCount(3, $this->db->table('cms_menus')->whereIn('menu_key', ['main', 'footer', 'legal'])->get()->getResultArray());
 
         $form = $this->db->table('cms_forms')
             ->where('form_key', 'contact')
@@ -134,63 +151,27 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $this->assertNotEmpty($newsCollection['block_template']);
         $this->assertNotEmpty($newsCollection['wizard_config']);
 
-        $aboutPage = $this->db->table('cms_pages')
-            ->select('cms_pages.id')
-            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
-            ->whereIn('cms_page_translations.slug', ['nosotros', 'about'])
-            ->get()
-            ->getRowArray();
+        $aboutPage = $this->pageBySlug(['nosotros', 'about', 'a-propos', 'sobre-nos']);
         $this->assertNotNull($aboutPage);
+        $this->assertSame(['nosotros', 'about', 'a-propos', 'sobre-nos'], $this->pageTranslationSlugs((int) $aboutPage['id']));
+        $this->assertSame(['page_header', 'hero_banner', 'rich_text', 'cards_grid', 'cards_slider', 'asset_showcase', 'accordion', 'cta'], $this->pageBlockKeys((int) $aboutPage['id']));
 
-        $aboutBlocks = $this->db->table('cms_block_instances')
-            ->where('owner_type', 'page')
-            ->where('owner_id', (int) $aboutPage['id'])
-            ->orderBy('sort_order', 'ASC')
-            ->get()
-            ->getResultArray();
-        $this->assertNotEmpty($aboutBlocks);
-        $this->assertSame('page_header', $this->blockKeyForInstance((int) $aboutBlocks[0]['block_id']));
-
-        $historyPage = $this->db->table('cms_pages')
-            ->select('cms_pages.id')
-            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
-            ->whereIn('cms_page_translations.slug', ['historia', 'history'])
-            ->get()
-            ->getRowArray();
+        $historyPage = $this->pageBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
         $this->assertNotNull($historyPage);
+        $this->assertSame(['historia', 'history', 'histoire', 'nossa-historia'], $this->pageTranslationSlugs((int) $historyPage['id']));
+        $this->assertSame(['page_header', 'rich_text', 'image', 'timeline', 'metrics_grid', 'cta'], $this->pageBlockKeys((int) $historyPage['id']));
 
-        $portfolioCollection = $this->db->table('cms_collections')
-            ->where('collection_key', 'portafolio')
-            ->get()
-            ->getRowArray();
-        $this->assertNotNull($portfolioCollection);
-
-        $portfolioPage = $this->db->table('cms_pages')
-            ->where('page_type', 'collection_index')
-            ->where('collection_id', (int) $portfolioCollection['id'])
-            ->get()
-            ->getRowArray();
-        $this->assertNotNull($portfolioPage);
-        $this->assertNotEmpty($portfolioPage['collection_id'] ?? null);
-
-        $portfolioBlocks = $this->db->table('cms_block_instances')
-           ->select('cms_content_blocks.block_key')
-           ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
-           ->where('owner_type', 'page')
-           ->where('owner_id', (int) $portfolioPage['id'])
-           ->orderBy('cms_block_instances.sort_order', 'ASC')
-           ->get()
-           ->getResultArray();
-
-        $portfolioBlockKeys = array_map(
-            static fn (array $row): string => (string) ($row['block_key'] ?? ''),
-            $portfolioBlocks
-        );
-
-        $this->assertContains('page_header', $portfolioBlockKeys);
-        $this->assertContains('rich_text', $portfolioBlockKeys);
-        $this->assertContains('collection_listing', $portfolioBlockKeys);
-        $this->assertContains('tabs', $portfolioBlockKeys);
+        foreach ([
+            ['aviso-legal', 'legal-notice', 'mentions-legales', 'aviso-juridico'],
+            ['politica-privacidad', 'privacy-policy', 'politique-confidentialite', 'politica-privacidade'],
+            ['politica-cookies', 'cookie-policy', 'politique-cookies', 'politica-cookies'],
+            ['derechos-datos', 'data-rights', 'droits-donnees', 'direitos-dados'],
+            ['terminos-servicio', 'terms-of-service', 'conditions-utilisation', 'termos-uso'],
+            ['transparencia', 'transparency', 'transparence', 'transparencia'],
+            ['accesibilidad', 'accessibility', 'accessibilite', 'acessibilidade'],
+        ] as $slugs) {
+            $this->assertNotNull($this->pageBySlug($slugs));
+        }
     }
 
     public function testBootstrapSeederIsIdempotent(): void
@@ -201,6 +182,8 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $countsBefore = [
             'pages' => $this->db->table('cms_pages')->countAllResults(),
             'collections' => $this->db->table('cms_collections')->countAllResults(),
+            'entries' => $this->db->table('cms_entries')->countAllResults(),
+            'menus' => $this->db->table('cms_menus')->countAllResults(),
             'blocks' => $this->db->table('cms_block_instances')->countAllResults(),
             'file_references' => $this->db->table('cms_file_references')->countAllResults(),
         ];
@@ -210,11 +193,64 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $countsAfter = [
             'pages' => $this->db->table('cms_pages')->countAllResults(),
             'collections' => $this->db->table('cms_collections')->countAllResults(),
+            'entries' => $this->db->table('cms_entries')->countAllResults(),
+            'menus' => $this->db->table('cms_menus')->countAllResults(),
             'blocks' => $this->db->table('cms_block_instances')->countAllResults(),
             'file_references' => $this->db->table('cms_file_references')->countAllResults(),
         ];
 
         $this->assertSame($countsBefore, $countsAfter);
+    }
+
+    /**
+     * @param list<string> $slugs
+     */
+    private function pageBySlug(array $slugs): ?array
+    {
+        $row = $this->db->table('cms_pages')
+            ->select('cms_pages.id')
+            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
+            ->whereIn('cms_page_translations.slug', $slugs)
+            ->where('cms_pages.deleted_at IS NULL', null, false)
+            ->orderBy('cms_pages.id', 'ASC')
+            ->get()
+            ->getRowArray();
+
+        return $row;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function pageTranslationSlugs(int $pageId): array
+    {
+        $rows = $this->db->table('cms_page_translations pt')
+            ->select('pt.slug')
+            ->join('cms_languages l', 'l.id = pt.language_id')
+            ->where('pt.page_id', $pageId)
+            ->orderBy('l.sort_order', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        return array_map(static fn (array $row): string => (string) ($row['slug'] ?? ''), $rows);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function pageBlockKeys(int $pageId): array
+    {
+        $rows = $this->db->table('cms_block_instances bi')
+            ->select('cb.block_key')
+            ->join('cms_content_blocks cb', 'cb.id = bi.block_id')
+            ->where('bi.owner_type', 'page')
+            ->where('bi.owner_id', $pageId)
+            ->where('bi.parent_instance_id IS NULL', null, false)
+            ->orderBy('bi.sort_order', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        return array_map(static fn (array $row): string => (string) ($row['block_key'] ?? ''), $rows);
     }
 
     private function blockKeyForInstance(int $blockId): string

@@ -28,11 +28,11 @@ class CmsPageBlockSeeder extends Seeder
             'social_links',
         ]);
 
-        $langIds = $this->langIds(['es', 'en']);
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
         $homePageId = $this->pageIdByType('home');
         $contactPageId = $this->pageIdByType('contact');
 
-        if ($homePageId === null || $contactPageId === null || ! isset($langIds['es'], $langIds['en'])) {
+        if ($homePageId === null || $contactPageId === null || ! isset($langIds['es'], $langIds['en'], $langIds['fr'], $langIds['pt'])) {
             echo "CmsPageBlockSeeder: missing prerequisite pages, blocks or languages.\n";
             return;
         }
@@ -84,6 +84,20 @@ class CmsPageBlockSeeder extends Seeder
                         'view_all_url'     => '/news',
                         'empty_message'    => 'No news posts are available yet.',
                     ],
+                    'fr' => [
+                        'section_title'    => 'Actualités',
+                        'section_subtitle' => 'Restez informé des dernières publications.',
+                        'view_all_label'   => 'Voir toutes les actualités',
+                        'view_all_url'     => '/actualites',
+                        'empty_message'    => 'Aucune actualité publiée pour le moment.',
+                    ],
+                    'pt' => [
+                        'section_title'    => 'Notícias',
+                        'section_subtitle' => 'Acompanhe as publicações mais recentes.',
+                        'view_all_label'   => 'Ver todas as notícias',
+                        'view_all_url'     => '/noticias',
+                        'empty_message'    => 'Ainda não há notícias publicadas.',
+                    ],
                 ],
             ],
             [
@@ -106,6 +120,18 @@ class CmsPageBlockSeeder extends Seeder
                         'label'   => 'Go to contact',
                         'url'     => '/contact',
                     ],
+                    'fr' => [
+                        'heading' => 'Vous souhaitez nous parler ?',
+                        'text'    => 'Utilisez le formulaire de contact pour nous écrire. Nous vous répondrons dès que possible.',
+                        'label'   => 'Aller au contact',
+                        'url'     => '/contact',
+                    ],
+                    'pt' => [
+                        'heading' => 'Quer falar conosco?',
+                        'text'    => 'Use o formulário de contato para nos escrever. Responderemos o mais breve possível.',
+                        'label'   => 'Ir para contato',
+                        'url'     => '/contato',
+                    ],
                 ],
             ],
         ];
@@ -121,14 +147,26 @@ class CmsPageBlockSeeder extends Seeder
                 'data'      => [
                     'es' => [
                         'heading'          => 'Contacto',
-                        'subheading'       => 'Nos encantaría saber de ti.',
+                        'subheading'       => 'TeatroMuseo quiere saber de ti.',
                         'breadcrumb_label' => 'Inicio',
                         'breadcrumb_url'   => '/',
                     ],
                     'en' => [
                         'heading'          => 'Contact',
-                        'subheading'       => 'We would love to hear from you.',
+                        'subheading'       => 'TeatroMuseo would love to hear from you.',
                         'breadcrumb_label' => 'Home',
+                        'breadcrumb_url'   => '/',
+                    ],
+                    'fr' => [
+                        'heading'          => 'Contact',
+                        'subheading'       => 'TeatroMuseo serait ravi de vous lire.',
+                        'breadcrumb_label' => 'Accueil',
+                        'breadcrumb_url'   => '/',
+                    ],
+                    'pt' => [
+                        'heading'          => 'Contato',
+                        'subheading'       => 'O TeatroMuseo adoraria ouvir você.',
+                        'breadcrumb_label' => 'Início',
                         'breadcrumb_url'   => '/',
                     ],
                 ],
@@ -143,6 +181,8 @@ class CmsPageBlockSeeder extends Seeder
                 'data'      => [
                     'es' => [],
                     'en' => [],
+                    'fr' => [],
+                    'pt' => [],
                 ],
             ],
             [
@@ -154,26 +194,48 @@ class CmsPageBlockSeeder extends Seeder
                 ],
                 'data'      => [
                     'es' => [
-                        'section_title' => 'Dónde estamos',
+                        'section_title' => 'Dónde está TeatroMuseo',
                         'address_label'  => 'Dirección',
-                        'address'        => 'Calle Falsa 123, Santiago, Chile',
+                        'address'        => 'Avenida Providencia 1234, Santiago, Chile',
                         'phone_label'    => 'Teléfono',
                         'phone'          => '+56 2 2345 6789',
                         'email_label'    => 'Correo',
-                        'email'          => 'contacto@misitio.local',
+                        'email'          => 'contacto@teatromuseo.local',
                         'hours_label'    => 'Horario',
                         'hours'          => "Lunes a viernes: 09:00 - 18:00\nSábado: 10:00 - 14:00",
                     ],
                     'en' => [
-                        'section_title' => 'Where we are',
+                        'section_title' => 'Where TeatroMuseo is located',
                         'address_label'  => 'Address',
-                        'address'        => '123 Main Street, Santiago, Chile',
+                        'address'        => 'Avenida Providencia 1234, Santiago, Chile',
                         'phone_label'    => 'Phone',
                         'phone'          => '+56 2 2345 6789',
                         'email_label'    => 'Email',
-                        'email'          => 'contact@example.local',
+                        'email'          => 'contact@teatromuseo.local',
                         'hours_label'    => 'Hours',
                         'hours'          => "Monday to Friday: 09:00 - 18:00\nSaturday: 10:00 - 14:00",
+                    ],
+                    'fr' => [
+                        'section_title' => 'Où se trouve TeatroMuseo',
+                        'address_label'  => 'Adresse',
+                        'address'        => 'Avenida Providencia 1234, Santiago, Chili',
+                        'phone_label'    => 'Téléphone',
+                        'phone'          => '+56 2 2345 6789',
+                        'email_label'    => 'Courriel',
+                        'email'          => 'contact@teatromuseo.local',
+                        'hours_label'    => 'Horaires',
+                        'hours'          => "Lundi au vendredi : 09:00 - 18:00\nSamedi : 10:00 - 14:00",
+                    ],
+                    'pt' => [
+                        'section_title' => 'Onde fica o TeatroMuseo',
+                        'address_label'  => 'Endereço',
+                        'address'        => 'Avenida Providencia 1234, Santiago, Chile',
+                        'phone_label'    => 'Telefone',
+                        'phone'          => '+56 2 2345 6789',
+                        'email_label'    => 'Email',
+                        'email'          => 'contacto@teatromuseo.local',
+                        'hours_label'    => 'Horário',
+                        'hours'          => "Segunda a sexta: 09:00 - 18:00\nSábado: 10:00 - 14:00",
                     ],
                 ],
             ],
@@ -189,11 +251,19 @@ class CmsPageBlockSeeder extends Seeder
                 'data'      => [
                     'es' => [
                         'title'   => 'Mapa de ubicación',
-                        'caption' => 'Encuéntranos en nuestro punto de atención principal.',
+                        'caption' => 'Encuéntranos en la sede principal de TeatroMuseo.',
                     ],
                     'en' => [
                         'title'   => 'Location map',
-                        'caption' => 'Find us at our main service point.',
+                        'caption' => 'Find us at TeatroMuseo’s main location.',
+                    ],
+                    'fr' => [
+                        'title'   => 'Carte d’emplacement',
+                        'caption' => 'Retrouvez-nous au siège principal de TeatroMuseo.',
+                    ],
+                    'pt' => [
+                        'title'   => 'Mapa de localização',
+                        'caption' => 'Encontre-nos na sede principal do TeatroMuseo.',
                     ],
                 ],
             ],
@@ -205,10 +275,16 @@ class CmsPageBlockSeeder extends Seeder
                 ],
                 'data'      => [
                     'es' => [
-                        'heading' => 'Síguenos',
+                        'heading' => 'Síguenos en TeatroMuseo',
                     ],
                     'en' => [
-                        'heading' => 'Follow us',
+                        'heading' => 'Follow TeatroMuseo',
+                    ],
+                    'fr' => [
+                        'heading' => 'Suivez TeatroMuseo',
+                    ],
+                    'pt' => [
+                        'heading' => 'Siga o TeatroMuseo',
                     ],
                 ],
             ],

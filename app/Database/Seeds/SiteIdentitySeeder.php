@@ -13,8 +13,8 @@ class SiteIdentitySeeder extends Seeder
 
     public function run(): void
     {
-        $langIds = $this->langIds(['es', 'en']);
-        if (! isset($langIds['es'], $langIds['en'])) {
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
+        if (! isset($langIds['es'], $langIds['en'], $langIds['fr'], $langIds['pt'])) {
             echo "SiteIdentitySeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
@@ -24,7 +24,7 @@ class SiteIdentitySeeder extends Seeder
             // Localized variants live in `cms_setting_translations`.
             [
                 'setting_key'     => 'site_name',
-                'setting_value'   => 'Mi Sitio',
+                'setting_value'   => 'TeatroMuseo',
                 'setting_type'    => 'string',
                 'input_type'      => 'text',
                 'setting_group'   => 'identity',
@@ -34,12 +34,14 @@ class SiteIdentitySeeder extends Seeder
                 'sort_order'      => 10,
                 'description'     => 'Nombre del sitio / marca',
                 'translations'    => [
-                    'en' => 'My Site',
+                    'en' => 'TeatroMuseo',
+                    'fr' => 'TeatroMuseo',
+                    'pt' => 'TeatroMuseo',
                 ],
             ],
             [
                 'setting_key'     => 'site_title',
-                'setting_value'   => 'Mi Sitio',
+                'setting_value'   => 'TeatroMuseo',
                 'setting_type'    => 'string',
                 'input_type'      => 'text',
                 'setting_group'   => 'identity',
@@ -49,12 +51,14 @@ class SiteIdentitySeeder extends Seeder
                 'sort_order'      => 15,
                 'description'     => 'Título principal del sitio',
                 'translations'    => [
-                    'en' => 'My Site',
+                    'en' => 'TeatroMuseo',
+                    'fr' => 'TeatroMuseo',
+                    'pt' => 'TeatroMuseo',
                 ],
             ],
             [
                 'setting_key'     => 'site_tagline',
-                'setting_value'   => 'Contenido multilingüe para tu sitio',
+                'setting_value'   => 'Contenido multilingüe para TeatroMuseo',
                 'setting_type'    => 'string',
                 'input_type'      => 'textarea',
                 'setting_group'   => 'identity',
@@ -64,12 +68,14 @@ class SiteIdentitySeeder extends Seeder
                 'sort_order'      => 20,
                 'description'     => 'Tagline o lema del sitio',
                 'translations'    => [
-                    'en' => 'Multilingual content for your website',
+                    'en' => 'Multilingual content for TeatroMuseo',
+                    'fr' => 'Contenu multilingue pour TeatroMuseo',
+                    'pt' => 'Conteúdo multilíngue para o TeatroMuseo',
                 ],
             ],
             [
                 'setting_key'     => 'site_description',
-                'setting_value'   => 'Sitio base con páginas, noticias y contacto.',
+                'setting_value'   => 'Sitio base de TeatroMuseo con páginas, noticias y contacto.',
                 'setting_type'    => 'string',
                 'input_type'      => 'textarea',
                 'setting_group'   => 'identity',
@@ -79,7 +85,9 @@ class SiteIdentitySeeder extends Seeder
                 'sort_order'      => 25,
                 'description'     => 'Descripción corta del sitio',
                 'translations'    => [
-                    'en' => 'Starter site with pages, news, and contact.',
+                    'en' => 'TeatroMuseo base site with pages, news, and contact.',
+                    'fr' => 'Site de base TeatroMuseo avec des pages, des actualités et un contact.',
+                    'pt' => 'Site base do TeatroMuseo com páginas, notícias e contato.',
                 ],
             ],
             [
@@ -110,7 +118,7 @@ class SiteIdentitySeeder extends Seeder
             ],
             [
                 'setting_key'     => 'site_copyright',
-                'setting_value'   => '© ' . date('Y') . ' Mi Sitio. Todos los derechos reservados.',
+                'setting_value'   => '© ' . date('Y') . ' TeatroMuseo. Todos los derechos reservados.',
                 'setting_type'    => 'string',
                 'input_type'      => 'textarea',
                 'setting_group'   => 'identity',
@@ -120,7 +128,9 @@ class SiteIdentitySeeder extends Seeder
                 'sort_order'      => 50,
                 'description'     => 'Texto de copyright del pie de página',
                 'translations'    => [
-                    'en' => '© ' . date('Y') . ' My Site. All rights reserved.',
+                    'en' => '© ' . date('Y') . ' TeatroMuseo. All rights reserved.',
+                    'fr' => '© ' . date('Y') . ' TeatroMuseo. Tous droits réservés.',
+                    'pt' => '© ' . date('Y') . ' TeatroMuseo. Todos os direitos reservados.',
                 ],
             ],
             [

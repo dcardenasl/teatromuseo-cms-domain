@@ -72,15 +72,20 @@ final class SiteMenuSeederTest extends CIUnitTestCase
 
         $this->assertNotNull($mainMenu);
 
-        $mainLabels = $this->menuLabels((int) $mainMenu['id'], 'es', null);
-        $this->assertSame(
-            ['Inicio', 'Cartelera', 'Festivales', 'Museo', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
-            $mainLabels
-        );
+        $expectedMainLabels = [
+            'es' => ['Inicio', 'Nosotros', 'Cartelera', 'Festivales', 'Museo', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
+            'en' => ['Home', 'About', 'Programming', 'Festivals', 'Museum', 'Education', 'Media', 'Press', 'News', 'Contact'],
+            'fr' => ['Accueil', 'À propos', 'Programmation', 'Festivals', 'Musée', 'Éducation', 'Médias', 'Presse', 'Actualités', 'Contact'],
+            'pt' => ['Início', 'Sobre', 'Programação', 'Festivais', 'Museu', 'Educação', 'Mídia', 'Imprensa', 'Notícias', 'Contato'],
+        ];
 
-        $carteleraId = $this->menuItemId((int) $mainMenu['id'], 'Cartelera');
-        $this->assertNotNull($carteleraId);
-        $this->assertSame(['Obras', 'Compañías'], $this->menuLabels((int) $mainMenu['id'], 'es', $carteleraId));
+        foreach ($expectedMainLabels as $langCode => $expectedLabels) {
+            $this->assertSame($expectedLabels, $this->menuLabels((int) $mainMenu['id'], $langCode, null));
+        }
+
+        $nosotrosId = $this->menuItemId((int) $mainMenu['id'], 'Nosotros');
+        $this->assertNotNull($nosotrosId);
+        $this->assertSame(['Quiénes Somos', 'Historia'], $this->menuLabels((int) $mainMenu['id'], 'es', $nosotrosId));
 
         $museoId = $this->menuItemId((int) $mainMenu['id'], 'Museo');
         $this->assertNotNull($museoId);
@@ -93,11 +98,16 @@ final class SiteMenuSeederTest extends CIUnitTestCase
 
         $this->assertNotNull($footerMenu);
 
-        $footerLabels = $this->menuLabels((int) $footerMenu['id'], 'es', null);
-        $this->assertSame(
-            ['Inicio', 'Obras', 'Festivales', 'Exposiciones', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
-            $footerLabels
-        );
+        $expectedFooterLabels = [
+            'es' => ['Inicio', 'Quiénes Somos', 'Historia', 'Obras', 'Festivales', 'Exposiciones', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
+            'en' => ['Home', 'About Us', 'History', 'Works', 'Festivals', 'Exhibitions', 'Education', 'Media', 'Press', 'News', 'Contact'],
+            'fr' => ['Accueil', 'À propos', 'Histoire', 'Œuvres', 'Festivals', 'Expositions', 'Éducation', 'Médias', 'Presse', 'Actualités', 'Contact'],
+            'pt' => ['Início', 'Sobre Nós', 'História', 'Obras', 'Festivais', 'Exposições', 'Educação', 'Mídia', 'Imprensa', 'Notícias', 'Contato'],
+        ];
+
+        foreach ($expectedFooterLabels as $langCode => $expectedLabels) {
+            $this->assertSame($expectedLabels, $this->menuLabels((int) $footerMenu['id'], $langCode, null));
+        }
 
         $legalMenu = $this->db->table('cms_menus')
             ->where('menu_key', 'legal')
@@ -106,11 +116,16 @@ final class SiteMenuSeederTest extends CIUnitTestCase
 
         $this->assertNotNull($legalMenu);
 
-        $legalLabels = $this->menuLabels((int) $legalMenu['id'], 'es', null);
-        $this->assertSame(
-            ['Aviso Legal', 'Política de Privacidad', 'Política de Cookies', 'Derechos de Datos', 'Términos de Servicio', 'Transparencia', 'Accesibilidad'],
-            $legalLabels
-        );
+        $expectedLegalLabels = [
+            'es' => ['Aviso Legal', 'Política de Privacidad', 'Política de Cookies', 'Derechos de Datos', 'Términos de Servicio', 'Transparencia', 'Accesibilidad'],
+            'en' => ['Legal Notice', 'Privacy Policy', 'Cookie Policy', 'Data Rights', 'Terms of Service', 'Transparency', 'Accessibility'],
+            'fr' => ['Mentions légales', 'Politique de confidentialité', 'Politique de cookies', 'Droits sur les données', 'Conditions d’utilisation', 'Transparence', 'Accessibilité'],
+            'pt' => ['Aviso Jurídico', 'Política de Privacidade', 'Política de Cookies', 'Direitos sobre os Dados', 'Termos de Uso', 'Transparência', 'Acessibilidade'],
+        ];
+
+        foreach ($expectedLegalLabels as $langCode => $expectedLabels) {
+            $this->assertSame($expectedLabels, $this->menuLabels((int) $legalMenu['id'], $langCode, null));
+        }
     }
 
     private function menuItemId(int $menuId, string $label): ?int

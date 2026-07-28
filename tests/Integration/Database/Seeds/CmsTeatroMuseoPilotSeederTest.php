@@ -52,10 +52,10 @@ final class CmsTeatroMuseoPilotSeederTest extends CIUnitTestCase
         $seeder->call(\App\Database\Seeds\CmsTeatroMuseoPilotSeeder::class);
 
         $this->assertSame(18, $this->db->table('cms_entries')->countAllResults());
-        $this->assertSame(36, $this->db->table('cms_entry_translations')->countAllResults());
+        $this->assertSame(72, $this->db->table('cms_entry_translations')->countAllResults());
 
         $this->assertSame(
-            ['es', 'en'],
+            ['es', 'en', 'fr', 'pt'],
             array_column(
                 $this->db->table('cms_languages')
                     ->select('code')

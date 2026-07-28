@@ -20,8 +20,8 @@ class CmsHeroSliderChildrenSeeder extends Seeder
 
     public function run(): void
     {
-        $langIds = $this->langIds(['es', 'en']);
-        if (! isset($langIds['es'], $langIds['en'])) {
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
+        if (! isset($langIds['es'], $langIds['en'], $langIds['fr'], $langIds['pt'])) {
             echo "CmsHeroSliderChildrenSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
@@ -52,16 +52,28 @@ class CmsHeroSliderChildrenSeeder extends Seeder
                 'image'      => $this->mediaReference('https://picsum.photos/id/180/1920/1080'),
                 'data' => [
                     'es' => [
-                        'heading'   => 'Bienvenidos a Mi Sitio',
-                        'subtitle'  => 'Contenido multilingüe y gestión moderna para tu sitio web.',
+                        'heading'   => 'Bienvenidos a TeatroMuseo',
+                        'subtitle'  => 'Contenido multilingüe y gestión moderna para TeatroMuseo.',
                         'cta_label' => 'Conocer más',
-                        'cta_url'   => '/nosotros',
+                        'cta_url'   => '/contacto',
                     ],
                     'en' => [
-                        'heading'   => 'Welcome to My Site',
-                        'subtitle'  => 'Multilingual content and modern management for your website.',
+                        'heading'   => 'Welcome to TeatroMuseo',
+                        'subtitle'  => 'Multilingual content and modern management for TeatroMuseo.',
                         'cta_label' => 'Learn more',
-                        'cta_url'   => '/about',
+                        'cta_url'   => '/contact',
+                    ],
+                    'fr' => [
+                        'heading'   => 'Bienvenue à TeatroMuseo',
+                        'subtitle'  => 'Contenu multilingue et gestion moderne pour TeatroMuseo.',
+                        'cta_label' => 'En savoir plus',
+                        'cta_url'   => '/contact',
+                    ],
+                    'pt' => [
+                        'heading'   => 'Bem-vindo ao TeatroMuseo',
+                        'subtitle'  => 'Conteúdo multilíngue e gestão moderna para o TeatroMuseo.',
+                        'cta_label' => 'Saiba mais',
+                        'cta_url'   => '/contato',
                     ],
                 ],
             ],
@@ -70,16 +82,28 @@ class CmsHeroSliderChildrenSeeder extends Seeder
                 'image'      => $this->mediaReference('https://picsum.photos/id/24/1920/1080'),
                 'data' => [
                     'es' => [
-                        'heading'   => 'Nuestra Historia',
-                        'subtitle'  => 'Conoce el camino que hemos recorrido y los hitos que nos definen.',
-                        'cta_label' => 'Ver nuestra historia',
-                        'cta_url'   => '/historia',
+                        'heading'   => 'Exposiciones y memoria',
+                        'subtitle'  => 'Recorre la colección de exposiciones, montajes y piezas que dan forma a TeatroMuseo.',
+                        'cta_label' => 'Ver exposiciones',
+                        'cta_url'   => '/exposiciones',
                     ],
                     'en' => [
-                        'heading'   => 'Our History',
-                        'subtitle'  => 'Discover the journey we have traveled and the milestones that define us.',
-                        'cta_label' => 'Read our story',
-                        'cta_url'   => '/history',
+                        'heading'   => 'Exhibitions and memory',
+                        'subtitle'  => 'Browse the exhibitions, stagings, and pieces that shape TeatroMuseo.',
+                        'cta_label' => 'View exhibitions',
+                        'cta_url'   => '/exhibitions',
+                    ],
+                    'fr' => [
+                        'heading'   => 'Expositions et mémoire',
+                        'subtitle'  => 'Parcourez les expositions, mises en scène et pièces qui façonnent TeatroMuseo.',
+                        'cta_label' => 'Voir les expositions',
+                        'cta_url'   => '/expositions',
+                    ],
+                    'pt' => [
+                        'heading'   => 'Exposições e memória',
+                        'subtitle'  => 'Percorra as exposições, encenações e peças que dão forma ao TeatroMuseo.',
+                        'cta_label' => 'Ver exposições',
+                        'cta_url'   => '/exposicoes',
                     ],
                 ],
             ],
@@ -89,15 +113,27 @@ class CmsHeroSliderChildrenSeeder extends Seeder
                 'data' => [
                     'es' => [
                         'heading'   => 'Contáctanos',
-                        'subtitle'  => 'Escríbenos y te responderemos a la brevedad.',
+                        'subtitle'  => 'Escríbenos a TeatroMuseo y te responderemos a la brevedad.',
                         'cta_label' => 'Ir al formulario',
                         'cta_url'   => '/contacto',
                     ],
                     'en' => [
                         'heading'   => 'Contact Us',
-                        'subtitle'  => 'Write to us and we will reply as soon as possible.',
+                        'subtitle'  => 'Write to TeatroMuseo and we will reply as soon as possible.',
                         'cta_label' => 'Open form',
                         'cta_url'   => '/contact',
+                    ],
+                    'fr' => [
+                        'heading'   => 'Contactez-nous',
+                        'subtitle'  => 'Écrivez à TeatroMuseo et nous vous répondrons dès que possible.',
+                        'cta_label' => 'Ouvrir le formulaire',
+                        'cta_url'   => '/contact',
+                    ],
+                    'pt' => [
+                        'heading'   => 'Fale conosco',
+                        'subtitle'  => 'Escreva para o TeatroMuseo e responderemos o mais breve possível.',
+                        'cta_label' => 'Abrir formulário',
+                        'cta_url'   => '/contato',
                     ],
                 ],
             ],

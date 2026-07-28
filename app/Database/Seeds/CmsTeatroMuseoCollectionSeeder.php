@@ -19,7 +19,7 @@ final class CmsTeatroMuseoCollectionSeeder extends Seeder
 
     public function run(): void
     {
-        $langIds = $this->langIds(['es', 'en']);
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
         if (! isset($langIds['es'])) {
             echo "CmsTeatroMuseoCollectionSeeder: 'es' language not found; skipping.\n";
             return;
@@ -71,15 +71,15 @@ final class CmsTeatroMuseoCollectionSeeder extends Seeder
     private function definitions(): array
     {
         return [
-            $this->definition('news', 'noticias', 'Noticias', 'News', 'Noticias y actualidad del museo.', 10, '0.7', 'weekly', false),
-            $this->definition('companias', 'companias', 'Compañías', 'Companies', 'Compañías y colectivos artísticos.', 20, '0.6', 'monthly', false),
-            $this->definition('personas', 'personas', 'Personas', 'People', 'Artistas, docentes, curadores y colaboradores.', 30, '0.6', 'monthly', false),
-            $this->definition('obras', 'obras', 'Obras', 'Works', 'Obras y piezas del catálogo artístico.', 40, '0.8', 'monthly', false),
-            $this->definition('videos', 'videos', 'Videos', 'Videos', 'Videos audiovisuales y registros.', 50, '0.6', 'monthly', false),
-            $this->definition('festivales', 'festivales', 'Festivales', 'Festivals', 'Festivales y sus ediciones o programas.', 60, '0.8', 'monthly', false),
-            $this->definition('exposiciones', 'exposiciones', 'Exposiciones', 'Exhibitions', 'Exposiciones vigentes e históricas.', 70, '0.8', 'monthly', false),
-            $this->definition('cursos', 'cursos', 'Cursos', 'Courses', 'Cursos, talleres y actividades formativas.', 80, '0.7', 'weekly', false),
-            $this->definition('publicaciones', 'publicaciones', 'Publicaciones', 'Publications', 'Publicaciones, prensa y documentos institucionales.', 90, '0.6', 'monthly', false),
+            $this->definition('news', 'noticias', 'Noticias', 'News', 'Actualités', 'Notícias', 'Noticias y actualidad del museo.', 'Museum news and current affairs.', 'Actualités et vie culturelle du musée.', 'Notícias e atualidades do museu.', 10, '0.7', 'weekly', false),
+            $this->definition('companias', 'companias', 'Compañías', 'Companies', 'Compagnies', 'Companhias', 'Compañías y colectivos artísticos.', 'Companies and artistic collectives.', 'Compagnies et collectifs artistiques.', 'Companhias e coletivos artísticos.', 20, '0.6', 'monthly', false),
+            $this->definition('personas', 'personas', 'Personas', 'People', 'Personnes', 'Pessoas', 'Artistas, docentes, curadores y colaboradores.', 'Artists, teachers, curators, and collaborators.', 'Artistes, enseignants, commissaires et collaborateurs.', 'Artistas, docentes, curadores e colaboradores.', 30, '0.6', 'monthly', false),
+            $this->definition('obras', 'obras', 'Obras', 'Works', 'Oeuvres', 'Obras', 'Obras y piezas del catálogo artístico.', 'Works and pieces from the artistic catalog.', 'Œuvres et pièces du catalogue artistique.', 'Obras e peças do catálogo artístico.', 40, '0.8', 'monthly', false),
+            $this->definition('videos', 'videos', 'Videos', 'Videos', 'Vidéos', 'Vídeos', 'Videos audiovisuales y registros.', 'Audiovisual videos and recordings.', 'Vidéos audiovisuelles et enregistrements.', 'Vídeos audiovisuais e registros.', 50, '0.6', 'monthly', false),
+            $this->definition('festivales', 'festivales', 'Festivales', 'Festivals', 'Festivals', 'Festivais', 'Festivales y sus ediciones o programas.', 'Festivals and their editions or programs.', 'Festivals et leurs éditions ou programmes.', 'Festivais e suas edições ou programações.', 60, '0.8', 'monthly', false),
+            $this->definition('exposiciones', 'exposiciones', 'Exposiciones', 'Exhibitions', 'Expositions', 'Exposições', 'Exposiciones vigentes e históricas.', 'Current and historical exhibitions.', 'Expositions actuelles et historiques.', 'Exposições atuais e históricas.', 70, '0.8', 'monthly', false),
+            $this->definition('cursos', 'cursos', 'Cursos', 'Courses', 'Cours', 'Cursos', 'Cursos, talleres y actividades formativas.', 'Courses, workshops, and learning activities.', 'Cours, ateliers et activités de formation.', 'Cursos, oficinas e atividades formativas.', 80, '0.7', 'weekly', false),
+            $this->definition('publicaciones', 'publicaciones', 'Publicaciones', 'Publications', 'Publications', 'Publicações', 'Publicaciones, prensa y documentos institucionales.', 'Publications, press, and institutional documents.', 'Publications, presse et documents institutionnels.', 'Publicações, imprensa e documentos institucionais.', 90, '0.6', 'monthly', false),
         ];
     }
 
@@ -89,24 +89,18 @@ final class CmsTeatroMuseoCollectionSeeder extends Seeder
         string $key,
         string $esName,
         string $enName,
+        string $frName,
+        string $ptName,
         string $description,
+        string $enDescription,
+        string $frDescription,
+        string $ptDescription,
         int $sortOrder,
         string $priority,
         string $changefreq,
         bool $requiresApproval
     ): array {
-        $slugEn = match ($key) {
-            'noticias' => 'news',
-            'companias' => 'companies',
-            'personas' => 'people',
-            'obras' => 'works',
-            'videos' => 'videos',
-            'festivales' => 'festivals',
-            'exposiciones' => 'exhibitions',
-            'cursos' => 'courses',
-            'publicaciones' => 'publications',
-            default => $key,
-        };
+        $slugs = $this->slugs($key);
 
         return [
             'collection_type' => $type,
@@ -126,16 +120,51 @@ final class CmsTeatroMuseoCollectionSeeder extends Seeder
                     'default_meta_description' => $description,
                 ],
                 'en' => [
-                    'slug' => $slugEn,
+                    'slug' => $slugs['en'],
                     'name' => $enName,
-                    'description' => $description,
+                    'description' => $enDescription,
                     'listing_title' => $enName,
                     'listing_intro' => 'Explore the ' . strtolower($enName) . ' catalog.',
                     'default_meta_title' => $enName . ' | TeatroMuseo',
-                    'default_meta_description' => $description,
+                    'default_meta_description' => $enDescription,
+                ],
+                'fr' => [
+                    'slug' => $slugs['fr'],
+                    'name' => $frName,
+                    'description' => $frDescription,
+                    'listing_title' => $frName,
+                    'listing_intro' => 'Explorez le catalogue ' . strtolower($frName) . '.',
+                    'default_meta_title' => $frName . ' | TeatroMuseo',
+                    'default_meta_description' => $frDescription,
+                ],
+                'pt' => [
+                    'slug' => $slugs['pt'],
+                    'name' => $ptName,
+                    'description' => $ptDescription,
+                    'listing_title' => $ptName,
+                    'listing_intro' => 'Explore o catálogo de ' . strtolower($ptName) . '.',
+                    'default_meta_title' => $ptName . ' | TeatroMuseo',
+                    'default_meta_description' => $ptDescription,
                 ],
             ],
         ];
+    }
+
+    /** @return array{en: string, fr: string, pt: string} */
+    private function slugs(string $key): array
+    {
+        return match ($key) {
+            'noticias' => ['en' => 'news', 'fr' => 'actualites', 'pt' => 'noticias'],
+            'companias' => ['en' => 'companies', 'fr' => 'compagnies', 'pt' => 'companhias'],
+            'personas' => ['en' => 'people', 'fr' => 'personnes', 'pt' => 'pessoas'],
+            'obras' => ['en' => 'works', 'fr' => 'oeuvres', 'pt' => 'obras'],
+            'videos' => ['en' => 'videos', 'fr' => 'videos', 'pt' => 'videos'],
+            'festivales' => ['en' => 'festivals', 'fr' => 'festivals', 'pt' => 'festivais'],
+            'exposiciones' => ['en' => 'exhibitions', 'fr' => 'expositions', 'pt' => 'exposicoes'],
+            'cursos' => ['en' => 'courses', 'fr' => 'cours', 'pt' => 'cursos'],
+            'publicaciones' => ['en' => 'publications', 'fr' => 'publications', 'pt' => 'publicacoes'],
+            default => ['en' => $key, 'fr' => $key, 'pt' => $key],
+        };
     }
 
     /** @param list<string> $codes @return array<string, int> */

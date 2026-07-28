@@ -29,7 +29,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
     public function run(): void
     {
         $languages = $this->languageIds();
-        if (! isset($languages['es'], $languages['en'])) {
+        if (! isset($languages['es'], $languages['en'], $languages['fr'], $languages['pt'])) {
             echo "CmsTeatroMuseoNavigationSeeder: missing languages; skipping.\n";
 
             return;
@@ -37,6 +37,8 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
 
         $homePageId = $this->pageIdByType('home');
         $contactPageId = $this->pageIdByType('contact');
+        $aboutPageId = $this->pageIdBySlug(['nosotros', 'about', 'a-propos', 'sobre-nos']);
+        $historyPageId = $this->pageIdBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
 
         if ($homePageId === null || $contactPageId === null) {
             echo "CmsTeatroMuseoNavigationSeeder: missing home or contact page; skipping.\n";
@@ -44,68 +46,114 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
             return;
         }
 
-        $this->seedMainMenu($languages, $homePageId, $contactPageId);
-        $this->seedFooterMenu($languages, $homePageId, $contactPageId);
+        $this->seedMainMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId);
+        $this->seedFooterMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId);
     }
 
     /** @param array<string, int> $languages */
-    private function seedMainMenu(array $languages, int $homePageId, int $contactPageId): void
-    {
+    private function seedMainMenu(
+        array $languages,
+        int $homePageId,
+        int $contactPageId,
+        ?int $aboutPageId,
+        ?int $historyPageId
+    ): void {
         $menuId = $this->upsertMenu('main', 'header', [
             'es' => 'Navegación principal',
             'en' => 'Main navigation',
+            'fr' => 'Navigation principale',
+            'pt' => 'Navegação principal',
         ], $languages);
         $keepIds = [];
+        $sortOrder = 1;
 
-        $homeId = $this->addPageItem($menuId, $homePageId, null, 1, [
+        $homeId = $this->addPageItem($menuId, $homePageId, null, $sortOrder++, [
             'es' => 'Inicio',
             'en' => 'Home',
+            'fr' => 'Accueil',
+            'pt' => 'Início',
         ], $languages);
         $this->appendId($keepIds, $homeId);
 
-        $keepIds = array_merge($keepIds, $this->addGroup($menuId, 2, [
-            ['collection_key' => 'obras', 'sort_order' => 1, 'es' => 'Obras', 'en' => 'Works'],
-            ['collection_key' => 'companias', 'sort_order' => 2, 'es' => 'Compañías', 'en' => 'Companies'],
-        ], ['es' => 'Cartelera', 'en' => 'Programación'], $languages));
+        $keepIds = array_merge($keepIds, $this->addPageGroup($menuId, $sortOrder++, [
+            'es' => 'Nosotros',
+            'en' => 'About',
+            'fr' => 'À propos',
+            'pt' => 'Sobre',
+        ], [
+            [
+                'page_id' => $aboutPageId,
+                'sort_order' => 1,
+                'es' => 'Quiénes Somos',
+                'en' => 'About Us',
+                'fr' => 'À propos',
+                'pt' => 'Sobre Nós',
+            ],
+            [
+                'page_id' => $historyPageId,
+                'sort_order' => 2,
+                'es' => 'Historia',
+                'en' => 'History',
+                'fr' => 'Histoire',
+                'pt' => 'História',
+            ],
+        ], $languages));
 
-        $festivalsId = $this->addCollectionItem($menuId, 'festivales', null, 3, [
+        $keepIds = array_merge($keepIds, $this->addGroup($menuId, $sortOrder++, [
+            ['collection_key' => 'obras', 'sort_order' => 1, 'es' => 'Obras', 'en' => 'Works', 'fr' => 'Œuvres', 'pt' => 'Obras'],
+            ['collection_key' => 'companias', 'sort_order' => 2, 'es' => 'Compañías', 'en' => 'Companies', 'fr' => 'Compagnies', 'pt' => 'Companhias'],
+        ], ['es' => 'Cartelera', 'en' => 'Programming', 'fr' => 'Programmation', 'pt' => 'Programação'], $languages));
+
+        $festivalsId = $this->addCollectionItem($menuId, 'festivales', null, $sortOrder++, [
             'es' => 'Festivales',
             'en' => 'Festivals',
+            'fr' => 'Festivals',
+            'pt' => 'Festivais',
         ], $languages);
         $this->appendId($keepIds, $festivalsId);
 
-        $keepIds = array_merge($keepIds, $this->addGroup($menuId, 4, [
-            ['collection_key' => 'exposiciones', 'sort_order' => 1, 'es' => 'Exposiciones', 'en' => 'Exhibitions'],
-            ['collection_key' => 'personas', 'sort_order' => 2, 'es' => 'Personas', 'en' => 'People'],
-        ], ['es' => 'Museo', 'en' => 'Museum'], $languages));
+        $keepIds = array_merge($keepIds, $this->addGroup($menuId, $sortOrder++, [
+            ['collection_key' => 'exposiciones', 'sort_order' => 1, 'es' => 'Exposiciones', 'en' => 'Exhibitions', 'fr' => 'Expositions', 'pt' => 'Exposições'],
+            ['collection_key' => 'personas', 'sort_order' => 2, 'es' => 'Personas', 'en' => 'People', 'fr' => 'Personnes', 'pt' => 'Pessoas'],
+        ], ['es' => 'Museo', 'en' => 'Museum', 'fr' => 'Musée', 'pt' => 'Museu'], $languages));
 
-        $coursesId = $this->addCollectionItem($menuId, 'cursos', null, 5, [
+        $coursesId = $this->addCollectionItem($menuId, 'cursos', null, $sortOrder++, [
             'es' => 'Educación',
             'en' => 'Education',
+            'fr' => 'Éducation',
+            'pt' => 'Educação',
         ], $languages);
         $this->appendId($keepIds, $coursesId);
 
-        $videosId = $this->addCollectionItem($menuId, 'videos', null, 6, [
+        $videosId = $this->addCollectionItem($menuId, 'videos', null, $sortOrder++, [
             'es' => 'Multimedia',
             'en' => 'Media',
+            'fr' => 'Médias',
+            'pt' => 'Mídia',
         ], $languages);
         $this->appendId($keepIds, $videosId);
 
-        $publicationsId = $this->addCollectionItem($menuId, 'publicaciones', null, 7, [
+        $publicationsId = $this->addCollectionItem($menuId, 'publicaciones', null, $sortOrder++, [
             'es' => 'Prensa',
             'en' => 'Press',
+            'fr' => 'Presse',
+            'pt' => 'Imprensa',
         ], $languages);
         $this->appendId($keepIds, $publicationsId);
 
-        $newsId = $this->addCollectionItem($menuId, 'noticias', null, 8, [
+        $newsId = $this->addCollectionItem($menuId, 'noticias', null, $sortOrder++, [
             'es' => 'Noticias',
             'en' => 'News',
+            'fr' => 'Actualités',
+            'pt' => 'Notícias',
         ], $languages);
         $this->appendId($keepIds, $newsId);
 
-        $contactId = $this->addPageItem($menuId, $contactPageId, null, 9, [
+        $contactId = $this->addPageItem($menuId, $contactPageId, null, $sortOrder, [
             'es' => 'Contacto',
             'en' => 'Contact',
+            'fr' => 'Contact',
+            'pt' => 'Contato',
         ], $languages);
         $this->appendId($keepIds, $contactId);
 
@@ -113,38 +161,72 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
     }
 
     /** @param array<string, int> $languages */
-    private function seedFooterMenu(array $languages, int $homePageId, int $contactPageId): void
-    {
+    private function seedFooterMenu(
+        array $languages,
+        int $homePageId,
+        int $contactPageId,
+        ?int $aboutPageId,
+        ?int $historyPageId
+    ): void {
         $menuId = $this->upsertMenu('footer', 'footer', [
             'es' => 'Pie de página',
             'en' => 'Footer navigation',
+            'fr' => 'Navigation de pied de page',
+            'pt' => 'Navegação de rodapé',
         ], $languages);
         $keepIds = [];
+        $sortOrder = 1;
 
-        $homeId = $this->addPageItem($menuId, $homePageId, null, 1, [
+        $homeId = $this->addPageItem($menuId, $homePageId, null, $sortOrder++, [
             'es' => 'Inicio',
             'en' => 'Home',
+            'fr' => 'Accueil',
+            'pt' => 'Início',
         ], $languages);
         $this->appendId($keepIds, $homeId);
 
+        if ($aboutPageId !== null) {
+            $aboutId = $this->addPageItem($menuId, $aboutPageId, null, $sortOrder++, [
+                'es' => 'Quiénes Somos',
+                'en' => 'About Us',
+                'fr' => 'À propos',
+                'pt' => 'Sobre Nós',
+            ], $languages);
+            $this->appendId($keepIds, $aboutId);
+        }
+
+        if ($historyPageId !== null) {
+            $historyId = $this->addPageItem($menuId, $historyPageId, null, $sortOrder++, [
+                'es' => 'Historia',
+                'en' => 'History',
+                'fr' => 'Histoire',
+                'pt' => 'História',
+            ], $languages);
+            $this->appendId($keepIds, $historyId);
+        }
+
         $footerCollections = [
-            ['collection_key' => 'obras', 'es' => 'Obras', 'en' => 'Works'],
-            ['collection_key' => 'festivales', 'es' => 'Festivales', 'en' => 'Festivals'],
-            ['collection_key' => 'exposiciones', 'es' => 'Exposiciones', 'en' => 'Exhibitions'],
-            ['collection_key' => 'cursos', 'es' => 'Educación', 'en' => 'Education'],
-            ['collection_key' => 'videos', 'es' => 'Multimedia', 'en' => 'Media'],
-            ['collection_key' => 'publicaciones', 'es' => 'Prensa', 'en' => 'Press'],
-            ['collection_key' => 'noticias', 'es' => 'Noticias', 'en' => 'News'],
+            ['collection_key' => 'obras', 'es' => 'Obras', 'en' => 'Works', 'fr' => 'Œuvres', 'pt' => 'Obras'],
+            ['collection_key' => 'festivales', 'es' => 'Festivales', 'en' => 'Festivals', 'fr' => 'Festivals', 'pt' => 'Festivais'],
+            ['collection_key' => 'exposiciones', 'es' => 'Exposiciones', 'en' => 'Exhibitions', 'fr' => 'Expositions', 'pt' => 'Exposições'],
+            ['collection_key' => 'cursos', 'es' => 'Educación', 'en' => 'Education', 'fr' => 'Éducation', 'pt' => 'Educação'],
+            ['collection_key' => 'videos', 'es' => 'Multimedia', 'en' => 'Media', 'fr' => 'Médias', 'pt' => 'Mídia'],
+            ['collection_key' => 'publicaciones', 'es' => 'Prensa', 'en' => 'Press', 'fr' => 'Presse', 'pt' => 'Imprensa'],
+            ['collection_key' => 'noticias', 'es' => 'Noticias', 'en' => 'News', 'fr' => 'Actualités', 'pt' => 'Notícias'],
         ];
 
-        $sortOrder = 2;
         foreach ($footerCollections as $definition) {
             $itemId = $this->addCollectionItem(
                 $menuId,
                 $definition['collection_key'],
                 null,
                 $sortOrder,
-                ['es' => $definition['es'], 'en' => $definition['en']],
+                [
+                    'es' => $definition['es'],
+                    'en' => $definition['en'],
+                    'fr' => $definition['fr'],
+                    'pt' => $definition['pt'],
+                ],
                 $languages
             );
             $this->appendId($keepIds, $itemId);
@@ -154,10 +236,59 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         $contactId = $this->addPageItem($menuId, $contactPageId, null, $sortOrder, [
             'es' => 'Contacto',
             'en' => 'Contact',
+            'fr' => 'Contact',
+            'pt' => 'Contato',
         ], $languages);
         $this->appendId($keepIds, $contactId);
 
         $this->pruneMenuItems($menuId, $keepIds);
+    }
+
+    /**
+     * @param array{es: string, en: string, fr: string, pt: string} $translations
+     * @param list<array{page_id: int|null, sort_order: int, es: string, en: string, fr: string, pt: string}> $children
+     * @param array<string, int> $languages
+     * @return list<int>
+     */
+    private function addPageGroup(
+        int $menuId,
+        int $sortOrder,
+        array $translations,
+        array $children,
+        array $languages
+    ): array {
+        $availableChildren = [];
+        foreach ($children as $child) {
+            if (($child['page_id'] ?? null) !== null) {
+                $availableChildren[] = $child;
+            }
+        }
+
+        if ($availableChildren === []) {
+            return [];
+        }
+
+        $groupId = $this->upsertMenuItemNoLink($menuId, null, $sortOrder, $translations, $languages);
+        $keepIds = [$groupId];
+
+        foreach ($availableChildren as $child) {
+            $itemId = $this->addPageItem(
+                $menuId,
+                (int) $child['page_id'],
+                $groupId,
+                (int) $child['sort_order'],
+                [
+                    'es' => $child['es'],
+                    'en' => $child['en'],
+                    'fr' => $child['fr'],
+                    'pt' => $child['pt'],
+                ],
+                $languages
+            );
+            $this->appendId($keepIds, $itemId);
+        }
+
+        return $keepIds;
     }
 
     /**
@@ -249,7 +380,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ], $translations, $languages);
     }
 
-    /** @param array{es: string, en: string} $translations @param array<string, int> $languages */
+    /** @param array{es: string, en: string, fr: string, pt: string} $translations @param array<string, int> $languages */
     private function upsertMenu(string $menuKey, string $location, array $translations, array $languages): int
     {
         $menuId = $this->upsertRecord('cms_menus', ['menu_key' => $menuKey], [
@@ -279,7 +410,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
 
     /**
      * @param array{parent_id: int|null, page_id: int|null, entry_id: int|null, collection_id: int|null, sort_order: int} $references
-     * @param array{es: string, en: string} $translations
+     * @param array{es: string, en: string, fr: string, pt: string} $translations
      * @param array<string, int> $languages
      */
     private function upsertMenuItem(
@@ -326,7 +457,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         return $itemId;
     }
 
-    /** @param array{es: string, en: string} $translations @param array<string, int> $languages */
+    /** @param array{es: string, en: string, fr: string, pt: string} $translations @param array<string, int> $languages */
     private function upsertMenuItemNoLink(
         int $menuId,
         ?int $parentId,
@@ -349,11 +480,28 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         return $itemId;
     }
 
+    /**
+     * @param list<string> $slugs
+     */
+    private function pageIdBySlug(array $slugs): ?int
+    {
+        $row = $this->db->table('cms_pages')
+            ->select('cms_pages.id')
+            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
+            ->where('cms_pages.deleted_at IS NULL', null, false)
+            ->whereIn('cms_page_translations.slug', $slugs)
+            ->orderBy('cms_pages.id', 'ASC')
+            ->get()
+            ->getRowArray();
+
+        return $row !== null ? (int) $row['id'] : null;
+    }
+
     /** @return array<string, int> */
     private function languageIds(): array
     {
         $rows = $this->db->table('cms_languages')
-            ->whereIn('code', ['es', 'en'])
+            ->whereIn('code', ['es', 'en', 'fr', 'pt'])
             ->get()
             ->getResultArray();
         $ids = [];

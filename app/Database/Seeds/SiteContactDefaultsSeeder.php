@@ -13,8 +13,8 @@ class SiteContactDefaultsSeeder extends Seeder
 
     public function run(): void
     {
-        $langIds = $this->langIds(['es', 'en']);
-        if (! isset($langIds['es'], $langIds['en'])) {
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
+        if (! isset($langIds['es'], $langIds['en'], $langIds['fr'], $langIds['pt'])) {
             echo "SiteContactDefaultsSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
@@ -46,7 +46,7 @@ class SiteContactDefaultsSeeder extends Seeder
             ],
             [
                 'setting_key'     => 'contact_site_name',
-                'setting_value'   => 'Mi Sitio',
+                'setting_value'   => 'TeatroMuseo',
                 'setting_type'    => 'string',
                 'setting_group'   => 'contact',
                 'is_translatable' => 1,
@@ -55,12 +55,14 @@ class SiteContactDefaultsSeeder extends Seeder
                 'sort_order'      => 30,
                 'description'     => 'Nombre que aparece en los emails de contacto',
                 'translations'    => [
-                    'en' => 'My Site',
+                    'en' => 'TeatroMuseo',
+                    'fr' => 'TeatroMuseo',
+                    'pt' => 'TeatroMuseo',
                 ],
             ],
             [
                 'setting_key'     => 'contact_autoreply_message',
-                'setting_value'   => 'Gracias por escribirnos. Te responderemos a la brevedad.',
+                'setting_value'   => 'Gracias por escribirnos a TeatroMuseo. Te responderemos a la brevedad.',
                 'setting_type'    => 'string',
                 'setting_group'   => 'contact',
                 'is_translatable' => 1,
@@ -69,7 +71,9 @@ class SiteContactDefaultsSeeder extends Seeder
                 'sort_order'      => 40,
                 'description'     => 'Mensaje automático de respuesta',
                 'translations'    => [
-                    'en' => 'Thank you for contacting us. We will reply as soon as possible.',
+                    'en' => 'Thank you for contacting TeatroMuseo. We will reply as soon as possible.',
+                    'fr' => 'Merci d’avoir contacté TeatroMuseo. Nous vous répondrons dans les plus brefs délais.',
+                    'pt' => 'Obrigado por entrar em contato com o TeatroMuseo. Responderemos o mais breve possível.',
                 ],
             ],
         ];
