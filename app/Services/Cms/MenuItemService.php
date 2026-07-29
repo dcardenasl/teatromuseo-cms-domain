@@ -254,6 +254,10 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
                 }
                 break;
 
+            case 'event_listing':
+                $customUrl = config(\Config\Cms::class)->eventListingPath;
+                break;
+
             case 'entry':
                 if ($item->entry_id !== null) {
                     $customUrl = $this->resolveEntryLink($item->entry_id, $lang, $translationResolver);
@@ -374,6 +378,11 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
                 break;
             case 'collection_listing':
                 if ($collectionId !== null && $pageId === null && $entryId === null) {
+                    $valid = true;
+                }
+                break;
+            case 'event_listing':
+                if ($pageId === null && $entryId === null && $collectionId === null) {
                     $valid = true;
                 }
                 break;

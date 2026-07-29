@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Entities\MenuItemEntity;
+use App\Libraries\Cms\CmsEnums;
 use dcardenasl\Ci4ApiCore\Models\BaseAuditableModel;
 use dcardenasl\Ci4ApiCore\Models\Traits\Filterable;
 use dcardenasl\Ci4ApiCore\Models\Traits\Searchable;
@@ -34,7 +35,8 @@ class MenuItemModel extends BaseAuditableModel
     protected $validationRules = [
         'menu_id' => 'required|integer',
         'parent_id' => 'permit_empty|integer',
-        'link_type' => 'required|in_list[page,entry,collection_listing,custom_url,no_link]',
+        // link_type is completed in the constructor: a property initializer is a
+        // constant expression and cannot call CmsEnums::inListRule().
         'page_id' => 'permit_empty|integer',
         'entry_id' => 'permit_empty|integer',
         'collection_id' => 'permit_empty|integer',
@@ -44,4 +46,12 @@ class MenuItemModel extends BaseAuditableModel
         'sort_order' => 'required|integer',
         'is_active' => 'permit_empty|boolean_like',
     ];
+
+    public function __construct()
+    {
+        parent::__construct();
+        if (is_array($this->validationRules)) {
+            $this->validationRules['link_type'] = 'required|' . CmsEnums::inListRule(CmsEnums::MENU_LINK_TYPES);
+        }
+    }
 }

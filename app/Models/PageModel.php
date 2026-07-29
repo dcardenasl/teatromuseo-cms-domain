@@ -34,7 +34,7 @@ class PageModel extends BaseAuditableModel
     protected $validationRules = [
         'parent_id' => 'permit_empty|is_natural_no_zero',
         'collection_id' => 'permit_empty|is_natural_no_zero',
-        'page_type' => 'required|in_list[home,generic,contact,privacy,terms,404,500,maintenance,collection_index]',
+        'page_type' => 'required|in_list[home,generic,contact,privacy,terms,404,500,maintenance,about,history,events,catalog_listing,collection_index,template_catalog_item,template_event_item]',
         'status' => 'required|in_list[draft,published,archived]',
         'published_at' => 'permit_empty|valid_date',
         'scheduled_at' => 'permit_empty|valid_date',

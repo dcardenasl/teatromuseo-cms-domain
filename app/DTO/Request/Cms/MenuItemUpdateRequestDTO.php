@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\Libraries\Cms\CmsEnums;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use OpenApi\Attributes as OA;
 
@@ -50,7 +51,7 @@ readonly class MenuItemUpdateRequestDTO extends BaseRequestDTO
         return [
             'menu_id'                    => 'permit_empty|integer',
             'parent_id'                  => 'permit_empty|integer',
-            'link_type'                  => 'permit_empty|in_list[page,entry,collection_listing,custom_url,no_link]',
+            'link_type'                  => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::MENU_LINK_TYPES),
             'page_id'                    => 'permit_empty|integer',
             'entry_id'                   => 'permit_empty|integer',
             'collection_id'              => 'permit_empty|integer',

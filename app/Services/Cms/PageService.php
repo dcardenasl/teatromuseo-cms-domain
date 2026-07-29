@@ -69,6 +69,14 @@ class PageService extends BaseCrudService implements PageServiceInterface
         return $this->publicPageReader->showPublic($lang, $slug, $preview);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function showPublicByType(string $lang, string $type): array
+    {
+        return $this->publicPageReader->showPublicByType($lang, $type);
+    }
+
     protected function beforeStore(array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeStore($data, $context);
