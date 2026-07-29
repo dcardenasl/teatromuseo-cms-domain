@@ -64,10 +64,25 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
             $this->block('catalog_item_header', 'Cabecera de ficha de catálogo', 'Catalog item header', 'Cabecera dinámica para la ficha pública del catálogo.', [
                 'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
             ], [], true, false),
+            $this->block('catalog_item_details', 'Detalles de ficha de catálogo', 'Catalog item details', 'Ficha técnica dinámica (técnica, dimensiones, etc) para la ficha pública del catálogo.', [
+                'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
+            ], [], true, false),
+            $this->block('catalog_item_content', 'Contenido de ficha de catálogo', 'Catalog item content', 'Descripción extendida para la ficha pública del catálogo.', [
+                'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
+            ], [], true, false),
             $this->block('catalog_item_gallery', 'Galería de ficha de catálogo', 'Catalog item gallery', 'Galería dinámica para la ficha pública del catálogo.', [
                 'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
             ], [], true, false),
             $this->block('event_item_header', 'Cabecera de evento', 'Event item header', 'Cabecera dinámica para la ficha pública de programación.', [
+                'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
+            ], [], true, false),
+            $this->block('event_item_details', 'Detalles de evento', 'Event item details', 'Ficha técnica dinámica (fechas, lugar, precio, tickets) para la ficha pública de programación.', [
+                'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
+            ], [], true, false),
+            $this->block('event_item_content', 'Contenido de evento', 'Event item content', 'Descripción extendida y sinopsis para la ficha pública de programación.', [
+                'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
+            ], [], true, false),
+            $this->block('event_item_gallery', 'Galería de evento', 'Event item gallery', 'Galería dinámica para la ficha pública de programación.', [
                 'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
             ], [], true, false),
             $this->block('video_ficha', 'Ficha de video', 'Video profile', 'Video de YouTube u otro proveedor con metadatos editoriales.', [
