@@ -154,6 +154,8 @@ $routes->post('public/submissions', '\App\Controllers\Api\V1\Cms\PublicFormSubmi
 $routes->post('public/track', '\App\Controllers\Api\V1\Cms\PublicTrackingController::track', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/settings', '\App\Controllers\Api\V1\Cms\PublicSettingController::index', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/(:segment)/pages', '\App\Controllers\Api\V1\Cms\PublicPageController::index/$1', ['filter' => ['webappkey', 'throttle']]);
+// by-type must register BEFORE the catch-all slug route below, or (.+) swallows it.
+$routes->get('public/(:segment)/pages/by-type/(:segment)', '\App\Controllers\Api\V1\Cms\PublicPageController::byType/$1/$2', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/(:segment)/pages/(.+)', '\App\Controllers\Api\V1\Cms\PublicPageController::show/$1/$2', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/menus/(:segment)', '\App\Controllers\Api\V1\Cms\PublicMenuController::show/$1', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/(:segment)/collections', '\App\Controllers\Api\V1\Cms\PublicCollectionController::index/$1', ['filter' => ['webappkey', 'throttle']]);

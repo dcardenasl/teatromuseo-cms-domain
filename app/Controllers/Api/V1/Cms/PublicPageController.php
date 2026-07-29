@@ -43,6 +43,28 @@ class PublicPageController extends ApiController
     }
 
     /**
+     * Resolve a singleton template page by its page_type. Whitelisted to
+     * template types only — the database enforces one published page per
+     * type via the type_singleton generated column.
+     *
+     * @param string $lang Target language code (e.g. 'es')
+     * @param string $type Template page type (e.g. 'template_catalog_item')
+     */
+    public function byType(string $lang, string $type): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (array $dto, SecurityContext $context) use ($lang, $type): ResponseInterface {
+                $data = $this->pageService->showPublicByType($lang, $type);
+
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'data'   => $data,
+                ])->setStatusCode(200);
+            }
+        );
+    }
+
+    /**
      * Resolve a public page by language and slug.
      *
      * @param string $lang Target language code (e.g. 'es')

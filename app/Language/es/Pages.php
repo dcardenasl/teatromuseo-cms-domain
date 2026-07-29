@@ -56,6 +56,7 @@ return [
     'page_type_about' => 'Nosotros',
     'page_type_history' => 'Historia',
     'page_type_events' => 'Eventos',
+    'page_type_catalog_listing' => 'Colección del museo',
     'page_type_components' => 'Bloques y Componentes',
     'page_type_media' => 'Multimedia',
     'page_type_collection_index' => 'Índice de Colección',
