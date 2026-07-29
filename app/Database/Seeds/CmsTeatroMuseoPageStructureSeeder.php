@@ -77,6 +77,7 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
             }
 
             $this->upsertTemplatePageTranslations($pageId, $definition, $languages);
+            $this->resetPageBlocks($pageId);
             $this->upsertTemplatePageBlocks($pageId, $definition, $languages, $blockIds);
         }
     }
@@ -223,6 +224,7 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
                 'show_excerpt' => 1,
                 'show_date' => 1,
                 'show_button' => 1,
+                'fallback_image_url' => 'https://images.unsplash.com/photo-1544928147-79a2dbc1f389?auto=format&fit=crop&w=600&q=80',
             ], JSON_UNESCAPED_SLASHES),
         ]);
 
@@ -276,6 +278,19 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
             $blockId = $blockIds[$blockKey] ?? null;
             if ($blockId === null) {
                 continue;
+            }
+
+            $blockConfig = [];
+            if ($blockKey === 'catalog_item_header') {
+                $blockConfig['fallback_image_url'] = 'https://images.unsplash.com/photo-1544928147-79a2dbc1f389?auto=format&fit=crop&w=1600&q=80';
+            } elseif ($blockKey === 'event_item_header') {
+                $blockConfig['fallback_image_url'] = 'https://images.unsplash.com/photo-1507676184212-d0330a15183e?auto=format&fit=crop&w=1600&q=80';
+            } elseif (in_array($blockKey, ['catalog_item_gallery', 'event_item_gallery'], true)) {
+                $blockConfig['fallback_gallery_images'] = [
+                    'https://images.unsplash.com/photo-1514306191717-452ec28c7814?auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1478147424096-f60b45700874?auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80',
+                ];
             }
 
             $instanceId = $this->upsertRecord('cms_block_instances', [
