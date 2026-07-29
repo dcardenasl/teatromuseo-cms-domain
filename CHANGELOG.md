@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Public listing page types & menu link targets** — added `events`, `catalog_listing`, `template_catalog_item`, `template_event_item` page types in `CmsEnums` and schema migration `2026-07-28-000002_AlterCmsPagesForPublicListingPageTypes`. Added `target_blank` link target support in `MenuItemModel`, DTOs, and services.
+- **Public page reader API** — implemented `PublicPageReader` service and `/api/v1/cms/public/pages/*` endpoints (`PublicPageController`) for resolving public pages by slug/type and handling site redirects.
+- **Public listing & navigation seeders** — added `CmsTeatroMuseoPublicListingPagesSeeder` and `CmsTeatroMuseoRedirectSeeder` to bootstrap CMS page structures, listing blocks, and redirect rules.
 - **`entry_reference` / `entry_reference_list` block field types** — blocks can now reference
   other published entries (`BlockReferenceValidator`, `EntryReferenceResolver`,
   `EntryRelationSynchronizer`), with semantic relations tracked in `cms_entry_related`.
