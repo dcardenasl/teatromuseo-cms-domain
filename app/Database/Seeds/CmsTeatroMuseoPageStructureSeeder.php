@@ -24,8 +24,13 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
             'page_header',
             'collection_listing',
             'catalog_item_header',
+            'catalog_item_details',
+            'catalog_item_content',
             'catalog_item_gallery',
             'event_item_header',
+            'event_item_details',
+            'event_item_content',
+            'event_item_gallery',
         ]);
 
         if (! isset(
@@ -36,8 +41,13 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
             $blockIds['page_header'],
             $blockIds['collection_listing'],
             $blockIds['catalog_item_header'],
+            $blockIds['catalog_item_details'],
+            $blockIds['catalog_item_content'],
             $blockIds['catalog_item_gallery'],
-            $blockIds['event_item_header']
+            $blockIds['event_item_header'],
+            $blockIds['event_item_details'],
+            $blockIds['event_item_content'],
+            $blockIds['event_item_gallery']
         )) {
             echo "CmsTeatroMuseoPageStructureSeeder: missing languages or block types; skipping.\n";
             return;
@@ -56,6 +66,7 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
             }
 
             $this->upsertPageTranslations($pageId, $definition, $languages);
+            $this->resetPageBlocks($pageId);
             $this->upsertPageBlocks($pageId, $collectionId, $definition, $languages, $blockIds);
         }
 
@@ -276,7 +287,7 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
             ], [
                 'column_index' => null,
                 'is_active' => 1,
-                'block_config' => json_encode(new \stdClass(), JSON_UNESCAPED_SLASHES),
+                'block_config' => json_encode(empty($blockConfig) ? new \stdClass() : $blockConfig, JSON_UNESCAPED_SLASHES),
             ]);
 
             if ($instanceId === null) {
@@ -417,7 +428,7 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
                 'fr_excerpt' => 'Modèle interne pour la fiche publique du catalogue.',
                 'pt_excerpt' => 'Modelo interno para a ficha pública do catálogo.',
                 'sort_order' => 900,
-                'block_keys' => ['catalog_item_header', 'catalog_item_gallery'],
+                'block_keys' => ['catalog_item_header', 'catalog_item_details', 'catalog_item_content', 'catalog_item_gallery'],
             ],
             [
                 'page_type' => 'template_event_item',
@@ -434,7 +445,7 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
                 'fr_excerpt' => 'Modèle interne pour la fiche publique de programmation.',
                 'pt_excerpt' => 'Modelo interno para a ficha pública de programação.',
                 'sort_order' => 910,
-                'block_keys' => ['event_item_header'],
+                'block_keys' => ['event_item_header', 'event_item_details', 'event_item_content', 'event_item_gallery'],
             ],
         ];
     }
