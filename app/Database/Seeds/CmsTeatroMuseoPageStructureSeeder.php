@@ -20,9 +20,25 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
     public function run(): void
     {
         $languages = $this->languageIds();
-        $blockIds = $this->blockIds(['page_header', 'collection_listing']);
+        $blockIds = $this->blockIds([
+            'page_header',
+            'collection_listing',
+            'catalog_item_header',
+            'catalog_item_gallery',
+            'event_item_header',
+        ]);
 
-        if (! isset($languages['es'], $languages['en'], $languages['fr'], $languages['pt'], $blockIds['page_header'], $blockIds['collection_listing'])) {
+        if (! isset(
+            $languages['es'],
+            $languages['en'],
+            $languages['fr'],
+            $languages['pt'],
+            $blockIds['page_header'],
+            $blockIds['collection_listing'],
+            $blockIds['catalog_item_header'],
+            $blockIds['catalog_item_gallery'],
+            $blockIds['event_item_header']
+        )) {
             echo "CmsTeatroMuseoPageStructureSeeder: missing languages or block types; skipping.\n";
             return;
         }
@@ -41,6 +57,16 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
 
             $this->upsertPageTranslations($pageId, $definition, $languages);
             $this->upsertPageBlocks($pageId, $collectionId, $definition, $languages, $blockIds);
+        }
+
+        foreach ($this->templateDefinitions() as $definition) {
+            $pageId = $this->upsertTemplatePage($definition['page_type'], $definition['sort_order']);
+            if ($pageId === null) {
+                continue;
+            }
+
+            $this->upsertTemplatePageTranslations($pageId, $definition, $languages);
+            $this->upsertTemplatePageBlocks($pageId, $definition, $languages, $blockIds);
         }
     }
 
@@ -174,6 +200,7 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
             'column_index' => null,
             'is_active' => 1,
             'block_config' => json_encode([
+                'source_type' => 'cms_collection',
                 'collection_id' => $collectionId,
                 'per_page' => 12,
                 'order_by' => 'published_at',
@@ -223,6 +250,193 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
                 ]);
             }
         }
+    }
+
+    /**
+     * @param array{page_type: string, es_name: string, en_name: string, fr_name: string, pt_name: string, es_slug: string, en_slug: string, fr_slug: string, pt_slug: string, es_excerpt: string, en_excerpt: string, fr_excerpt: string, pt_excerpt: string, sort_order: int, block_keys: list<string>} $definition
+     * @param array<string, int> $languages
+     * @param array<string, int> $blockIds
+     */
+    private function upsertTemplatePageBlocks(int $pageId, array $definition, array $languages, array $blockIds): void
+    {
+        $sortOrder = 1;
+
+        foreach ($definition['block_keys'] as $blockKey) {
+            $blockId = $blockIds[$blockKey] ?? null;
+            if ($blockId === null) {
+                continue;
+            }
+
+            $instanceId = $this->upsertRecord('cms_block_instances', [
+                'block_id' => $blockId,
+                'owner_type' => 'page',
+                'owner_id' => $pageId,
+                'parent_instance_id' => null,
+                'sort_order' => $sortOrder++,
+            ], [
+                'column_index' => null,
+                'is_active' => 1,
+                'block_config' => json_encode(new \stdClass(), JSON_UNESCAPED_SLASHES),
+            ]);
+
+            if ($instanceId === null) {
+                continue;
+            }
+
+            foreach ($languages as $languageCode => $languageId) {
+                $fallbackTitle = match ($languageCode) {
+                    'es' => $definition['es_name'],
+                    'en' => $definition['en_name'],
+                    'fr' => $definition['fr_name'],
+                    'pt' => $definition['pt_name'],
+                    default => $definition['es_name'],
+                };
+
+                $this->upsertRecord('cms_block_instance_translations', [
+                    'instance_id' => $instanceId,
+                    'language_id' => $languageId,
+                ], [
+                    'block_data' => json_encode(['fallback_title' => $fallbackTitle], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'is_published' => 1,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param array{page_type: string, es_name: string, en_name: string, fr_name: string, pt_name: string, es_slug: string, en_slug: string, fr_slug: string, pt_slug: string, es_excerpt: string, en_excerpt: string, fr_excerpt: string, pt_excerpt: string, sort_order: int, block_keys: list<string>} $definition
+     * @param array<string, int> $languages
+     */
+    private function upsertTemplatePageTranslations(int $pageId, array $definition, array $languages): void
+    {
+        $translations = [
+            'es' => [
+                'slug' => $definition['es_slug'],
+                'title' => $definition['es_name'],
+                'excerpt' => $definition['es_excerpt'],
+                'meta_title' => $definition['es_name'],
+                'meta_description' => $definition['es_excerpt'],
+                'canonical_url' => null,
+                'robots' => 'noindex, follow',
+                'schema_data' => null,
+            ],
+            'en' => [
+                'slug' => $definition['en_slug'],
+                'title' => $definition['en_name'],
+                'excerpt' => $definition['en_excerpt'],
+                'meta_title' => $definition['en_name'],
+                'meta_description' => $definition['en_excerpt'],
+                'canonical_url' => null,
+                'robots' => 'noindex, follow',
+                'schema_data' => null,
+            ],
+            'fr' => [
+                'slug' => $definition['fr_slug'],
+                'title' => $definition['fr_name'],
+                'excerpt' => $definition['fr_excerpt'],
+                'meta_title' => $definition['fr_name'],
+                'meta_description' => $definition['fr_excerpt'],
+                'canonical_url' => null,
+                'robots' => 'noindex, follow',
+                'schema_data' => null,
+            ],
+            'pt' => [
+                'slug' => $definition['pt_slug'],
+                'title' => $definition['pt_name'],
+                'excerpt' => $definition['pt_excerpt'],
+                'meta_title' => $definition['pt_name'],
+                'meta_description' => $definition['pt_excerpt'],
+                'canonical_url' => null,
+                'robots' => 'noindex, follow',
+                'schema_data' => null,
+            ],
+        ];
+
+        foreach ($translations as $language => $translation) {
+            $languageId = $languages[$language] ?? null;
+            if ($languageId === null) {
+                continue;
+            }
+
+            $slug = (string) ($translation['slug'] ?? '');
+            if ($slug !== '') {
+                $conflict = $this->db->table('cms_page_translations')
+                    ->where('language_id', $languageId)
+                    ->where('slug', $slug)
+                    ->get()
+                    ->getRowArray();
+
+                if ($conflict !== null && (int) $conflict['page_id'] !== $pageId) {
+                    continue;
+                }
+            }
+
+            $this->upsertRecord('cms_page_translations', [
+                'page_id' => $pageId,
+                'language_id' => $languageId,
+            ], $translation);
+        }
+    }
+
+    private function upsertTemplatePage(string $pageType, int $sortOrder): ?int
+    {
+        return $this->upsertRecord('cms_pages', [
+            'page_type' => $pageType,
+        ], [
+            'parent_id' => null,
+            'collection_id' => null,
+            'status' => 'published',
+            'published_at' => date('Y-m-d H:i:s'),
+            'scheduled_at' => null,
+            'sort_order' => $sortOrder,
+            'sitemap_priority' => '0.0',
+            'sitemap_changefreq' => 'never',
+            'is_in_sitemap' => 0,
+            'deleted_at' => null,
+        ]);
+    }
+
+    /**
+     * @return list<array{page_type: string, es_name: string, en_name: string, fr_name: string, pt_name: string, es_slug: string, en_slug: string, fr_slug: string, pt_slug: string, es_excerpt: string, en_excerpt: string, fr_excerpt: string, pt_excerpt: string, sort_order: int, block_keys: list<string>}>
+     */
+    private function templateDefinitions(): array
+    {
+        return [
+            [
+                'page_type' => 'template_catalog_item',
+                'es_name' => 'Plantilla de ficha de catálogo',
+                'en_name' => 'Catalog item template',
+                'fr_name' => 'Modèle de fiche de catalogue',
+                'pt_name' => 'Modelo de ficha de catálogo',
+                'es_slug' => '__template_catalog_item',
+                'en_slug' => '__template_catalog_item',
+                'fr_slug' => '__template_catalog_item',
+                'pt_slug' => '__template_catalog_item',
+                'es_excerpt' => 'Plantilla interna para la ficha pública del catálogo.',
+                'en_excerpt' => 'Internal template for the public catalog detail page.',
+                'fr_excerpt' => 'Modèle interne pour la fiche publique du catalogue.',
+                'pt_excerpt' => 'Modelo interno para a ficha pública do catálogo.',
+                'sort_order' => 900,
+                'block_keys' => ['catalog_item_header', 'catalog_item_gallery'],
+            ],
+            [
+                'page_type' => 'template_event_item',
+                'es_name' => 'Plantilla de ficha de evento',
+                'en_name' => 'Event item template',
+                'fr_name' => 'Modèle de fiche d’événement',
+                'pt_name' => 'Modelo de ficha de evento',
+                'es_slug' => '__template_event_item',
+                'en_slug' => '__template_event_item',
+                'fr_slug' => '__template_event_item',
+                'pt_slug' => '__template_event_item',
+                'es_excerpt' => 'Plantilla interna para la ficha pública de programación.',
+                'en_excerpt' => 'Internal template for the public event detail page.',
+                'fr_excerpt' => 'Modèle interne pour la fiche publique de programmation.',
+                'pt_excerpt' => 'Modelo interno para a ficha pública de programação.',
+                'sort_order' => 910,
+                'block_keys' => ['event_item_header'],
+            ],
+        ];
     }
 
     /** @return list<array{collection_key: string, es_name: string, en_name: string, es_slug: string, en_slug: string, sort_order: int}> */

@@ -108,6 +108,7 @@ class SiteNewsPageSeeder extends Seeder
             'collection_listing',
             3,
             [
+                'source_type'      => 'cms_collection',
                 'collection_id'    => $collectionId,
                 'per_page'         => 12,
                 'order_by'         => 'published_at',

@@ -229,23 +229,29 @@ class CmsBlockTypeSeeder extends Seeder
             [
                 'block_key'         => 'collection_listing',
                 'name'              => 'Listado de Colección',
-                'description'       => 'Listado público completo de una colección, con filtros, orden, búsqueda y paginación.',
+                'description'       => 'Listado público completo de una colección CMS, catálogo o cartelera externa, con filtros, orden, búsqueda y paginación.',
                 'category'          => 'content',
                 'icon'              => 'list-tree',
                 'schema_definition' => json_encode([
                     'content_source' => [
                         'type'        => 'collection',
                         'label'       => 'Colección',
-                        'description' => 'Listado público de entradas publicadas desde una colección.',
+                        'description' => 'Listado público de entradas publicadas desde una colección o una fuente externa del dominio.',
                     ],
                     'fields' => [
                         'intro_title'      => ['type' => 'string', 'label' => 'Título introductorio',              'required' => false],
                         'intro_text'       => ['type' => 'richtext', 'label' => 'Texto introductorio',            'required' => false],
                         'empty_message'    => ['type' => 'string', 'label' => 'Mensaje cuando no hay contenido', 'required' => false],
+                        'section_label'    => ['type' => 'string', 'label' => 'Etiqueta de sección',             'required' => false],
+                        'item_label'       => ['type' => 'string', 'label' => 'Etiqueta de elemento',            'required' => false],
+                        'featured_item_label' => ['type' => 'string', 'label' => 'Etiqueta de elemento destacado', 'required' => false],
+                        'count_label'      => ['type' => 'string', 'label' => 'Etiqueta de conteo ({count})',    'required' => false],
                         'css_class'        => ['type' => 'string', 'label' => 'Clase CSS',                       'required' => false, 'default' => ''],
                     ],
                     'config_fields' => [
-                        'collection_id'    => ['type' => 'select', 'label' => 'Colección', 'required' => true, 'options' => [], 'default' => ''],
+                        'source_type'      => ['type' => 'select', 'label' => 'Origen del listado', 'required' => true, 'options' => ['cms_collection', 'catalog_items', 'event_items'], 'default' => 'cms_collection'],
+                        'source_path'      => ['type' => 'string', 'label' => 'Ruta pública', 'required' => false, 'default' => ''],
+                        'collection_id'    => ['type' => 'select', 'label' => 'Colección CMS', 'required' => false, 'options' => [], 'default' => ''],
                         'per_page'         => ['type' => 'number', 'label' => 'Elementos por página',      'required' => false, 'default' => 12],
                         'order_by'         => ['type' => 'select', 'label' => 'Ordenar por',               'required' => false, 'options' => ['published_at', 'sort_order', 'created_at', 'title'], 'default' => 'published_at'],
                         'order_direction'  => ['type' => 'select', 'label' => 'Dirección',                 'required' => false, 'options' => ['asc', 'desc'], 'default' => 'desc'],

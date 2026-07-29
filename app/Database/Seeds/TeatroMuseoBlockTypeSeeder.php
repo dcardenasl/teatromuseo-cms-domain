@@ -61,6 +61,15 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
             ], [
                 'featured_media' => ['type' => 'media_reference', 'label' => 'Imagen principal', 'required' => false, 'accept' => 'image'],
             ], false),
+            $this->block('catalog_item_header', 'Cabecera de ficha de catálogo', 'Catalog item header', 'Cabecera dinámica para la ficha pública del catálogo.', [
+                'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
+            ], [], true, false),
+            $this->block('catalog_item_gallery', 'Galería de ficha de catálogo', 'Catalog item gallery', 'Galería dinámica para la ficha pública del catálogo.', [
+                'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
+            ], [], true, false),
+            $this->block('event_item_header', 'Cabecera de evento', 'Event item header', 'Cabecera dinámica para la ficha pública de programación.', [
+                'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
+            ], [], true, false),
             $this->block('video_ficha', 'Ficha de video', 'Video profile', 'Video de YouTube u otro proveedor con metadatos editoriales.', [
                 'provider' => ['type' => 'select', 'label' => 'Proveedor', 'options' => ['youtube', 'vimeo', 'other'], 'required' => true],
                 'video_id' => ['type' => 'string', 'label' => 'ID del video', 'required' => false],
