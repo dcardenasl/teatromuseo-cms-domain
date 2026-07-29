@@ -87,9 +87,13 @@ final class SiteMenuSeederTest extends CIUnitTestCase
         $this->assertNotNull($nosotrosId);
         $this->assertSame(['Quiénes Somos', 'Historia'], $this->menuLabels((int) $mainMenu['id'], 'es', $nosotrosId));
 
+        $carteleraId = $this->menuItemId((int) $mainMenu['id'], 'Cartelera');
+        $this->assertNotNull($carteleraId);
+        $this->assertSame(['Compañías'], $this->menuLabels((int) $mainMenu['id'], 'es', $carteleraId));
+
         $museoId = $this->menuItemId((int) $mainMenu['id'], 'Museo');
         $this->assertNotNull($museoId);
-        $this->assertSame(['Exposiciones', 'Personas'], $this->menuLabels((int) $mainMenu['id'], 'es', $museoId));
+        $this->assertSame(['Colección', 'Exposiciones', 'Personas'], $this->menuLabels((int) $mainMenu['id'], 'es', $museoId));
 
         $footerMenu = $this->db->table('cms_menus')
             ->where('menu_key', 'footer')
@@ -99,10 +103,10 @@ final class SiteMenuSeederTest extends CIUnitTestCase
         $this->assertNotNull($footerMenu);
 
         $expectedFooterLabels = [
-            'es' => ['Inicio', 'Quiénes Somos', 'Historia', 'Obras', 'Festivales', 'Exposiciones', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
-            'en' => ['Home', 'About Us', 'History', 'Works', 'Festivals', 'Exhibitions', 'Education', 'Media', 'Press', 'News', 'Contact'],
-            'fr' => ['Accueil', 'À propos', 'Histoire', 'Œuvres', 'Festivals', 'Expositions', 'Éducation', 'Médias', 'Presse', 'Actualités', 'Contact'],
-            'pt' => ['Início', 'Sobre Nós', 'História', 'Obras', 'Festivais', 'Exposições', 'Educação', 'Mídia', 'Imprensa', 'Notícias', 'Contato'],
+            'es' => ['Inicio', 'Quiénes Somos', 'Historia', 'Cartelera', 'Festivales', 'Exposiciones', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
+            'en' => ['Home', 'About Us', 'History', 'Programming', 'Festivals', 'Exhibitions', 'Education', 'Media', 'Press', 'News', 'Contact'],
+            'fr' => ['Accueil', 'À propos', 'Histoire', 'Programmation', 'Festivals', 'Expositions', 'Éducation', 'Médias', 'Presse', 'Actualités', 'Contact'],
+            'pt' => ['Início', 'Sobre Nós', 'História', 'Programação', 'Festivais', 'Exposições', 'Educação', 'Mídia', 'Imprensa', 'Notícias', 'Contato'],
         ];
 
         foreach ($expectedFooterLabels as $langCode => $expectedLabels) {

@@ -79,7 +79,7 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
             )
         );
 
-        $this->assertSame(27, $this->db->table('cms_pages')->countAllResults());
+        $this->assertSame(31, $this->db->table('cms_pages')->countAllResults());
         $this->assertSame(10, $this->db->table('cms_collections')->countAllResults());
         $this->assertSame(20, $this->db->table('cms_entries')->countAllResults());
 
@@ -141,6 +141,14 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
         $config = json_decode((string) $contactInstance['block_config'], true);
         $this->assertSame('contact', $config['form_key'] ?? null);
 
+        $carteleraPage = $this->pageBySlug(['cartelera']);
+        $this->assertNotNull($carteleraPage);
+        $this->assertSame(['page_header', 'collection_listing'], $this->pageBlockKeys((int) $carteleraPage['id']));
+
+        $museumListingPage = $this->pageBySlug(['museo/coleccion']);
+        $this->assertNotNull($museumListingPage);
+        $this->assertSame(['page_header', 'collection_listing'], $this->pageBlockKeys((int) $museumListingPage['id']));
+
         $mainMenu = $this->db->table('cms_menus')
             ->where('menu_key', 'main')
             ->get()
@@ -157,7 +165,7 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
             ->getRowArray();
         $this->assertNotNull($footerMenu);
         $this->assertSame(
-            ['Inicio', 'Quiénes Somos', 'Historia', 'Obras', 'Festivales', 'Exposiciones', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
+            ['Inicio', 'Quiénes Somos', 'Historia', 'Cartelera', 'Festivales', 'Exposiciones', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
             $this->menuLabels((int) $footerMenu['id'], 'es', null)
         );
 
@@ -175,6 +183,14 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
         $historyPage = $this->pageBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
         $this->assertNotNull($historyPage);
         $this->assertSame(['page_header', 'rich_text', 'image', 'timeline', 'metrics_grid', 'cta'], $this->pageBlockKeys((int) $historyPage['id']));
+
+        $catalogTemplatePage = $this->pageBySlug(['__template_catalog_item']);
+        $this->assertNotNull($catalogTemplatePage);
+        $this->assertSame(['catalog_item_header', 'catalog_item_gallery'], $this->pageBlockKeys((int) $catalogTemplatePage['id']));
+
+        $eventTemplatePage = $this->pageBySlug(['__template_event_item']);
+        $this->assertNotNull($eventTemplatePage);
+        $this->assertSame(['event_item_header'], $this->pageBlockKeys((int) $eventTemplatePage['id']));
     }
 
     public function testEditorialCollectionsExposeOptionalMediaBlocksWithoutAutoCreatingThem(): void

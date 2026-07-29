@@ -77,7 +77,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         );
         $this->assertSame(['es', 'en', 'fr', 'pt'], $languageCodes);
 
-        $this->assertSame(27, $this->db->table('cms_pages')->countAllResults());
+        $this->assertSame(31, $this->db->table('cms_pages')->countAllResults());
         $this->assertSame(10, $this->db->table('cms_collections')->countAllResults());
         $this->assertSame(20, $this->db->table('cms_entries')->countAllResults());
         $this->assertCount(3, $this->db->table('cms_menus')->whereIn('menu_key', ['main', 'footer', 'legal'])->get()->getResultArray());
@@ -160,6 +160,30 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $this->assertNotNull($historyPage);
         $this->assertSame(['historia', 'history', 'histoire', 'nossa-historia'], $this->pageTranslationSlugs((int) $historyPage['id']));
         $this->assertSame(['page_header', 'rich_text', 'image', 'timeline', 'metrics_grid', 'cta'], $this->pageBlockKeys((int) $historyPage['id']));
+
+        $catalogTemplatePage = $this->pageBySlug(['__template_catalog_item']);
+        $this->assertNotNull($catalogTemplatePage);
+        $this->assertSame(
+            ['__template_catalog_item', '__template_catalog_item', '__template_catalog_item', '__template_catalog_item'],
+            $this->pageTranslationSlugs((int) $catalogTemplatePage['id'])
+        );
+        $this->assertSame(['catalog_item_header', 'catalog_item_gallery'], $this->pageBlockKeys((int) $catalogTemplatePage['id']));
+
+        $eventTemplatePage = $this->pageBySlug(['__template_event_item']);
+        $this->assertNotNull($eventTemplatePage);
+        $this->assertSame(
+            ['__template_event_item', '__template_event_item', '__template_event_item', '__template_event_item'],
+            $this->pageTranslationSlugs((int) $eventTemplatePage['id'])
+        );
+        $this->assertSame(['event_item_header'], $this->pageBlockKeys((int) $eventTemplatePage['id']));
+
+        $carteleraPage = $this->pageBySlug(['cartelera']);
+        $this->assertNotNull($carteleraPage);
+        $this->assertSame(['page_header', 'collection_listing'], $this->pageBlockKeys((int) $carteleraPage['id']));
+
+        $museumListingPage = $this->pageBySlug(['museo/coleccion']);
+        $this->assertNotNull($museumListingPage);
+        $this->assertSame(['page_header', 'collection_listing'], $this->pageBlockKeys((int) $museumListingPage['id']));
 
         foreach ([
             ['aviso-legal', 'legal-notice', 'mentions-legales', 'aviso-juridico'],

@@ -165,6 +165,18 @@ final class MenuItemServiceTest extends CIUnitTestCase
         $this->assertSame('/blog', $url);
     }
 
+    public function testResolveLinkForEventListing(): void
+    {
+        $item = new MenuItemEntity([
+            'id'        => 33,
+            'link_type' => 'event_listing',
+        ]);
+
+        $url = $this->service->resolveLink($item, 'es');
+
+        $this->assertSame('/cartelera', $url);
+    }
+
     public function testResolveLinkForEntry(): void
     {
         $item = new MenuItemEntity([

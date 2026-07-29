@@ -274,6 +274,34 @@ final class PublicMenuControllerTest extends CIUnitTestCase
         $this->assertSame('/' . $collectionSlug . '/' . $entrySlug, $body['data']['items'][1]['custom_url']);
     }
 
+    public function testGetPublicMenuResolvesEventListingItems(): void
+    {
+        $this->db->table('cms_menu_items')->insert([
+            'menu_id' => $this->menuId,
+            'link_type' => 'event_listing',
+            'link_target' => '_self',
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $menuItemId = $this->db->insertID();
+
+        $label = $this->fixtureText('event-item');
+        $this->db->table('cms_menu_item_translations')->insert([
+            'menu_item_id' => $menuItemId,
+            'language_id' => $this->langPrimaryId,
+            'label' => $label,
+        ]);
+
+        $result = $this->withHeaders(['Accept-Language' => $this->primaryCode, ...$this->webAppKeyHeader()])
+            ->get('/api/v1/public/menus/' . $this->menuKey);
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+
+        $this->assertSame($label, $body['data']['items'][0]['label']);
+        $this->assertSame('/cartelera', $body['data']['items'][0]['custom_url']);
+    }
+
     public function testGetPublicMenuHomePagePointsToLocalizedRoot(): void
     {
         $this->db->table('cms_pages')->insert([
