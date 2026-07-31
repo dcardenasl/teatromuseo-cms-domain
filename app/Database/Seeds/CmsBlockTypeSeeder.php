@@ -266,6 +266,7 @@ class CmsBlockTypeSeeder extends Seeder
                         'show_extra_richtext' => ['type' => 'boolean', 'label' => 'Mostrar texto adicional', 'required' => false, 'default' => false],
                         'show_extra_link'  => ['type' => 'boolean', 'label' => 'Mostrar enlace adicional',   'required' => false, 'default' => false],
                         'show_extra_image' => ['type' => 'boolean', 'label' => 'Mostrar imagen adicional',   'required' => false, 'default' => false],
+                        'fallback_image_url' => ['type' => 'string', 'label' => 'Imagen de respaldo (URL)', 'required' => false, 'default' => ''],
                         'css_class'        => ['type' => 'string', 'label' => 'Clase CSS',                 'required' => false, 'default' => ''],
                     ],
                 ]),

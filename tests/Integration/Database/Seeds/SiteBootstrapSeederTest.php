@@ -167,7 +167,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
             ['__template_catalog_item', '__template_catalog_item', '__template_catalog_item', '__template_catalog_item'],
             $this->pageTranslationSlugs((int) $catalogTemplatePage['id'])
         );
-        $this->assertSame(['catalog_item_header', 'catalog_item_gallery'], $this->pageBlockKeys((int) $catalogTemplatePage['id']));
+        $this->assertSame(['catalog_item_header', 'catalog_item_details', 'catalog_item_content', 'catalog_item_gallery'], $this->pageBlockKeys((int) $catalogTemplatePage['id']));
 
         $eventTemplatePage = $this->pageBySlug(['__template_event_item']);
         $this->assertNotNull($eventTemplatePage);
@@ -175,7 +175,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
             ['__template_event_item', '__template_event_item', '__template_event_item', '__template_event_item'],
             $this->pageTranslationSlugs((int) $eventTemplatePage['id'])
         );
-        $this->assertSame(['event_item_header'], $this->pageBlockKeys((int) $eventTemplatePage['id']));
+        $this->assertSame(['event_item_header', 'event_item_details', 'event_item_content', 'event_item_gallery'], $this->pageBlockKeys((int) $eventTemplatePage['id']));
 
         $carteleraPage = $this->pageBySlug(['cartelera']);
         $this->assertNotNull($carteleraPage);
