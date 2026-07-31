@@ -42,38 +42,39 @@ readonly class MenuUpdateRequestDTO extends BaseRequestDTO
     }
 
     /**
+     * NOT NULL columns (menu_key, location, is_active — cms_menus has no
+     * nullable columns of its own) never accept an explicit null —
+     * treated the same as omitting the field, matching the DB constraint.
+     * The bug this fixes is array_filter() (used elsewhere in this DTO
+     * family) silently dropping every null, which made it impossible to
+     * ever clear a nullable field via update; this file already used
+     * array_key_exists() to distinguish "provided" from "omitted", it is
+     * only restructured here (if/else -> single ternary per property) for
+     * consistency with the rest of the *UpdateRequestDTO family.
+     *
      * @param array<string, mixed> $data
      */
     protected function map(array $data): void
     {
+        $this->menu_key = array_key_exists('menu_key', $data) && $data['menu_key'] !== null ? (string) $data['menu_key'] : null;
+        $this->location = array_key_exists('location', $data) && $data['location'] !== null ? (string) $data['location'] : null;
+        $this->is_active = array_key_exists('is_active', $data) && $data['is_active'] !== null ? (bool) $data['is_active'] : null;
+        $this->translations = array_key_exists('translations', $data)
+            ? $this->normalizeTranslations((array) $data['translations'])
+            : null;
+
         $mappedFields = [];
-
-        if (array_key_exists('menu_key', $data)) {
-            $this->menu_key = (string) $data['menu_key'];
+        if ($this->menu_key !== null) {
             $mappedFields['menu_key'] = $this->menu_key;
-        } else {
-            $this->menu_key = null;
         }
-
-        if (array_key_exists('location', $data)) {
-            $this->location = (string) $data['location'];
+        if ($this->location !== null) {
             $mappedFields['location'] = $this->location;
-        } else {
-            $this->location = null;
         }
-
-        if (array_key_exists('is_active', $data)) {
-            $this->is_active = (bool) $data['is_active'];
+        if ($this->is_active !== null) {
             $mappedFields['is_active'] = $this->is_active;
-        } else {
-            $this->is_active = null;
         }
-
-        if (array_key_exists('translations', $data)) {
-            $this->translations = $this->normalizeTranslations((array) $data['translations']);
+        if ($this->translations !== null) {
             $mappedFields['translations'] = $this->translations;
-        } else {
-            $this->translations = null;
         }
 
         $this->mappedFields = $mappedFields;

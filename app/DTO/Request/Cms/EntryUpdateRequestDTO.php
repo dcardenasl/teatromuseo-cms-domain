@@ -40,6 +40,9 @@ readonly class EntryUpdateRequestDTO extends BaseRequestDTO
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'), nullable: true)]
     public ?array $translations;
 
+    /** @var array<string, mixed> */
+    private array $mappedFields;
+
     /**
      * @return array<string, string>
      */
@@ -77,22 +80,71 @@ readonly class EntryUpdateRequestDTO extends BaseRequestDTO
     }
 
     /**
+     * NOT NULL columns (collection_id, workflow_status, is_featured,
+     * view_count, sort_order, is_in_sitemap) never accept an explicit
+     * null — treated the same as omitting the field, matching the DB
+     * constraint. Nullable columns (author_id, published_at, scheduled_at,
+     * sitemap_priority, sitemap_changefreq) preserve an explicit null so it
+     * reaches toArray() and actually clears the column — the bug this
+     * fixes is array_filter() silently dropping every null, which made it
+     * impossible to ever clear a nullable field via update.
+     *
      * @param array<string, mixed> $data
      */
     protected function map(array $data): void
     {
-        $this->collection_id = isset($data['collection_id']) ? (int) $data['collection_id'] : null;
-        $this->author_id = isset($data['author_id']) ? (int) $data['author_id'] : null;
-        $this->workflow_status = $data['workflow_status'] ?? null;
-        $this->published_at = $data['published_at'] ?? null;
-        $this->scheduled_at = $data['scheduled_at'] ?? null;
-        $this->is_featured = isset($data['is_featured']) ? (bool) $data['is_featured'] : null;
-        $this->view_count = isset($data['view_count']) ? (int) $data['view_count'] : null;
-        $this->sort_order = isset($data['sort_order']) ? (int) $data['sort_order'] : null;
-        $this->sitemap_priority = isset($data['sitemap_priority']) ? (float) $data['sitemap_priority'] : null;
-        $this->sitemap_changefreq = $data['sitemap_changefreq'] ?? null;
-        $this->is_in_sitemap = isset($data['is_in_sitemap']) ? (bool) $data['is_in_sitemap'] : null;
-        $this->translations = $data['translations'] ?? null;
+        $this->collection_id = array_key_exists('collection_id', $data) && $data['collection_id'] !== null && $data['collection_id'] !== '' ? (int) $data['collection_id'] : null;
+        $this->author_id = array_key_exists('author_id', $data) && $data['author_id'] !== null && $data['author_id'] !== '' ? (int) $data['author_id'] : null;
+        $this->workflow_status = array_key_exists('workflow_status', $data) && $data['workflow_status'] !== null ? (string) $data['workflow_status'] : null;
+        $this->published_at = array_key_exists('published_at', $data) && $data['published_at'] !== null && $data['published_at'] !== '' ? (string) $data['published_at'] : null;
+        $this->scheduled_at = array_key_exists('scheduled_at', $data) && $data['scheduled_at'] !== null && $data['scheduled_at'] !== '' ? (string) $data['scheduled_at'] : null;
+        $this->is_featured = array_key_exists('is_featured', $data) && $data['is_featured'] !== null ? (bool) $data['is_featured'] : null;
+        $this->view_count = array_key_exists('view_count', $data) && $data['view_count'] !== null && $data['view_count'] !== '' ? (int) $data['view_count'] : null;
+        $this->sort_order = array_key_exists('sort_order', $data) && $data['sort_order'] !== null && $data['sort_order'] !== '' ? (int) $data['sort_order'] : null;
+        $this->sitemap_priority = array_key_exists('sitemap_priority', $data) && $data['sitemap_priority'] !== null && $data['sitemap_priority'] !== '' ? (float) $data['sitemap_priority'] : null;
+        $this->sitemap_changefreq = array_key_exists('sitemap_changefreq', $data) && $data['sitemap_changefreq'] !== null && $data['sitemap_changefreq'] !== '' ? (string) $data['sitemap_changefreq'] : null;
+        $this->is_in_sitemap = array_key_exists('is_in_sitemap', $data) && $data['is_in_sitemap'] !== null ? (bool) $data['is_in_sitemap'] : null;
+        $this->translations = array_key_exists('translations', $data) ? $data['translations'] : null;
+
+        $mappedFields = [];
+        if ($this->collection_id !== null) {
+            $mappedFields['collection_id'] = $this->collection_id;
+        }
+        if (array_key_exists('author_id', $data)) {
+            $mappedFields['author_id'] = $this->author_id;
+        }
+        if ($this->workflow_status !== null) {
+            $mappedFields['workflow_status'] = $this->workflow_status;
+        }
+        if (array_key_exists('published_at', $data)) {
+            $mappedFields['published_at'] = $this->published_at;
+        }
+        if (array_key_exists('scheduled_at', $data)) {
+            $mappedFields['scheduled_at'] = $this->scheduled_at;
+        }
+        if ($this->is_featured !== null) {
+            $mappedFields['is_featured'] = $this->is_featured;
+        }
+        if ($this->view_count !== null) {
+            $mappedFields['view_count'] = $this->view_count;
+        }
+        if ($this->sort_order !== null) {
+            $mappedFields['sort_order'] = $this->sort_order;
+        }
+        if (array_key_exists('sitemap_priority', $data)) {
+            $mappedFields['sitemap_priority'] = $this->sitemap_priority;
+        }
+        if (array_key_exists('sitemap_changefreq', $data)) {
+            $mappedFields['sitemap_changefreq'] = $this->sitemap_changefreq;
+        }
+        if ($this->is_in_sitemap !== null) {
+            $mappedFields['is_in_sitemap'] = $this->is_in_sitemap;
+        }
+        if ($this->translations !== null) {
+            $mappedFields['translations'] = $this->translations;
+        }
+
+        $this->mappedFields = $mappedFields;
     }
 
     /**
@@ -100,21 +152,6 @@ readonly class EntryUpdateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        $result = [
-            'collection_id' => $this->collection_id,
-            'author_id' => $this->author_id,
-            'workflow_status' => $this->workflow_status,
-            'published_at' => $this->published_at,
-            'scheduled_at' => $this->scheduled_at,
-            'is_featured' => $this->is_featured,
-            'view_count' => $this->view_count,
-            'sort_order' => $this->sort_order,
-            'sitemap_priority' => $this->sitemap_priority,
-            'sitemap_changefreq' => $this->sitemap_changefreq,
-            'is_in_sitemap' => $this->is_in_sitemap,
-            'translations' => $this->translations,
-        ];
-
-        return array_filter($result, static fn (mixed $value): bool => $value !== null);
+        return $this->mappedFields;
     }
 }

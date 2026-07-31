@@ -23,6 +23,9 @@ readonly class CategoryUpdateRequestDTO extends BaseRequestDTO
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'))]
     public ?array $translations;
 
+    /** @var array<string, mixed> */
+    private array $mappedFields;
+
     /**
      * @return array<string, string>
      */
@@ -38,15 +41,42 @@ readonly class CategoryUpdateRequestDTO extends BaseRequestDTO
     }
 
     /**
+     * NOT NULL columns (collection_id, sort_order, is_active) never
+     * accept an explicit null — treated the same as omitting the field,
+     * matching the DB constraint. The nullable column (parent_id)
+     * preserves an explicit null so it reaches toArray() and actually
+     * clears the column — the bug this fixes is array_filter() silently
+     * dropping every null, which made it impossible to ever clear a
+     * nullable field via update.
+     *
      * @param array<string, mixed> $data
      */
     protected function map(array $data): void
     {
-        $this->collection_id = isset($data['collection_id']) ? (int) $data['collection_id'] : null;
-        $this->parent_id = isset($data['parent_id']) ? (int) $data['parent_id'] : null;
-        $this->sort_order = isset($data['sort_order']) ? (int) $data['sort_order'] : null;
-        $this->is_active = isset($data['is_active']) ? (bool) $data['is_active'] : null;
-        $this->translations = $data['translations'] ?? null;
+        $this->collection_id = array_key_exists('collection_id', $data) && $data['collection_id'] !== null && $data['collection_id'] !== '' ? (int) $data['collection_id'] : null;
+        $this->parent_id = array_key_exists('parent_id', $data) && $data['parent_id'] !== null && $data['parent_id'] !== '' ? (int) $data['parent_id'] : null;
+        $this->sort_order = array_key_exists('sort_order', $data) && $data['sort_order'] !== null && $data['sort_order'] !== '' ? (int) $data['sort_order'] : null;
+        $this->is_active = array_key_exists('is_active', $data) && $data['is_active'] !== null ? (bool) $data['is_active'] : null;
+        $this->translations = array_key_exists('translations', $data) ? $data['translations'] : null;
+
+        $mappedFields = [];
+        if ($this->collection_id !== null) {
+            $mappedFields['collection_id'] = $this->collection_id;
+        }
+        if (array_key_exists('parent_id', $data)) {
+            $mappedFields['parent_id'] = $this->parent_id;
+        }
+        if ($this->sort_order !== null) {
+            $mappedFields['sort_order'] = $this->sort_order;
+        }
+        if ($this->is_active !== null) {
+            $mappedFields['is_active'] = $this->is_active;
+        }
+        if ($this->translations !== null) {
+            $mappedFields['translations'] = $this->translations;
+        }
+
+        $this->mappedFields = $mappedFields;
     }
 
     /**
@@ -54,17 +84,6 @@ readonly class CategoryUpdateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        $result = array_filter([
-            'collection_id' => $this->collection_id,
-            'parent_id' => $this->parent_id,
-            'sort_order' => $this->sort_order,
-            'is_active' => $this->is_active,
-        ], static fn (mixed $value): bool => $value !== null);
-
-        if ($this->translations !== null) {
-            $result['translations'] = $this->translations;
-        }
-
-        return $result;
+        return $this->mappedFields;
     }
 }

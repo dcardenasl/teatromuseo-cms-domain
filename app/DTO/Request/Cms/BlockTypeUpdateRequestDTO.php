@@ -34,6 +34,9 @@ readonly class BlockTypeUpdateRequestDTO extends BaseRequestDTO
     #[OA\Property(description: 'sort_order', type: 'integer', nullable: true)]
     public ?int $sort_order;
 
+    /** @var array<string, mixed> */
+    private array $mappedFields;
+
     /**
      * @return array<string, string>
      */
@@ -55,21 +58,67 @@ readonly class BlockTypeUpdateRequestDTO extends BaseRequestDTO
     }
 
     /**
+     * NOT NULL columns (block_key, name, category, schema_definition,
+     * supports_pages, supports_entries, is_container, is_active, sort_order)
+     * never accept an explicit null — treated the same as omitting the
+     * field, matching the DB constraint. Nullable columns (description,
+     * icon) preserve an explicit null so it reaches toArray() and actually
+     * clears the column — the bug this fixes is array_filter() silently
+     * dropping every null, which made it impossible to ever clear a
+     * nullable field via update.
+     *
      * @param array<string, mixed> $data
      */
     protected function map(array $data): void
     {
-        $this->block_key = $data['block_key'] ?? null;
-        $this->name = $data['name'] ?? null;
-        $this->description = $data['description'] ?? null;
-        $this->category = $data['category'] ?? null;
-        $this->icon = $data['icon'] ?? null;
-        $this->schema_definition = isset($data['schema_definition']) ? (array) $data['schema_definition'] : null;
-        $this->supports_pages = isset($data['supports_pages']) ? (bool) $data['supports_pages'] : null;
-        $this->supports_entries = isset($data['supports_entries']) ? (bool) $data['supports_entries'] : null;
-        $this->is_container = isset($data['is_container']) ? (bool) $data['is_container'] : null;
-        $this->is_active = isset($data['is_active']) ? (bool) $data['is_active'] : null;
-        $this->sort_order = isset($data['sort_order']) ? (int) $data['sort_order'] : null;
+        $this->block_key = array_key_exists('block_key', $data) && $data['block_key'] !== null ? (string) $data['block_key'] : null;
+        $this->name = array_key_exists('name', $data) && $data['name'] !== null ? (string) $data['name'] : null;
+        $this->description = array_key_exists('description', $data) && $data['description'] !== null && $data['description'] !== '' ? (string) $data['description'] : null;
+        $this->category = array_key_exists('category', $data) && $data['category'] !== null ? (string) $data['category'] : null;
+        $this->icon = array_key_exists('icon', $data) && $data['icon'] !== null && $data['icon'] !== '' ? (string) $data['icon'] : null;
+        $this->schema_definition = array_key_exists('schema_definition', $data) && $data['schema_definition'] !== null ? (array) $data['schema_definition'] : null;
+        $this->supports_pages = array_key_exists('supports_pages', $data) && $data['supports_pages'] !== null ? (bool) $data['supports_pages'] : null;
+        $this->supports_entries = array_key_exists('supports_entries', $data) && $data['supports_entries'] !== null ? (bool) $data['supports_entries'] : null;
+        $this->is_container = array_key_exists('is_container', $data) && $data['is_container'] !== null ? (bool) $data['is_container'] : null;
+        $this->is_active = array_key_exists('is_active', $data) && $data['is_active'] !== null ? (bool) $data['is_active'] : null;
+        $this->sort_order = array_key_exists('sort_order', $data) && $data['sort_order'] !== null && $data['sort_order'] !== '' ? (int) $data['sort_order'] : null;
+
+        $mappedFields = [];
+        if ($this->block_key !== null) {
+            $mappedFields['block_key'] = $this->block_key;
+        }
+        if ($this->name !== null) {
+            $mappedFields['name'] = $this->name;
+        }
+        if (array_key_exists('description', $data)) {
+            $mappedFields['description'] = $this->description;
+        }
+        if ($this->category !== null) {
+            $mappedFields['category'] = $this->category;
+        }
+        if (array_key_exists('icon', $data)) {
+            $mappedFields['icon'] = $this->icon;
+        }
+        if ($this->schema_definition !== null) {
+            $mappedFields['schema_definition'] = $this->schema_definition;
+        }
+        if ($this->supports_pages !== null) {
+            $mappedFields['supports_pages'] = $this->supports_pages;
+        }
+        if ($this->supports_entries !== null) {
+            $mappedFields['supports_entries'] = $this->supports_entries;
+        }
+        if ($this->is_container !== null) {
+            $mappedFields['is_container'] = $this->is_container;
+        }
+        if ($this->is_active !== null) {
+            $mappedFields['is_active'] = $this->is_active;
+        }
+        if ($this->sort_order !== null) {
+            $mappedFields['sort_order'] = $this->sort_order;
+        }
+
+        $this->mappedFields = $mappedFields;
     }
 
     /**
@@ -77,18 +126,6 @@ readonly class BlockTypeUpdateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        return array_filter([
-            'block_key' => $this->block_key,
-            'name' => $this->name,
-            'description' => $this->description,
-            'category' => $this->category,
-            'icon' => $this->icon,
-            'schema_definition' => $this->schema_definition,
-            'supports_pages' => $this->supports_pages,
-            'supports_entries' => $this->supports_entries,
-            'is_container' => $this->is_container,
-            'is_active' => $this->is_active,
-            'sort_order' => $this->sort_order,
-        ], static fn (mixed $value): bool => $value !== null);
+        return $this->mappedFields;
     }
 }
