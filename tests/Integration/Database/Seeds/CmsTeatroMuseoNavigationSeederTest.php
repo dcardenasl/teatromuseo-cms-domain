@@ -10,7 +10,7 @@ use CodeIgniter\Test\DatabaseTestTrait;
 /**
  * @internal
  */
-final class SiteMenuSeederTest extends CIUnitTestCase
+final class CmsTeatroMuseoNavigationSeederTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
 
@@ -72,11 +72,13 @@ final class SiteMenuSeederTest extends CIUnitTestCase
 
         $this->assertNotNull($mainMenu);
 
+        // Grouped 2026-07-31: 10 flat top-level entries -> 7 entries behind
+        // 4 dropdowns (Nosotros, Programación, Museo, Prensa y Medios).
         $expectedMainLabels = [
-            'es' => ['Inicio', 'Nosotros', 'Cartelera', 'Festivales', 'Museo', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
-            'en' => ['Home', 'About', 'Programming', 'Festivals', 'Museum', 'Education', 'Media', 'Press', 'News', 'Contact'],
-            'fr' => ['Accueil', 'À propos', 'Programmation', 'Festivals', 'Musée', 'Éducation', 'Médias', 'Presse', 'Actualités', 'Contact'],
-            'pt' => ['Início', 'Sobre', 'Programação', 'Festivais', 'Museu', 'Educação', 'Mídia', 'Imprensa', 'Notícias', 'Contato'],
+            'es' => ['Inicio', 'Nosotros', 'Programación', 'Museo', 'Educación', 'Prensa y Medios', 'Contacto'],
+            'en' => ['Home', 'About', 'Programming', 'Museum', 'Education', 'Press & Media', 'Contact'],
+            'fr' => ['Accueil', 'À propos', 'Programmation', 'Musée', 'Éducation', 'Presse et Médias', 'Contact'],
+            'pt' => ['Início', 'Sobre', 'Programação', 'Museu', 'Educação', 'Imprensa e Mídia', 'Contato'],
         ];
 
         foreach ($expectedMainLabels as $langCode => $expectedLabels) {
@@ -87,13 +89,17 @@ final class SiteMenuSeederTest extends CIUnitTestCase
         $this->assertNotNull($nosotrosId);
         $this->assertSame(['Quiénes Somos', 'Historia'], $this->menuLabels((int) $mainMenu['id'], 'es', $nosotrosId));
 
-        $carteleraId = $this->menuItemId((int) $mainMenu['id'], 'Cartelera');
-        $this->assertNotNull($carteleraId);
-        $this->assertSame(['Compañías'], $this->menuLabels((int) $mainMenu['id'], 'es', $carteleraId));
+        $programacionId = $this->menuItemId((int) $mainMenu['id'], 'Programación');
+        $this->assertNotNull($programacionId);
+        $this->assertSame(['Cartelera', 'Festivales', 'Compañías'], $this->menuLabels((int) $mainMenu['id'], 'es', $programacionId));
 
         $museoId = $this->menuItemId((int) $mainMenu['id'], 'Museo');
         $this->assertNotNull($museoId);
         $this->assertSame(['Colección', 'Exposiciones', 'Personas'], $this->menuLabels((int) $mainMenu['id'], 'es', $museoId));
+
+        $prensaId = $this->menuItemId((int) $mainMenu['id'], 'Prensa y Medios');
+        $this->assertNotNull($prensaId);
+        $this->assertSame(['Noticias', 'Multimedia', 'Prensa'], $this->menuLabels((int) $mainMenu['id'], 'es', $prensaId));
 
         $footerMenu = $this->db->table('cms_menus')
             ->where('menu_key', 'footer')
@@ -102,16 +108,30 @@ final class SiteMenuSeederTest extends CIUnitTestCase
 
         $this->assertNotNull($footerMenu);
 
+        // Grouped 2026-07-31: flat 11-item list -> 3 labeled columns
+        // (Explora, Institución, Prensa y Medios).
         $expectedFooterLabels = [
-            'es' => ['Inicio', 'Quiénes Somos', 'Historia', 'Cartelera', 'Festivales', 'Exposiciones', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
-            'en' => ['Home', 'About Us', 'History', 'Programming', 'Festivals', 'Exhibitions', 'Education', 'Media', 'Press', 'News', 'Contact'],
-            'fr' => ['Accueil', 'À propos', 'Histoire', 'Programmation', 'Festivals', 'Expositions', 'Éducation', 'Médias', 'Presse', 'Actualités', 'Contact'],
-            'pt' => ['Início', 'Sobre Nós', 'História', 'Programação', 'Festivais', 'Exposições', 'Educação', 'Mídia', 'Imprensa', 'Notícias', 'Contato'],
+            'es' => ['Explora', 'Institución', 'Prensa y Medios'],
+            'en' => ['Explore', 'Institution', 'Press & Media'],
+            'fr' => ['Explorer', 'Institution', 'Presse et Médias'],
+            'pt' => ['Explorar', 'Instituição', 'Imprensa e Mídia'],
         ];
 
         foreach ($expectedFooterLabels as $langCode => $expectedLabels) {
             $this->assertSame($expectedLabels, $this->menuLabels((int) $footerMenu['id'], $langCode, null));
         }
+
+        $exploreId = $this->menuItemId((int) $footerMenu['id'], 'Explora');
+        $this->assertNotNull($exploreId);
+        $this->assertSame(['Inicio', 'Cartelera', 'Festivales', 'Colección del Museo'], $this->menuLabels((int) $footerMenu['id'], 'es', $exploreId));
+
+        $institucionId = $this->menuItemId((int) $footerMenu['id'], 'Institución');
+        $this->assertNotNull($institucionId);
+        $this->assertSame(['Quiénes Somos', 'Historia', 'Educación', 'Contacto'], $this->menuLabels((int) $footerMenu['id'], 'es', $institucionId));
+
+        $footerPrensaId = $this->menuItemId((int) $footerMenu['id'], 'Prensa y Medios');
+        $this->assertNotNull($footerPrensaId);
+        $this->assertSame(['Noticias', 'Multimedia', 'Prensa'], $this->menuLabels((int) $footerMenu['id'], 'es', $footerPrensaId));
 
         $legalMenu = $this->db->table('cms_menus')
             ->where('menu_key', 'legal')

@@ -155,7 +155,7 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
             ->getRowArray();
         $this->assertNotNull($mainMenu);
         $this->assertSame(
-            ['Inicio', 'Nosotros', 'Cartelera', 'Festivales', 'Museo', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
+            ['Inicio', 'Nosotros', 'Programación', 'Museo', 'Educación', 'Prensa y Medios', 'Contacto'],
             $this->menuLabels((int) $mainMenu['id'], 'es', null)
         );
 
@@ -165,7 +165,7 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
             ->getRowArray();
         $this->assertNotNull($footerMenu);
         $this->assertSame(
-            ['Inicio', 'Quiénes Somos', 'Historia', 'Cartelera', 'Festivales', 'Exposiciones', 'Educación', 'Multimedia', 'Prensa', 'Noticias', 'Contacto'],
+            ['Explora', 'Institución', 'Prensa y Medios'],
             $this->menuLabels((int) $footerMenu['id'], 'es', null)
         );
 

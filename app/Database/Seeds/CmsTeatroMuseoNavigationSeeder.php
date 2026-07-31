@@ -21,6 +21,14 @@ use CodeIgniter\Database\Seeder;
  * menu and unrelated menus untouched. This is suitable for the development
  * bootstrap and the controlled migration cutover; curated production menus
  * should be changed through the CMS instead.
+ *
+ * Grouped 2026-07-31: main menu was 10 flat top-level entries (too many for
+ * a header row); regrouped into 7 entries behind 4 dropdowns (Nosotros,
+ * Programación, Museo, Prensa y Medios). Footer was a single flat 11-item
+ * list; regrouped into 3 labeled columns (Explora, Institución, Prensa y
+ * Medios) — teatromuseo-web's footer.php was updated in the same change to
+ * render `no_link` items with children as column headers instead of
+ * ignoring them.
  */
 final class CmsTeatroMuseoNavigationSeeder extends Seeder
 {
@@ -49,7 +57,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         }
 
         $this->seedMainMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId, $eventsPageId, $catalogListingPageId);
-        $this->seedFooterMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId, $eventsPageId);
+        $this->seedFooterMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId, $eventsPageId, $catalogListingPageId);
     }
 
     /** @param array<string, int> $languages */
@@ -103,38 +111,46 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
             ],
         ], $languages));
 
+        // "Programación" dropdown — Cartelera, Festivales, Compañías
+        $programmingGroupId = $this->upsertMenuItemNoLink($menuId, null, $sortOrder++, [
+            'es' => 'Programación',
+            'en' => 'Programming',
+            'fr' => 'Programmation',
+            'pt' => 'Programação',
+        ], $languages);
+        $this->appendId($keepIds, $programmingGroupId);
+
+        $programmingChildSortOrder = 1;
         $carteleraId = $eventsPageId !== null
-            ? $this->addPageItem($menuId, $eventsPageId, null, $sortOrder++, [
+            ? $this->addPageItem($menuId, $eventsPageId, $programmingGroupId, $programmingChildSortOrder++, [
                 'es' => 'Cartelera',
-                'en' => 'Programming',
-                'fr' => 'Programmation',
-                'pt' => 'Programação',
+                'en' => 'Listings',
+                'fr' => 'Programme',
+                'pt' => 'Cartaz',
             ], $languages)
-            : $this->addEventListingItem($menuId, null, $sortOrder++, [
+            : $this->addEventListingItem($menuId, $programmingGroupId, $programmingChildSortOrder++, [
                 'es' => 'Cartelera',
-                'en' => 'Programming',
-                'fr' => 'Programmation',
-                'pt' => 'Programação',
+                'en' => 'Listings',
+                'fr' => 'Programme',
+                'pt' => 'Cartaz',
             ], $languages);
         $this->appendId($keepIds, $carteleraId);
 
-        if ($carteleraId !== null) {
-            $companiasId = $this->addCollectionItem($menuId, 'companias', $carteleraId, 1, [
-                'es' => 'Compañías',
-                'en' => 'Companies',
-                'fr' => 'Compagnies',
-                'pt' => 'Companhias',
-            ], $languages);
-            $this->appendId($keepIds, $companiasId);
-        }
-
-        $festivalsId = $this->addCollectionItem($menuId, 'festivales', null, $sortOrder++, [
+        $festivalsId = $this->addCollectionItem($menuId, 'festivales', $programmingGroupId, $programmingChildSortOrder++, [
             'es' => 'Festivales',
             'en' => 'Festivals',
             'fr' => 'Festivals',
             'pt' => 'Festivais',
         ], $languages);
         $this->appendId($keepIds, $festivalsId);
+
+        $companiasId = $this->addCollectionItem($menuId, 'companias', $programmingGroupId, $programmingChildSortOrder, [
+            'es' => 'Compañías',
+            'en' => 'Companies',
+            'fr' => 'Compagnies',
+            'pt' => 'Companhias',
+        ], $languages);
+        $this->appendId($keepIds, $companiasId);
 
         $museoGroupId = $this->upsertMenuItemNoLink($menuId, null, $sortOrder++, [
             'es' => 'Museo',
@@ -179,7 +195,25 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ], $languages);
         $this->appendId($keepIds, $coursesId);
 
-        $videosId = $this->addCollectionItem($menuId, 'videos', null, $sortOrder++, [
+        // "Prensa y Medios" dropdown — Noticias, Multimedia, Prensa
+        $pressGroupId = $this->upsertMenuItemNoLink($menuId, null, $sortOrder++, [
+            'es' => 'Prensa y Medios',
+            'en' => 'Press & Media',
+            'fr' => 'Presse et Médias',
+            'pt' => 'Imprensa e Mídia',
+        ], $languages);
+        $this->appendId($keepIds, $pressGroupId);
+
+        $pressChildSortOrder = 1;
+        $newsId = $this->addCollectionItem($menuId, 'noticias', $pressGroupId, $pressChildSortOrder++, [
+            'es' => 'Noticias',
+            'en' => 'News',
+            'fr' => 'Actualités',
+            'pt' => 'Notícias',
+        ], $languages);
+        $this->appendId($keepIds, $newsId);
+
+        $videosId = $this->addCollectionItem($menuId, 'videos', $pressGroupId, $pressChildSortOrder++, [
             'es' => 'Multimedia',
             'en' => 'Media',
             'fr' => 'Médias',
@@ -187,21 +221,13 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ], $languages);
         $this->appendId($keepIds, $videosId);
 
-        $publicationsId = $this->addCollectionItem($menuId, 'publicaciones', null, $sortOrder++, [
+        $publicationsId = $this->addCollectionItem($menuId, 'publicaciones', $pressGroupId, $pressChildSortOrder, [
             'es' => 'Prensa',
             'en' => 'Press',
             'fr' => 'Presse',
             'pt' => 'Imprensa',
         ], $languages);
         $this->appendId($keepIds, $publicationsId);
-
-        $newsId = $this->addCollectionItem($menuId, 'noticias', null, $sortOrder++, [
-            'es' => 'Noticias',
-            'en' => 'News',
-            'fr' => 'Actualités',
-            'pt' => 'Notícias',
-        ], $languages);
-        $this->appendId($keepIds, $newsId);
 
         $contactId = $this->addPageItem($menuId, $contactPageId, null, $sortOrder, [
             'es' => 'Contacto',
@@ -221,7 +247,8 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         int $contactPageId,
         ?int $aboutPageId,
         ?int $historyPageId,
-        ?int $eventsPageId
+        ?int $eventsPageId,
+        ?int $catalogListingPageId
     ): void {
         $menuId = $this->upsertMenu('footer', 'footer', [
             'es' => 'Pie de página',
@@ -232,7 +259,17 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         $keepIds = [];
         $sortOrder = 1;
 
-        $homeId = $this->addPageItem($menuId, $homePageId, null, $sortOrder++, [
+        // "Explora" column — Inicio, Cartelera, Festivales, Colección del Museo
+        $exploreGroupId = $this->upsertMenuItemNoLink($menuId, null, $sortOrder++, [
+            'es' => 'Explora',
+            'en' => 'Explore',
+            'fr' => 'Explorer',
+            'pt' => 'Explorar',
+        ], $languages);
+        $this->appendId($keepIds, $exploreGroupId);
+
+        $exploreChildSortOrder = 1;
+        $homeId = $this->addPageItem($menuId, $homePageId, $exploreGroupId, $exploreChildSortOrder++, [
             'es' => 'Inicio',
             'en' => 'Home',
             'fr' => 'Accueil',
@@ -240,8 +277,51 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ], $languages);
         $this->appendId($keepIds, $homeId);
 
+        $carteleraId = $eventsPageId !== null
+            ? $this->addPageItem($menuId, $eventsPageId, $exploreGroupId, $exploreChildSortOrder++, [
+                'es' => 'Cartelera',
+                'en' => 'Listings',
+                'fr' => 'Programme',
+                'pt' => 'Cartaz',
+            ], $languages)
+            : $this->addEventListingItem($menuId, $exploreGroupId, $exploreChildSortOrder++, [
+                'es' => 'Cartelera',
+                'en' => 'Listings',
+                'fr' => 'Programme',
+                'pt' => 'Cartaz',
+            ], $languages);
+        $this->appendId($keepIds, $carteleraId);
+
+        $festivalsId = $this->addCollectionItem($menuId, 'festivales', $exploreGroupId, $exploreChildSortOrder++, [
+            'es' => 'Festivales',
+            'en' => 'Festivals',
+            'fr' => 'Festivals',
+            'pt' => 'Festivais',
+        ], $languages);
+        $this->appendId($keepIds, $festivalsId);
+
+        if ($catalogListingPageId !== null) {
+            $coleccionId = $this->addPageItem($menuId, $catalogListingPageId, $exploreGroupId, $exploreChildSortOrder, [
+                'es' => 'Colección del Museo',
+                'en' => 'Museum Collection',
+                'fr' => 'Collection du musée',
+                'pt' => 'Coleção do museu',
+            ], $languages);
+            $this->appendId($keepIds, $coleccionId);
+        }
+
+        // "Institución" column — Quiénes Somos, Historia, Educación, Contacto
+        $institutionGroupId = $this->upsertMenuItemNoLink($menuId, null, $sortOrder++, [
+            'es' => 'Institución',
+            'en' => 'Institution',
+            'fr' => 'Institution',
+            'pt' => 'Instituição',
+        ], $languages);
+        $this->appendId($keepIds, $institutionGroupId);
+
+        $institutionChildSortOrder = 1;
         if ($aboutPageId !== null) {
-            $aboutId = $this->addPageItem($menuId, $aboutPageId, null, $sortOrder++, [
+            $aboutId = $this->addPageItem($menuId, $aboutPageId, $institutionGroupId, $institutionChildSortOrder++, [
                 'es' => 'Quiénes Somos',
                 'en' => 'About Us',
                 'fr' => 'À propos',
@@ -251,7 +331,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         }
 
         if ($historyPageId !== null) {
-            $historyId = $this->addPageItem($menuId, $historyPageId, null, $sortOrder++, [
+            $historyId = $this->addPageItem($menuId, $historyPageId, $institutionGroupId, $institutionChildSortOrder++, [
                 'es' => 'Historia',
                 'en' => 'History',
                 'fr' => 'Histoire',
@@ -260,34 +340,42 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
             $this->appendId($keepIds, $historyId);
         }
 
-        $carteleraId = $eventsPageId !== null
-            ? $this->addPageItem($menuId, $eventsPageId, null, $sortOrder++, [
-                'es' => 'Cartelera',
-                'en' => 'Programming',
-                'fr' => 'Programmation',
-                'pt' => 'Programação',
-            ], $languages)
-            : $this->addEventListingItem($menuId, null, $sortOrder++, [
-                'es' => 'Cartelera',
-                'en' => 'Programming',
-                'fr' => 'Programmation',
-                'pt' => 'Programação',
-            ], $languages);
-        $this->appendId($keepIds, $carteleraId);
+        $coursesId = $this->addCollectionItem($menuId, 'cursos', $institutionGroupId, $institutionChildSortOrder++, [
+            'es' => 'Educación',
+            'en' => 'Education',
+            'fr' => 'Éducation',
+            'pt' => 'Educação',
+        ], $languages);
+        $this->appendId($keepIds, $coursesId);
 
+        $contactId = $this->addPageItem($menuId, $contactPageId, $institutionGroupId, $institutionChildSortOrder, [
+            'es' => 'Contacto',
+            'en' => 'Contact',
+            'fr' => 'Contact',
+            'pt' => 'Contato',
+        ], $languages);
+        $this->appendId($keepIds, $contactId);
+
+        // "Prensa y Medios" column — Noticias, Multimedia, Prensa
+        $pressGroupId = $this->upsertMenuItemNoLink($menuId, null, $sortOrder, [
+            'es' => 'Prensa y Medios',
+            'en' => 'Press & Media',
+            'fr' => 'Presse et Médias',
+            'pt' => 'Imprensa e Mídia',
+        ], $languages);
+        $this->appendId($keepIds, $pressGroupId);
+
+        $pressChildSortOrder = 1;
         foreach ([
-            ['collection_key' => 'festivales', 'es' => 'Festivales', 'en' => 'Festivals', 'fr' => 'Festivals', 'pt' => 'Festivais'],
-            ['collection_key' => 'exposiciones', 'es' => 'Exposiciones', 'en' => 'Exhibitions', 'fr' => 'Expositions', 'pt' => 'Exposições'],
-            ['collection_key' => 'cursos', 'es' => 'Educación', 'en' => 'Education', 'fr' => 'Éducation', 'pt' => 'Educação'],
+            ['collection_key' => 'noticias', 'es' => 'Noticias', 'en' => 'News', 'fr' => 'Actualités', 'pt' => 'Notícias'],
             ['collection_key' => 'videos', 'es' => 'Multimedia', 'en' => 'Media', 'fr' => 'Médias', 'pt' => 'Mídia'],
             ['collection_key' => 'publicaciones', 'es' => 'Prensa', 'en' => 'Press', 'fr' => 'Presse', 'pt' => 'Imprensa'],
-            ['collection_key' => 'noticias', 'es' => 'Noticias', 'en' => 'News', 'fr' => 'Actualités', 'pt' => 'Notícias'],
         ] as $definition) {
             $itemId = $this->addCollectionItem(
                 $menuId,
                 $definition['collection_key'],
-                null,
-                $sortOrder,
+                $pressGroupId,
+                $pressChildSortOrder,
                 [
                     'es' => $definition['es'],
                     'en' => $definition['en'],
@@ -297,16 +385,8 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
                 $languages
             );
             $this->appendId($keepIds, $itemId);
-            $sortOrder++;
+            $pressChildSortOrder++;
         }
-
-        $contactId = $this->addPageItem($menuId, $contactPageId, null, $sortOrder, [
-            'es' => 'Contacto',
-            'en' => 'Contact',
-            'fr' => 'Contact',
-            'pt' => 'Contato',
-        ], $languages);
-        $this->appendId($keepIds, $contactId);
 
         $this->pruneMenuItems($menuId, $keepIds);
     }
