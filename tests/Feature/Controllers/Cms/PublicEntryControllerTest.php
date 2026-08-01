@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Controllers\Cms;
 
+use App\Libraries\Hub\HubClient;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use Config\Services;
 use Tests\Support\Fixtures\CmsFixtureFactory;
 use Tests\Support\Traits\WithWebAppKeyTrait;
 
@@ -79,7 +81,31 @@ final class PublicEntryControllerTest extends CIUnitTestCase
     protected function tearDown(): void
     {
         $this->restoreWebAppKey();
+        Services::reset();
         parent::tearDown();
+    }
+
+    /**
+     * Stubs the shared HubClient so FileUrlResolver never makes a live HTTP
+     * call. Without this, tests asserting a stored featured_image_url
+     * fallback only pass by accident — they depend on the real Hub having no
+     * file at the fixture's hardcoded file_id, which silently breaks if a
+     * local dev Hub happens to be running with real data at that id (see
+     * LEGACY-MAP-015 in ../../../../TASKS.md, 2026-08-01).
+     */
+    private function mockHubClientWithNoFiles(): void
+    {
+        $stub = new class () extends HubClient {
+            public function __construct()
+            {
+            }
+
+            public function resolvePublicFileMeta(array $fileIds, int $cacheTtl = 300): array
+            {
+                return [];
+            }
+        };
+        Services::injectMock('hubClient', $stub);
     }
 
     public function testGetPublicEntriesSuccess(): void
@@ -231,6 +257,8 @@ final class PublicEntryControllerTest extends CIUnitTestCase
 
     public function testListingIncludesFeaturedImage(): void
     {
+        $this->mockHubClientWithNoFiles();
+
         // Create entry with a public featured image URL
         $this->db->table('cms_entries')->insert([
             'collection_id' => $this->collectionId,
@@ -364,6 +392,8 @@ final class PublicEntryControllerTest extends CIUnitTestCase
 
     public function testShowIncludesFeaturedImage(): void
     {
+        $this->mockHubClientWithNoFiles();
+
         // Create entry with a public featured image URL
         $this->db->table('cms_entries')->insert([
             'collection_id' => $this->collectionId,
