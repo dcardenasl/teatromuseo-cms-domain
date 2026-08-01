@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`internal/files/*` endpoints** — `HubSignatureFilter` + `InternalFileController` let the Hub
   check whether a file is referenced by CMS content before deleting it, and invalidate this
   domain's cached file metadata after a replace, via HMAC-signed requests.
+- **`compania_ficha.director` / `.director_ref`** — companies now have a raw-text `director`
+  field (populated by the legacy migration) plus an optional `director_ref` `entry_reference` to
+  `personas` for manual editorial curation.
 
 ### Changed
 
@@ -41,3 +44,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   blocks (header, details, content, gallery); seeder contract tests were out of sync with the
   actual block set.
 - **`BlockTypeUpdateRequestDTO`, `BlockInstanceUpdateRequestDTO`, `EntryUpdateRequestDTO`, `TagUpdateRequestDTO`, `CategoryUpdateRequestDTO`, `CollectionUpdateRequestDTO`, `RedirectUpdateRequestDTO`, `MenuUpdateRequestDTO`** — update requests can now explicitly clear a nullable field to `null` instead of silently dropping it.
+- **`EntryBlockTemplateInitializer`** — pre-filling `block_data` from `wizard_extra` never
+  worked for any block in any TeatroMuseo domain: it checked `is_array()` on a `schema_definition`
+  field that CI4 casts to `stdClass`, which is always false. Fixed with `JsonCastNormalizer`.
+- **`EntryService`, `PageService`** — deleting an entry or page left its `cms_block_instances`
+  behind as orphans (that table has no soft-delete column), which kept counting as "in use" for
+  any Hub file they referenced and blocked `DELETE /files/{id}` with a 409 indefinitely. Both
+  services now purge their owned block instances on delete via the new `BlockInstancePurger`.
+- **`PublicEntryControllerTest`** — two featured-image tests made a real HTTP call to `HubClient`
+  instead of mocking it, so they only passed by accident (whenever the real Hub had no file at
+  the hardcoded test `file_id`).
