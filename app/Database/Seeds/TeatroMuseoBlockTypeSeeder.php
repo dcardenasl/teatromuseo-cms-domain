@@ -34,6 +34,8 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
                 'summary' => ['type' => 'textarea', 'label' => 'Resumen', 'required' => false],
                 'description' => ['type' => 'richtext', 'label' => 'Descripción', 'required' => false],
                 'website' => ['type' => 'url', 'label' => 'Sitio web', 'required' => false],
+                'director' => ['type' => 'string', 'label' => 'Director (texto libre)', 'required' => false],
+                'director_ref' => ['type' => 'entry_reference', 'collection_key' => 'personas', 'label' => 'Director (ficha vinculada)', 'required' => false],
             ], [
                 'logo' => ['type' => 'media_reference', 'label' => 'Logo', 'required' => false, 'accept' => 'image'],
             ], false),
