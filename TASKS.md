@@ -16,6 +16,90 @@ las decisiones de producto pendientes se mantienen en el tracker global.)*
 
 ## ✅ Completadas
 
+- **CLEANUP-001 — `EntryService`/`PageService` no limpiaban sus `cms_block_instances` al borrar (2026-08-01):**
+  `DELETE /cms/entries/{id}` y `DELETE /cms/pages/{id}` soft-eliminan la fila (`useSoftDeletes =
+  true` en ambos modelos) pero nunca tocaban sus `cms_block_instances` (`useSoftDeletes = false`
+  — esa tabla no tiene soft-delete), dejándolas huérfanas. Como esas filas seguían existiendo,
+  `FileUsageService::getUsagesByHubFileId()` (que lee `cms_file_references`, no
+  `cms_block_instances` directamente) seguía reportando "en uso" para cualquier archivo del Hub
+  referenciado por un bloque de una entrada/página ya "borrada", bloqueando
+  `DELETE /files/{id}` en el hub con 409 indefinidamente. Encontrado limpiando datos de prueba
+  de `legacy:apply` (ver LEGACY-MAP-015). Creada `App\Libraries\Cms\BlockInstancePurger`
+  (`purgeForOwner(string $ownerType, int $ownerId): int`), que replica el alcance exacto de
+  `IdempotentSeederSupport::resetPageBlocks()` (borra `cms_block_instance_translations` y luego
+  `cms_block_instances`) — **sin** tocar `cms_file_references` explícitamente, porque
+  `cms_file_references.block_instance_id` ya tiene `ON DELETE CASCADE` hacia
+  `cms_block_instances.id` (`2026-06-11-070008_CreateCmsBlocks.php`), confirmado con un test de
+  integración que verifica que `FileUsageService` reporta 0 usos tras el purge. Se corrigió
+  tanto `EntryService::afterDelete()` como `PageService::afterDelete()` — el mismo bug existía
+  en ambos, no sólo en entries. Wiring vía `CmsDomainServices::blockInstancePurger()`.
+  Verificado: `composer quality` ✅ (PHPStan 0 errores, 501/501 tests — 2 nuevos en
+  `BlockInstancePurgerTest`, más las aserciones de mock actualizadas en
+  `EntryServiceTest`/`PageServiceTest::testDestroyInvalidatesCache` — 1 skip preexistente no
+  relacionado).
+
+- **TEST-ISO-001 — `PublicEntryControllerTest` dependía de una llamada HTTP real al Hub (2026-08-01):**
+  `testListingIncludesFeaturedImage` y `testShowIncludesFeaturedImage` seedeaban
+  `featured_file_id` (42 y 99) y esperaban que `FileUrlResolver::normalizeMediaReference()`
+  usara el `featured_image_url` almacenado como fallback — pero eso sólo se cumple cuando
+  `HubClient::resolvePublicFileMeta()` no encuentra ese file_id. Ninguno de los dos tests
+  mockeaba `HubClient`, así que en la práctica dependían de que el Hub real (si estaba
+  corriendo en `localhost:8180`, como durante LEGACY-MAP-015) no tuviera un archivo con ese ID
+  — una condición de carrera silenciosa contra el estado de un servidor externo, no una
+  aserción hermética. Encontrado exactamente así: falló `testListingIncludesFeaturedImage`
+  porque mi propio Hub de dev, corriendo con datos reales del ETL legacy, sí tenía un archivo
+  en `file_id=42`. Corregido siguiendo el patrón ya establecido en
+  `CollectionControllerTest`/`SettingConnectionControllerTest`/`WizardConfigControllerTest`
+  (`Services::injectMock('hubClient', $stub)` con una subclase anónima de `HubClient`): se
+  agregó el helper privado `mockHubClientWithNoFiles()` que stubea
+  `resolvePublicFileMeta()` para devolver `[]` siempre, y se llama al inicio de ambos tests.
+  También se agregó `Services::reset()` a `tearDown()` (faltaba) para que el mock no se filtre
+  al resto de la suite. Revisado el resto de `tests/Feature/` por el mismo patrón
+  (`featured_file_id`/`hub_file` con IDs reales) — sólo estos dos tests lo tenían; los usos en
+  `PublicSettingControllerTest`/`PublicMenuControllerTest` son `file_id: 0|null`, que
+  `FileUrlResolver::resolve()` descarta antes de llamar al Hub, así que no son frágiles.
+  Verificado: `composer quality` ✅ (PHPStan 0 errores, 499/499 tests, 1 skip preexistente no
+  relacionado — sin el fallo intermitente ya sea que el Hub real esté corriendo o no).
+
+- **LEGACY-MAP-015 — Fix crítico: `wizard_extra` nunca poblaba `block_data` en ningún dominio TeatroMuseo (2026-08-01):**
+  Descubierto al verificar el contenido real tras la primera ejecución material de
+  `legacy:apply --slice A`: las 15 entradas creadas (compañías/obras/videos) tenían su bloque
+  primario (`compania_ficha`/`obra_ficha`/`video_ficha`) con `block_data` **vacío** en los 4
+  idiomas, pese a que `wizard_extra` llegaba con los campos correctos. Causa raíz en
+  `EntryBlockTemplateInitializer::initialize()`: `$schemaDef = is_array($rawSchema) ? $rawSchema
+  : []` sobre `$blockType->schema_definition`, que está cast como `'json'` en `BlockTypeEntity`
+  — CI4 lo decodifica a `stdClass` (recursivamente), nunca a array, así que `is_array()` era
+  siempre falso y `$schemaFields` siempre `[]`. El bug es transversal a **todo** wizard_extra de
+  **todo** bloque de **todo** dominio TeatroMuseo, no específico de `director` (log confirmó el
+  mismo `wizard_extra key(s) with no matching block field` para `name/summary/description`,
+  `venue/company/audience/...` de `obra_ficha`, y `provider/video_id/...` de `video_ficha`).
+  Corregido usando `JsonCastNormalizer::toArray($blockType->schema_definition ?? null)` — el
+  helper que el propio `CLAUDE.md` de este repo documenta exactamente para este caso ("Shallow
+  `(array)` casting on any Entity property cast as `'json'`"). Verificado con datos reales: la
+  ficha "Liberarte" ahora tiene `director: "Sergio Liberona Díaz"` y el resto de campos
+  correctamente poblados tras re-aplicar Slice A. `composer quality`: PHPStan 0 errores, 499
+  tests con 1 fallo **preexistente y no relacionado** (`PublicEntryControllerTest::
+  testListingIncludesFeaturedImage` — hace una llamada HTTP real a `HubClient` en vez de
+  mockearlo; falla solo porque hoy había un Hub de dev real corriendo en `localhost:8180` con
+  un archivo real en el `file_id=42` que el test hardcodea — problema de aislamiento de tests
+  preexistente, no introducido aquí, no corregido por estar fuera de alcance). Detalle completo
+  en `../docs/legacy-cms-pilot-mapping.md` sección 10.2.
+
+- **LEGACY-MAP-014 — Cerrar gap de `director_compania` sin destino en `compania_ficha` (2026-08-01):**
+  Auditoría de estado óptimo del ETL legacy (`docs/legacy-cms-pilot-mapping.md`) detectó que
+  `compania_ficha` no tenía ningún campo para `sn_compania.director_compania`, causando pérdida
+  silenciosa de dato si se corría `legacy:apply`. Se agregaron dos campos en
+  `TeatroMuseoBlockTypeSeeder::blocks()`: `director` (string, valor legacy crudo) y `director_ref`
+  (`entry_reference` → colección `personas`, deliberadamente sin poblar por el ETL). Razón de
+  separar ambos: ~235 filas de `sn_compania` en el dump y una parte significativa de
+  `director_compania` es texto placeholder del editor legacy (`"Director El Árbol de Ko"`,
+  `"Director"` a secas), no un nombre real — vincular automáticamente a `personas` habría
+  contaminado la colección con fichas basura. `director_ref` queda como campo de curación manual
+  editorial. Ver mapeo actualizado en `../docs/legacy-cms-pilot-mapping.md` sección "Compañía:
+  sn_compania". Verificado: `composer quality` ✅ (PHPStan 0 errores, 499+17+19 tests, 1 skip
+  preexistente no relacionado), schema persistido confirmado por query directa a
+  `cms_content_blocks.schema_definition`.
+
 - **I18N-SEED-001 — Completar traducciones FR/PT faltantes en seeders de contenido demo (2026-08-01):**
   La auditoría de traducciones del admin (`/admin/cms/translations/audit`) mostraba FR/PT al 77%
   (212/276). Las 6 páginas/recursos que solo seedeaban `es`/`en` eran `SitePortfolioPageSeeder`,
