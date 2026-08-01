@@ -16,6 +16,25 @@ las decisiones de producto pendientes se mantienen en el tracker global.)*
 
 ## ✅ Completadas
 
+- **AUDIT-001 — Falso positivo "outdated" en la auditoría de traducciones a nivel de entrada (2026-08-01):**
+  Mismo patrón ya diagnosticado el 2026-07-21 para bloques (ver comentario en
+  `TranslationAuditSupport::collapseForBlockBadge()`, confirmado con David en su momento), pero
+  nunca corregido en la raíz para entradas — sólo enmascarado en la UI del editor de bloques.
+  `EntryService::afterStore()` escribía las traducciones de la entrada y **después** hacía un
+  `UPDATE` de housekeeping para limpiar `wizard_extra`; si ese segundo write caía en el segundo
+  siguiente (granularidad `DATETIME` de MySQL), `cms_entries.updated_at` quedaba después que
+  `cms_entry_translations.updated_at`, y `TranslationAuditSupport::evaluateTranslationState()`
+  marcaba una traducción perfectamente completa como "Desactualizado". Encontrado en 3 entradas
+  reales durante la migración legacy (`LEGACY-MAP-019` en `teatromuseo-api/TASKS.md`).
+  Corregido reordenando `afterStore()`: las traducciones ahora se escriben después del
+  housekeeping de `wizard_extra`, no antes — la tabla `cms_entry_translations` nunca vuelve a
+  quedar temporalmente "antes" que `cms_entries` por culpa de un write interno sin implicación
+  de contenido. Las 3 entradas ya afectadas se repararon alineando su `updated_at`. No se tocó
+  la decisión deliberada de `collapseForBlockBadge()` (sigue colapsando 'outdated' a 'complete'
+  sólo en la UI de bloques; la auditoría sitewide sigue mostrando 'outdated' verbatim cuando es
+  real). Verificado: auditoría de traducciones en 100%/100%/100%/100%, 0 issues. `composer
+  quality` ✅ (PHPStan 0 errores, 501/501 tests, 1 skip preexistente no relacionado).
+
 - **CLEANUP-001 — `EntryService`/`PageService` no limpiaban sus `cms_block_instances` al borrar (2026-08-01):**
   `DELETE /cms/entries/{id}` y `DELETE /cms/pages/{id}` soft-eliminan la fila (`useSoftDeletes =
   true` en ambos modelos) pero nunca tocaban sus `cms_block_instances` (`useSoftDeletes = false`
