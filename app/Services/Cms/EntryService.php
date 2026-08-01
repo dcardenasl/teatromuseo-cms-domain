@@ -150,8 +150,6 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     {
         parent::afterStore($entity, $context);
 
-        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
-
         // wizard_extra is a transient payload: pre-fill matching block fields, then clear it.
         $rawExtra = ($entity instanceof EntryEntity) ? $entity->wizard_extra : null;
         $wizardExtra = null;
@@ -176,6 +174,14 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                     : null
             )->update();
         }
+
+        // Written last, after the wizard_extra clear above (which bumps
+        // cms_entries.updated_at): if translations were saved first instead, that
+        // later housekeeping write could land a second after them, making
+        // TranslationAuditSupport::evaluateTranslationState() flag a perfectly
+        // complete translation as "outdated" purely from write-ordering timing,
+        // not from any actually-stale content.
+        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
 
         $this->fileReferenceSynchronizer->syncEntry((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
