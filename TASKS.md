@@ -16,6 +16,20 @@ las decisiones de producto pendientes se mantienen en el tracker global.)*
 
 ## ✅ Completadas
 
+- **I18N-SEED-001 — Completar traducciones FR/PT faltantes en seeders de contenido demo (2026-08-01):**
+  La auditoría de traducciones del admin (`/admin/cms/translations/audit`) mostraba FR/PT al 77%
+  (212/276). Las 6 páginas/recursos que solo seedeaban `es`/`en` eran `SitePortfolioPageSeeder`,
+  `SiteComponentsPageSeeder`, `SiteMediaPageSeeder`, `SiteLandingPageSeeder`,
+  `PortfolioCollectionSeeder` (colección + 2 categorías + 2 etiquetas + 2 entradas) y
+  `CmsSocialLinksChildrenSeeder` (contact page social links). Se agregaron traducciones `fr`/`pt`
+  completas a cada bloque/campo y se actualizaron los `foreach (['es','en'] as ...)` hardcodeados
+  a `['es','en','fr','pt']` en los helpers `seedChildBlocks`/loops de child-block translation
+  (afecta `card_item`, `gallery_item`, `pricing_plan`, entradas de portafolio). De paso se corrigió
+  un bug preexistente en `PortfolioCollectionSeeder` donde el caption del bloque `image` de cada
+  entrada llevaba el prefijo "Proyecto finalizado: " hardcodeado en español para todos los idiomas
+  (ahora usa un mapa de prefijos por idioma). Verificado: `php spark db:seed` de los 6 seeders
+  corrió limpio y la auditoría del admin pasó a 100% (276/276) en los 4 idiomas.
+
 - **NULL-CLEAR-001 — Fix "no se puede limpiar un campo nullable vía update" en 8 *UpdateRequestDTO (2026-07-30):**
   `BlockTypeUpdateRequestDTO`, `BlockInstanceUpdateRequestDTO`, `EntryUpdateRequestDTO`,
   `TagUpdateRequestDTO`, `CategoryUpdateRequestDTO`, `CollectionUpdateRequestDTO`,
