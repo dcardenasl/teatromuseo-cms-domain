@@ -54,3 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`PublicEntryControllerTest`** — two featured-image tests made a real HTTP call to `HubClient`
   instead of mocking it, so they only passed by accident (whenever the real Hub had no file at
   the hardcoded test `file_id`).
+- **`EntryService::afterStore()`** — wrote entry translations before an internal `wizard_extra`
+  cleanup update, so `cms_entries.updated_at` could land a second after
+  `cms_entry_translations.updated_at` and make the translation audit flag a complete
+  translation as "outdated". Fixed by writing translations after that housekeeping write.
