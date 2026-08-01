@@ -21,7 +21,7 @@ class SiteComponentsPageSeeder extends Seeder
 
     public function run(): void
     {
-        $langIds = $this->langIds(['es', 'en']);
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
         if (! isset($langIds['es'], $langIds['en'])) {
             echo "SiteComponentsPageSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
@@ -48,6 +48,30 @@ class SiteComponentsPageSeeder extends Seeder
             'robots'           => 'index, follow',
             'schema_data'      => null,
         ]);
+        if (isset($langIds['fr'])) {
+            $this->upsertPageTranslation($pageId, $langIds['fr'], [
+                'slug'             => 'blocs',
+                'title'            => 'Blocs et Composants',
+                'excerpt'          => "Parcours public des éléments générés par les seeders du starter.",
+                'meta_title'       => 'Blocs et Composants | Mon Site',
+                'meta_description' => "Découvrez les pages publiques qui représentent tous les blocs du starter.",
+                'canonical_url'    => null,
+                'robots'           => 'index, follow',
+                'schema_data'      => null,
+            ]);
+        }
+        if (isset($langIds['pt'])) {
+            $this->upsertPageTranslation($pageId, $langIds['pt'], [
+                'slug'             => 'blocos',
+                'title'            => 'Blocos e Componentes',
+                'excerpt'          => 'Percurso público pelas peças que o starter gera com seus seeders.',
+                'meta_title'       => 'Blocos e Componentes | Meu Site',
+                'meta_description' => 'Explore as páginas públicas que representam todos os blocos do starter.',
+                'canonical_url'    => null,
+                'robots'           => 'index, follow',
+                'schema_data'      => null,
+            ]);
+        }
 
         $this->resetPageBlocks($pageId);
 
@@ -79,6 +103,18 @@ class SiteComponentsPageSeeder extends Seeder
                     'breadcrumb_label' => 'Home',
                     'breadcrumb_url'   => '/',
                 ],
+                'fr' => [
+                    'heading'          => 'Blocs et Composants',
+                    'subheading'       => "Chaque bloc public du starter vit sur une page réelle et navigable.",
+                    'breadcrumb_label' => 'Accueil',
+                    'breadcrumb_url'   => '/',
+                ],
+                'pt' => [
+                    'heading'          => 'Blocos e Componentes',
+                    'subheading'       => 'Cada bloco público do starter vive em uma página real e navegável.',
+                    'breadcrumb_label' => 'Início',
+                    'breadcrumb_url'   => '/',
+                ],
             ],
             $langIds
         );
@@ -95,6 +131,12 @@ class SiteComponentsPageSeeder extends Seeder
                 ],
                 'en' => [
                     'content' => '<p>This starter does not depend on hidden pages or obsolete views to showcase its blocks. The example content is distributed across real public pages: home, about, history, portfolio, news, multimedia, contact, and this blocks page.</p><p>The idea is simple: if a block is seeded, it should be visible without manual work. That keeps the system auditable, consistent, and easy to maintain.</p>',
+                ],
+                'fr' => [
+                    'content' => "<p>Ce starter ne dépend pas de pages cachées ni de vues obsolètes pour présenter ses blocs. Le contenu d'exemple est réparti sur des pages publiques réelles : accueil, à propos, histoire, portefeuille, actualités, multimédia, contact et cette page de blocs.</p><p>L'idée est simple : si un bloc est généré par un seeder, il doit être visible sans travail manuel supplémentaire. Cela garde le système auditable, cohérent et facile à maintenir.</p>",
+                ],
+                'pt' => [
+                    'content' => '<p>Este starter não depende de páginas ocultas nem de views obsoletas para exibir seus blocos. O conteúdo de exemplo é distribuído em páginas públicas reais: início, sobre nós, história, portfólio, notícias, multimídia, contato e esta página de blocos.</p><p>A ideia é simples: se um bloco é criado por seeders, ele deve poder ser visto sem trabalho manual adicional. Isso mantém o sistema auditável, consistente e fácil de manter.</p>',
                 ],
             ],
             $langIds
@@ -137,6 +179,18 @@ class SiteComponentsPageSeeder extends Seeder
                     'link_label'  => 'Open home',
                     'link_url'    => '/en',
                 ],
+                'fr' => [
+                    'title'       => 'Accueil',
+                    'description' => 'Carrousel principal, grille d\'actualités et CTA principal.',
+                    'link_label'  => "Ouvrir l'accueil",
+                    'link_url'    => '/fr',
+                ],
+                'pt' => [
+                    'title'       => 'Início',
+                    'description' => 'Carrossel hero, grade de notícias e CTA principal.',
+                    'link_label'  => 'Abrir início',
+                    'link_url'    => '/pt',
+                ],
             ],
             [
                 'sort_order' => 2,
@@ -152,6 +206,18 @@ class SiteComponentsPageSeeder extends Seeder
                     'description' => 'Hero banner, text, cards, metrics, slider, gallery, and video.',
                     'link_label'  => 'Open page',
                     'link_url'    => '/en/about',
+                ],
+                'fr' => [
+                    'title'       => 'À propos',
+                    'description' => 'Bannière hero, texte, cartes, indicateurs, carrousel, galerie et vidéo.',
+                    'link_label'  => 'Ouvrir la page',
+                    'link_url'    => '/fr/a-propos',
+                ],
+                'pt' => [
+                    'title'       => 'Quem somos',
+                    'description' => 'Banner hero, texto, cards, métricas, carrossel, galeria e vídeo.',
+                    'link_label'  => 'Abrir página',
+                    'link_url'    => '/pt/sobre',
                 ],
             ],
             [
@@ -169,6 +235,18 @@ class SiteComponentsPageSeeder extends Seeder
                     'link_label'  => 'View history',
                     'link_url'    => '/en/history',
                 ],
+                'fr' => [
+                    'title'       => 'Histoire',
+                    'description' => 'Indicateurs, accordéon, image et CTA éditorial.',
+                    'link_label'  => "Voir l'histoire",
+                    'link_url'    => '/fr/histoire',
+                ],
+                'pt' => [
+                    'title'       => 'História',
+                    'description' => 'Métricas, acordeão, imagem e CTA editorial.',
+                    'link_label'  => 'Ver história',
+                    'link_url'    => '/pt/historia',
+                ],
             ],
             [
                 'sort_order' => 4,
@@ -184,6 +262,18 @@ class SiteComponentsPageSeeder extends Seeder
                     'description' => 'Full collection listing, alerts, tabs, and images.',
                     'link_label'  => 'Open portfolio',
                     'link_url'    => '/en/portfolio',
+                ],
+                'fr' => [
+                    'title'       => 'Portefeuille',
+                    'description' => "Liste complète de la collection, alertes, onglets et images.",
+                    'link_label'  => 'Ouvrir le portefeuille',
+                    'link_url'    => '/fr/portefeuille',
+                ],
+                'pt' => [
+                    'title'       => 'Portfólio',
+                    'description' => 'Listagem completa da coleção, alertas, abas e imagens.',
+                    'link_label'  => 'Abrir portfólio',
+                    'link_url'    => '/pt/portfolio',
                 ],
             ],
             [
@@ -201,6 +291,18 @@ class SiteComponentsPageSeeder extends Seeder
                     'link_label'  => 'Open media',
                     'link_url'    => '/en/media',
                 ],
+                'fr' => [
+                    'title'       => 'Multimédia',
+                    'description' => "Galeries avec plusieurs présentations, aperçu intégré et vidéo intégrée.",
+                    'link_label'  => 'Ouvrir le multimédia',
+                    'link_url'    => '/fr/multimedia',
+                ],
+                'pt' => [
+                    'title'       => 'Multimídia',
+                    'description' => 'Galerias com várias apresentações, pré-visualização integrada e vídeo incorporado.',
+                    'link_label'  => 'Abrir multimídia',
+                    'link_url'    => '/pt/multimidia',
+                ],
             ],
             [
                 'sort_order' => 6,
@@ -217,6 +319,18 @@ class SiteComponentsPageSeeder extends Seeder
                     'link_label'  => 'Go to news',
                     'link_url'    => '/en/news',
                 ],
+                'fr' => [
+                    'title'       => 'Actualités',
+                    'description' => "Grille de collection avec image principale et contenu résumé.",
+                    'link_label'  => 'Aller aux actualités',
+                    'link_url'    => '/fr/actualites',
+                ],
+                'pt' => [
+                    'title'       => 'Notícias',
+                    'description' => 'Grade de coleção com imagem principal e conteúdo resumido.',
+                    'link_label'  => 'Ir para notícias',
+                    'link_url'    => '/pt/noticias',
+                ],
             ],
             [
                 'sort_order' => 7,
@@ -232,6 +346,18 @@ class SiteComponentsPageSeeder extends Seeder
                     'description' => 'Form, contact details, map, and social links.',
                     'link_label'  => 'Go to contact',
                     'link_url'    => '/en/contact',
+                ],
+                'fr' => [
+                    'title'       => 'Contact',
+                    'description' => 'Formulaire, coordonnées, carte et réseaux sociaux.',
+                    'link_label'  => 'Aller au contact',
+                    'link_url'    => '/fr/contact',
+                ],
+                'pt' => [
+                    'title'       => 'Contato',
+                    'description' => 'Formulário, informações de contato, mapa e redes sociais.',
+                    'link_label'  => 'Ir para contato',
+                    'link_url'    => '/pt/contato',
                 ],
             ],
         ];
@@ -258,6 +384,18 @@ class SiteComponentsPageSeeder extends Seeder
                     'text'    => 'Now you can browse each demo page and visually confirm that the seeded blocks are represented on the public site.',
                     'label'   => 'Go to home',
                     'url'     => '/en',
+                ],
+                'fr' => [
+                    'heading' => 'Vous avez vu la couverture complète',
+                    'text'    => "Vous pouvez désormais parcourir chaque page de démonstration et vérifier visuellement que les blocs générés par les seeders sont bien représentés sur le site public.",
+                    'label'   => "Aller à l'accueil",
+                    'url'     => '/fr',
+                ],
+                'pt' => [
+                    'heading' => 'Você já viu a cobertura completa',
+                    'text'    => 'Agora você pode percorrer cada página demo e confirmar visualmente que os blocos gerados pelos seeders estão representados no site público.',
+                    'label'   => 'Ir para início',
+                    'url'     => '/pt',
                 ],
             ],
             $langIds
@@ -428,7 +566,7 @@ class SiteComponentsPageSeeder extends Seeder
                 continue;
             }
 
-            foreach (['es', 'en'] as $lang) {
+            foreach (['es', 'en', 'fr', 'pt'] as $lang) {
                 $langId = $langIds[$lang] ?? null;
                 if ($langId === null || ! isset($item[$lang])) {
                     continue;

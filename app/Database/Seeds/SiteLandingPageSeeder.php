@@ -24,7 +24,7 @@ class SiteLandingPageSeeder extends Seeder
 
     public function run(): void
     {
-        $langIds = $this->langIds(['es', 'en']);
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
         if (! isset($langIds['es'], $langIds['en'])) {
             echo "SiteLandingPageSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
@@ -51,6 +51,30 @@ class SiteLandingPageSeeder extends Seeder
             'robots'           => 'index, follow',
             'schema_data'      => null,
         ]);
+        if (isset($langIds['fr'])) {
+            $this->upsertPageTranslation($landingPageId, $langIds['fr'], [
+                'slug'             => 'landing',
+                'title'            => 'Page de Destination',
+                'excerpt'          => 'Page de présentation interactive de nos services.',
+                'meta_title'       => 'Page de Destination | Mon Site',
+                'meta_description' => "Une vitrine interactive de nos principales fonctionnalités, plans et questions fréquentes.",
+                'canonical_url'    => null,
+                'robots'           => 'index, follow',
+                'schema_data'      => null,
+            ]);
+        }
+        if (isset($langIds['pt'])) {
+            $this->upsertPageTranslation($landingPageId, $langIds['pt'], [
+                'slug'             => 'landing',
+                'title'            => 'Página de Destino',
+                'excerpt'          => 'Página de apresentação interativa de nossos serviços.',
+                'meta_title'       => 'Página de Destino | Meu Site',
+                'meta_description' => 'Uma vitrine interativa de nossos principais recursos, planos e perguntas frequentes.',
+                'canonical_url'    => null,
+                'robots'           => 'index, follow',
+                'schema_data'      => null,
+            ]);
+        }
 
         $this->resetPageBlocks($landingPageId);
 
@@ -86,6 +110,18 @@ class SiteLandingPageSeeder extends Seeder
                     'breadcrumb_label' => 'Home',
                     'breadcrumb_url'   => '/',
                 ],
+                'fr' => [
+                    'heading'          => 'Page de Destination',
+                    'subheading'       => "Une landing page interactive avec navigation par ancres, tarifs, FAQ et vidéos.",
+                    'breadcrumb_label' => 'Accueil',
+                    'breadcrumb_url'   => '/',
+                ],
+                'pt' => [
+                    'heading'          => 'Página de Destino',
+                    'subheading'       => 'Uma landing page interativa com menu de âncoras, preços, FAQs e vídeos.',
+                    'breadcrumb_label' => 'Início',
+                    'breadcrumb_url'   => '/',
+                ],
             ],
             $langIds
         );
@@ -114,6 +150,24 @@ class SiteLandingPageSeeder extends Seeder
                         ['label' => 'Pricing', 'anchor_id' => '#pricing'],
                         ['label' => 'Videos', 'anchor_id' => '#timeline-item-videos'],
                         ['label' => 'FAQ', 'anchor_id' => '#faq'],
+                    ],
+                ],
+                'fr' => [
+                    'anchors' => [
+                        ['label' => 'Fonctionnalités', 'anchor_id' => '#features'],
+                        ['label' => 'Processus', 'anchor_id' => '#process'],
+                        ['label' => 'Tarifs', 'anchor_id' => '#pricing'],
+                        ['label' => 'Vidéos', 'anchor_id' => '#timeline-item-videos'],
+                        ['label' => 'FAQ', 'anchor_id' => '#faq'],
+                    ],
+                ],
+                'pt' => [
+                    'anchors' => [
+                        ['label' => 'Recursos', 'anchor_id' => '#features'],
+                        ['label' => 'Processo', 'anchor_id' => '#process'],
+                        ['label' => 'Preços', 'anchor_id' => '#pricing'],
+                        ['label' => 'Vídeos', 'anchor_id' => '#timeline-item-videos'],
+                        ['label' => 'Perguntas Frequentes', 'anchor_id' => '#faq'],
                     ],
                 ],
             ],
@@ -167,6 +221,48 @@ class SiteLandingPageSeeder extends Seeder
                             'icon_name'   => 'layout',
                             'title'       => 'Responsive Layouts',
                             'description' => 'Components designed with Tailwind CSS that look pixel-perfect on mobile and desktop.',
+                        ],
+                    ],
+                ],
+                'fr' => [
+                    'title'       => 'Pourquoi nous choisir ?',
+                    'description' => "Nous proposons des solutions robustes et innovantes conçues pour booster votre productivité et votre évolutivité.",
+                    'features'    => [
+                        [
+                            'icon_name'   => 'zap',
+                            'title'       => 'Performance Extrême',
+                            'description' => "Développé sur CodeIgniter 4 pour garantir des temps de réponse inférieurs à 50 ms.",
+                        ],
+                        [
+                            'icon_name'   => 'shield',
+                            'title'       => 'Sécurité Intégrée',
+                            'description' => 'Protection native contre le CSRF, le XSS et les injections SQL à tous les niveaux du système.',
+                        ],
+                        [
+                            'icon_name'   => 'layout',
+                            'title'       => 'Design Adaptatif',
+                            'description' => 'Composants réalisés avec Tailwind CSS, parfaitement affichés sur mobile et sur ordinateur.',
+                        ],
+                    ],
+                ],
+                'pt' => [
+                    'title'       => 'Por que nos escolher?',
+                    'description' => 'Oferecemos soluções robustas e inovadoras projetadas para impulsionar sua produtividade e escalabilidade.',
+                    'features'    => [
+                        [
+                            'icon_name'   => 'zap',
+                            'title'       => 'Desempenho Extremo',
+                            'description' => 'Desenvolvido sobre o CodeIgniter 4 para garantir tempos de resposta abaixo de 50ms.',
+                        ],
+                        [
+                            'icon_name'   => 'shield',
+                            'title'       => 'Segurança Integrada',
+                            'description' => 'Proteção nativa contra CSRF, XSS e injeções SQL em todas as camadas do sistema.',
+                        ],
+                        [
+                            'icon_name'   => 'layout',
+                            'title'       => 'Design Adaptativo',
+                            'description' => 'Componentes desenvolvidos com Tailwind CSS que ficam perfeitos em dispositivos móveis e desktops.',
                         ],
                     ],
                 ],
@@ -224,6 +320,48 @@ class SiteLandingPageSeeder extends Seeder
                         ],
                     ],
                 ],
+                'fr' => [
+                    'title'       => 'Comment Commencer',
+                    'description' => 'Trois étapes simples pour activer votre site web et commencer à publier du contenu structuré.',
+                    'steps'       => [
+                        [
+                            'step_number' => '1',
+                            'title'       => 'Créer un Compte',
+                            'description' => "Créez votre utilisateur administrateur et initialisez les schémas de base de données par défaut.",
+                        ],
+                        [
+                            'step_number' => '2',
+                            'title'       => 'Configurer les Blocs',
+                            'description' => 'Glissez-déposez et personnalisez les blocs de contenu visuels sur vos pages.',
+                        ],
+                        [
+                            'step_number' => '3',
+                            'title'       => 'Publier le Site',
+                            'description' => 'Cliquez sur publier pour synchroniser immédiatement vos contenus en production.',
+                        ],
+                    ],
+                ],
+                'pt' => [
+                    'title'       => 'Como Começar',
+                    'description' => 'Três passos simples para ativar seu site e começar a publicar conteúdo estruturado.',
+                    'steps'       => [
+                        [
+                            'step_number' => '1',
+                            'title'       => 'Registrar Conta',
+                            'description' => 'Crie seu usuário administrador e inicialize os esquemas padrão do banco de dados.',
+                        ],
+                        [
+                            'step_number' => '2',
+                            'title'       => 'Configurar Blocos',
+                            'description' => 'Arraste e personalize os blocos de conteúdo visuais em suas páginas.',
+                        ],
+                        [
+                            'step_number' => '3',
+                            'title'       => 'Publicar Site',
+                            'description' => 'Pressione publicar para sincronizar seus conteúdos em produção imediatamente.',
+                        ],
+                    ],
+                ],
             ],
             $langIds
         );
@@ -243,6 +381,14 @@ class SiteLandingPageSeeder extends Seeder
                 'en' => [
                     'title'       => 'Plans & Pricing',
                     'description' => 'Choose the ideal plan for your organization. All plans include regular security updates.',
+                ],
+                'fr' => [
+                    'title'       => 'Offres et Tarifs',
+                    'description' => "Choisissez le plan idéal pour votre organisation. Tous les plans incluent des mises à jour de sécurité régulières.",
+                ],
+                'pt' => [
+                    'title'       => 'Planos e Preços',
+                    'description' => 'Escolha o plano ideal para sua organização. Todos os planos incluem atualizações de segurança periódicas.',
                 ],
             ],
             $langIds
@@ -270,6 +416,24 @@ class SiteLandingPageSeeder extends Seeder
                     'cta_label'   => 'Start Basic plan',
                     'cta_url'     => '/register?plan=basic',
                 ],
+                'fr' => [
+                    'name'        => 'Basique',
+                    'price'       => '19 $',
+                    'period'      => '/ mois',
+                    'description' => 'Idéal pour les sites personnels ou les startups en phase de démarrage.',
+                    'features'    => '<ul><li>Jusqu\'à 5 pages</li><li>3 utilisateurs éditeurs</li><li>Support par e-mail</li><li>SSL gratuit</li></ul>',
+                    'cta_label'   => 'Démarrer le plan Basique',
+                    'cta_url'     => '/inscription?plan=basic',
+                ],
+                'pt' => [
+                    'name'        => 'Básico',
+                    'price'       => 'US$ 19',
+                    'period'      => '/ mês',
+                    'description' => 'Ideal para sites pessoais ou startups em fase inicial.',
+                    'features'    => '<ul><li>Até 5 páginas</li><li>3 usuários editores</li><li>Suporte por e-mail</li><li>SSL grátis</li></ul>',
+                    'cta_label'   => 'Iniciar plano Básico',
+                    'cta_url'     => '/registro?plan=basic',
+                ],
             ],
             [
                 'sort_order' => 2,
@@ -291,6 +455,24 @@ class SiteLandingPageSeeder extends Seeder
                     'features'    => '<ul><li>Unlimited pages</li><li>10 editor users</li><li>24/7 priority support</li><li>CDN & image optimization</li><li>Multi-language translation</li></ul>',
                     'cta_label'   => 'Start Professional plan',
                     'cta_url'     => '/register?plan=pro',
+                ],
+                'fr' => [
+                    'name'        => 'Professionnel',
+                    'price'       => '49 $',
+                    'period'      => '/ mois',
+                    'description' => 'Pour les organisations de taille moyenne avec plusieurs collaborateurs.',
+                    'features'    => '<ul><li>Pages illimitées</li><li>10 utilisateurs éditeurs</li><li>Support prioritaire 24/7</li><li>CDN et optimisation des images</li><li>Traductions multilingues</li></ul>',
+                    'cta_label'   => 'Démarrer le plan Professionnel',
+                    'cta_url'     => '/inscription?plan=pro',
+                ],
+                'pt' => [
+                    'name'        => 'Profissional',
+                    'price'       => 'US$ 49',
+                    'period'      => '/ mês',
+                    'description' => 'Para organizações de médio porte com múltiplos colaboradores.',
+                    'features'    => '<ul><li>Páginas ilimitadas</li><li>10 usuários editores</li><li>Suporte prioritário 24/7</li><li>CDN e otimização de imagens</li><li>Traduções multilíngues</li></ul>',
+                    'cta_label'   => 'Iniciar plano Profissional',
+                    'cta_url'     => '/registro?plan=pro',
                 ],
             ],
         ];
@@ -317,7 +499,7 @@ class SiteLandingPageSeeder extends Seeder
                 continue;
             }
 
-            foreach (['es', 'en'] as $lang) {
+            foreach (['es', 'en', 'fr', 'pt'] as $lang) {
                 $langId = $langIds[$lang] ?? null;
                 if ($langId === null || ! isset($plan[$lang])) {
                     continue;
@@ -382,6 +564,54 @@ class SiteLandingPageSeeder extends Seeder
                         ],
                     ],
                 ],
+                'fr' => [
+                    'title'    => 'Collection de Vidéos du Starter',
+                    'subtitle' => 'Une sélection de vidéos YouTube et Vimeo intégrées dans une grille interactive.',
+                    'videos'   => [
+                        [
+                            'video_url'   => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                            'title'       => 'Rick Astley - Never Gonna Give You Up',
+                            'description' => 'Un classique de la culture internet pour tester la lecture vidéo.',
+                            'poster'      => $this->mediaReference('https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=600&auto=format&fit=crop&q=60'),
+                        ],
+                        [
+                            'video_url'   => 'https://vimeo.com/76979871',
+                            'title'       => 'The Mountain (Timelapse)',
+                            'description' => 'Un time-lapse spectaculaire de montagnes issu de Vimeo.',
+                            'poster'      => $this->mediaReference('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&fit=crop&q=60'),
+                        ],
+                        [
+                            'video_url'   => 'https://www.youtube.com/watch?v=ScMzIvxBSi4',
+                            'title'       => 'Lo-Fi Beats to Study/Relax',
+                            'description' => 'Un flux musical relaxant en direct.',
+                            'poster'      => $this->mediaReference('https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=600&auto=format&fit=crop&q=60'),
+                        ],
+                    ],
+                ],
+                'pt' => [
+                    'title'    => 'Coleção de Vídeos do Starter',
+                    'subtitle' => 'Uma amostra de vídeos do YouTube e Vimeo integrados em uma grade interativa.',
+                    'videos'   => [
+                        [
+                            'video_url'   => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                            'title'       => 'Rick Astley - Never Gonna Give You Up',
+                            'description' => 'Um clássico da cultura da internet para testes de reprodução.',
+                            'poster'      => $this->mediaReference('https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=600&auto=format&fit=crop&q=60'),
+                        ],
+                        [
+                            'video_url'   => 'https://vimeo.com/76979871',
+                            'title'       => 'The Mountain (Timelapse)',
+                            'description' => 'Um espetacular timelapse de montanhas do Vimeo.',
+                            'poster'      => $this->mediaReference('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&fit=crop&q=60'),
+                        ],
+                        [
+                            'video_url'   => 'https://www.youtube.com/watch?v=ScMzIvxBSi4',
+                            'title'       => 'Lo-Fi Beats to Study/Relax',
+                            'description' => 'Música ambiente e relaxante em transmissão ao vivo.',
+                            'poster'      => $this->mediaReference('https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=600&auto=format&fit=crop&q=60'),
+                        ],
+                    ],
+                ],
             ],
             $langIds
         );
@@ -430,6 +660,42 @@ class SiteLandingPageSeeder extends Seeder
                         ],
                     ],
                 ],
+                'fr' => [
+                    'title'       => 'Questions Fréquentes',
+                    'description' => "Nous répondons à vos principales questions sur le CMS et l'initialisation de la base de données.",
+                    'faqs'        => [
+                        [
+                            'question' => 'Quelle version de PHP ce projet requiert-il ?',
+                            'answer'   => '<p>Le projet nécessite PHP 8.1 ou supérieur, avec les extensions curl, intl, mbstring et mysql activées sur le serveur.</p>',
+                        ],
+                        [
+                            'question' => 'Comment puis-je compiler les assets du site web ?',
+                            'answer'   => "<p>Le starter utilise Tailwind CSS pour compiler les feuilles de style. Vous pouvez exécuter <code>npm run dev</code> ou <code>npm run build</code> à la racine du thème.</p>",
+                        ],
+                        [
+                            'question' => 'Prend-il en charge les bases de données SQLite ?',
+                            'answer'   => "<p>Actuellement, le projet est optimisé et configuré pour fonctionner sur MySQL / MariaDB pour des raisons de stabilité en production.</p>",
+                        ],
+                    ],
+                ],
+                'pt' => [
+                    'title'       => 'Perguntas Frequentes',
+                    'description' => 'Respondemos às suas principais dúvidas sobre o CMS e a inicialização do banco de dados.',
+                    'faqs'        => [
+                        [
+                            'question' => 'Qual versão do PHP este projeto requer?',
+                            'answer'   => '<p>O projeto requer PHP 8.1 ou superior, com as extensões curl, intl, mbstring e mysql habilitadas no servidor.</p>',
+                        ],
+                        [
+                            'question' => 'Como posso compilar os assets do site?',
+                            'answer'   => '<p>O starter utiliza Tailwind CSS para compilar as folhas de estilo. Você pode executar <code>npm run dev</code> ou <code>npm run build</code> na raiz do tema.</p>',
+                        ],
+                        [
+                            'question' => 'Há suporte para bancos de dados SQLite?',
+                            'answer'   => '<p>Atualmente, o projeto está otimizado e configurado para rodar em MySQL / MariaDB por questões de estabilidade em produção.</p>',
+                        ],
+                    ],
+                ],
             ],
             $langIds
         );
@@ -453,6 +719,18 @@ class SiteLandingPageSeeder extends Seeder
                     'text'    => 'Download the starter kit and start building premium web layouts today.',
                     'label'   => 'Get Started Now',
                     'url'     => '/en/contact',
+                ],
+                'fr' => [
+                    'heading' => 'Prêt à lancer votre projet ?',
+                    'text'    => "Téléchargez le starter kit et commencez dès aujourd'hui à construire des interfaces web premium.",
+                    'label'   => 'Commencer Maintenant',
+                    'url'     => '/fr/contact',
+                ],
+                'pt' => [
+                    'heading' => 'Pronto para lançar seu projeto?',
+                    'text'    => 'Baixe o starter kit e comece a construir interfaces web premium hoje mesmo.',
+                    'label'   => 'Começar Agora',
+                    'url'     => '/pt/contato',
                 ],
             ],
             $langIds

@@ -17,7 +17,7 @@ class CmsSocialLinksChildrenSeeder extends Seeder
 
     public function run(): void
     {
-        $langIds = $this->langIds(['es', 'en']);
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
         if (! isset($langIds['es'], $langIds['en'])) {
             echo "CmsSocialLinksChildrenSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
@@ -57,6 +57,12 @@ class CmsSocialLinksChildrenSeeder extends Seeder
                     'en' => [
                         'handle' => '@bencord',
                     ],
+                    'fr' => [
+                        'handle' => '@bencord',
+                    ],
+                    'pt' => [
+                        'handle' => '@bencord',
+                    ],
                 ],
             ],
             [
@@ -72,6 +78,12 @@ class CmsSocialLinksChildrenSeeder extends Seeder
                     'en' => [
                         'handle' => 'TeatroColonOficial',
                     ],
+                    'fr' => [
+                        'handle' => 'TeatroColonOficial',
+                    ],
+                    'pt' => [
+                        'handle' => 'TeatroColonOficial',
+                    ],
                 ],
             ],
             [
@@ -85,6 +97,12 @@ class CmsSocialLinksChildrenSeeder extends Seeder
                         'handle' => '@teatrodelinstinto',
                     ],
                     'en' => [
+                        'handle' => '@teatrodelinstinto',
+                    ],
+                    'fr' => [
+                        'handle' => '@teatrodelinstinto',
+                    ],
+                    'pt' => [
                         'handle' => '@teatrodelinstinto',
                     ],
                 ],

@@ -20,7 +20,7 @@ class SitePortfolioPageSeeder extends Seeder
 
     public function run(): void
     {
-        $langIds = $this->langIds(['es', 'en']);
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
         if (! isset($langIds['es'], $langIds['en'])) {
             echo "SitePortfolioPageSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
@@ -53,6 +53,30 @@ class SitePortfolioPageSeeder extends Seeder
             'robots'           => 'index, follow',
             'schema_data'      => null,
         ]);
+        if (isset($langIds['fr'])) {
+            $this->upsertPageTranslation($portfolioPageId, $langIds['fr'], [
+                'slug'             => 'portefeuille',
+                'title'            => 'Portefeuille',
+                'excerpt'          => 'Découvrez nos travaux récents et nos réussites.',
+                'meta_title'       => 'Portefeuille | Mon Site',
+                'meta_description' => 'Découvrez nos travaux récents et nos réussites.',
+                'canonical_url'    => null,
+                'robots'           => 'index, follow',
+                'schema_data'      => null,
+            ]);
+        }
+        if (isset($langIds['pt'])) {
+            $this->upsertPageTranslation($portfolioPageId, $langIds['pt'], [
+                'slug'             => 'portfolio',
+                'title'            => 'Portfólio',
+                'excerpt'          => 'Explore nossos trabalhos recentes e casos de sucesso.',
+                'meta_title'       => 'Portfólio | Meu Site',
+                'meta_description' => 'Explore nossos trabalhos recentes e casos de sucesso.',
+                'canonical_url'    => null,
+                'robots'           => 'index, follow',
+                'schema_data'      => null,
+            ]);
+        }
 
         $blockIds = $this->blockIds(['page_header', 'collection_listing', 'rich_text', 'image', 'alert', 'tabs', 'tab_item']);
         $keptInstanceIds = [];
@@ -78,6 +102,18 @@ class SitePortfolioPageSeeder extends Seeder
                     'breadcrumb_label' => 'Home',
                     'breadcrumb_url'   => '/',
                 ],
+                'fr' => [
+                    'heading'          => 'Portefeuille',
+                    'subheading'       => 'Découvrez nos travaux récents.',
+                    'breadcrumb_label' => 'Accueil',
+                    'breadcrumb_url'   => '/',
+                ],
+                'pt' => [
+                    'heading'          => 'Portfólio',
+                    'subheading'       => 'Explore nossos trabalhos recentes.',
+                    'breadcrumb_label' => 'Início',
+                    'breadcrumb_url'   => '/',
+                ],
             ],
             $langIds
         ));
@@ -96,6 +132,12 @@ class SitePortfolioPageSeeder extends Seeder
                 ],
                 'en' => [
                     'content' => '<p>Explore a curated selection of projects and case studies that showcase our approach, process, and final outcomes.</p>',
+                ],
+                'fr' => [
+                    'content' => "<p>Découvrez une sélection organisée de projets et d'études de cas qui illustrent notre approche, notre processus et les résultats obtenus.</p>",
+                ],
+                'pt' => [
+                    'content' => '<p>Explore uma seleção cuidadosa de projetos e estudos de caso que mostram nossa abordagem, processo e resultado final.</p>',
                 ],
             ],
             $langIds
@@ -131,6 +173,16 @@ class SitePortfolioPageSeeder extends Seeder
                     'intro_text'    => '<p>Filter by categories or tags, search for specific projects, and navigate the results without losing context.</p>',
                     'empty_message' => 'No projects available at the moment.',
                 ],
+                'fr' => [
+                    'intro_title'   => 'Liste complète',
+                    'intro_text'    => "<p>Filtrez par catégories ou étiquettes, recherchez des projets spécifiques et naviguez dans les résultats sans perdre le contexte.</p>",
+                    'empty_message' => "Aucun projet disponible pour le moment.",
+                ],
+                'pt' => [
+                    'intro_title'   => 'Listagem completa',
+                    'intro_text'    => '<p>Filtre por categorias ou etiquetas, busque projetos específicos e navegue pelos resultados sem perder o contexto.</p>',
+                    'empty_message' => 'Nenhum projeto disponível no momento.',
+                ],
             ],
             $langIds
         ));
@@ -156,6 +208,14 @@ class SitePortfolioPageSeeder extends Seeder
                     'alt'     => 'Portfolio section image',
                     'caption' => 'Building the digital future of our clients.',
                 ],
+                'fr' => [
+                    'alt'     => 'Image de la section portefeuille',
+                    'caption' => 'Nous construisons l\'avenir numérique de nos clients.',
+                ],
+                'pt' => [
+                    'alt'     => 'Imagem da seção de portfólio',
+                    'caption' => 'Construímos o futuro digital de nossos clientes.',
+                ],
             ],
             $langIds
         ));
@@ -177,6 +237,14 @@ class SitePortfolioPageSeeder extends Seeder
                     'title'   => 'Quality Note',
                     'message' => '<p>All projects presented below represent custom-tailored solutions and real-world client success stories. Technical details are updated to the current year.</p>',
                 ],
+                'fr' => [
+                    'title'   => 'Note de Qualité',
+                    'message' => "<p>Tous les projets présentés ci-dessous représentent des solutions sur mesure et de véritables réussites clients. Les détails techniques sont mis à jour pour l'année en cours.</p>",
+                ],
+                'pt' => [
+                    'title'   => 'Nota de Qualidade',
+                    'message' => '<p>Todos os projetos apresentados a seguir representam soluções sob medida e casos reais de sucesso para nossos clientes. Os detalhes técnicos estão atualizados para o ano corrente.</p>',
+                ],
             ],
             $langIds
         ));
@@ -189,7 +257,7 @@ class SitePortfolioPageSeeder extends Seeder
             'tabs',
             6,
             ['layout' => 'horizontal', 'css_class' => 'my-12'],
-            ['es' => [], 'en' => []],
+            ['es' => [], 'en' => [], 'fr' => [], 'pt' => []],
             $langIds
         );
         $this->trackInstanceId($keptInstanceIds, $tabsInstanceId);
@@ -212,6 +280,14 @@ class SitePortfolioPageSeeder extends Seeder
                         'title'   => 'Methodology',
                         'content' => '<h3 class="text-xl font-bold mb-2">User-Centered Design</h3><p class="text-slate-600">Our development methodology places the end-user at the center of every stage of the decision-making process. We conduct rapid prototyping, A/B testing of key user flows, and iterative usability validations to ensure that every application is intuitive, fast, and extremely easy to operate.</p>',
                     ],
+                    'fr' => [
+                        'title'   => 'Méthodologie',
+                        'content' => "<h3 class=\"text-xl font-bold mb-2\">Conception Centrée sur l'Utilisateur</h3><p class=\"text-slate-600\">Notre méthodologie de développement place l'utilisateur final au centre de chaque étape du processus de décision. Nous réalisons du prototypage rapide, des tests A/B des parcours clés et des validations d'utilisabilité itératives pour garantir que chaque application soit intuitive, rapide et extrêmement facile à utiliser.</p>",
+                    ],
+                    'pt' => [
+                        'title'   => 'Metodologia',
+                        'content' => '<h3 class="text-xl font-bold mb-2">Design Centrado no Usuário</h3><p class="text-slate-600">Nossa metodologia de desenvolvimento coloca o usuário final no centro de cada etapa do processo de tomada de decisão. Realizamos prototipagem rápida, testes A/B dos principais fluxos de usuário e validações iterativas de usabilidade para garantir que cada aplicação seja intuitiva, rápida e extremamente fácil de operar.</p>',
+                    ],
                 ],
                 $langIds,
                 $tabsInstanceId
@@ -233,6 +309,14 @@ class SitePortfolioPageSeeder extends Seeder
                     'en' => [
                         'title'   => 'Technologies',
                         'content' => '<h3 class="text-xl font-bold mb-2">Modern Tech Stack</h3><p class="text-slate-600">We deploy high-performance solutions using a modern, mature, and robust tech stack. We leverage PHP 8.2+, CodeIgniter 4, precisely indexed relational databases, secure payment gateway integrations, and dynamic layouts styled through Tailwind CSS and Alpine.js.</p>',
+                    ],
+                    'fr' => [
+                        'title'   => 'Technologies',
+                        'content' => "<h3 class=\"text-xl font-bold mb-2\">Stack Technologique Moderne</h3><p class=\"text-slate-600\">Nous déployons des solutions haute performance à l'aide d'une pile technologique moderne, mature et robuste. Nous nous appuyons sur PHP 8.2+, CodeIgniter 4, des bases de données relationnelles indexées avec précision, des intégrations sécurisées de passerelles de paiement et des mises en page dynamiques stylisées avec Tailwind CSS et Alpine.js.</p>",
+                    ],
+                    'pt' => [
+                        'title'   => 'Tecnologias',
+                        'content' => '<h3 class="text-xl font-bold mb-2">Stack Tecnológico Moderno</h3><p class="text-slate-600">Implementamos soluções de alto desempenho utilizando um stack tecnológico moderno, maduro e robusto. Utilizamos PHP 8.2+, CodeIgniter 4, bancos de dados relacionais indexados com precisão, integrações seguras de gateways de pagamento e layouts dinâmicos estilizados com Tailwind CSS e Alpine.js.</p>',
                     ],
                 ],
                 $langIds,

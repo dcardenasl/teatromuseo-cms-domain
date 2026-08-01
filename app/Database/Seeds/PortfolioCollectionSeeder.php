@@ -18,7 +18,7 @@ class PortfolioCollectionSeeder extends Seeder
 
     public function run(): void
     {
-        $langIds = $this->langIds(['es', 'en']);
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
 
         if (empty($langIds['es'])) {
             echo "PortfolioCollectionSeeder: 'es' language not found in cms_languages. Seed CmsLanguageSeeder first.\n";
@@ -70,6 +70,24 @@ class PortfolioCollectionSeeder extends Seeder
                 'default_meta_title'       => 'Portfolio | My Site',
                 'default_meta_description' => 'Explore the projects and works we have completed.',
             ],
+            'fr' => [
+                'slug'                     => 'portefeuille',
+                'name'                     => 'Portefeuille',
+                'description'              => 'Section des études de cas et du portefeuille de projets.',
+                'listing_title'            => 'Nos Projets',
+                'listing_intro'            => 'Découvrez nos travaux récents et nos réussites.',
+                'default_meta_title'       => 'Portefeuille | Mon Site',
+                'default_meta_description' => 'Découvrez les projets et réalisations que nous avons menés à bien.',
+            ],
+            'pt' => [
+                'slug'                     => 'portfolio',
+                'name'                     => 'Portfólio',
+                'description'              => 'Seção de estudos de caso e portfólio de projetos.',
+                'listing_title'            => 'Nossos Projetos',
+                'listing_intro'            => 'Explore nossos trabalhos recentes e casos de sucesso.',
+                'default_meta_title'       => 'Portfólio | Meu Site',
+                'default_meta_description' => 'Conheça os projetos e desenvolvimentos que realizamos.',
+            ],
         ];
 
         foreach ($collectionTranslations as $langCode => $trans) {
@@ -85,8 +103,18 @@ class PortfolioCollectionSeeder extends Seeder
 
         // ── 3. Categories ──────────────────────────────────────────────────────
         $categories = [
-            ['es' => ['name' => 'Desarrollo Web', 'slug' => 'desarrollo-web'], 'en' => ['name' => 'Web Development', 'slug' => 'web-development']],
-            ['es' => ['name' => 'Diseño UI/UX',    'slug' => 'diseno-ui-ux'],    'en' => ['name' => 'UI/UX Design',      'slug' => 'ui-ux-design']],
+            [
+                'es' => ['name' => 'Desarrollo Web', 'slug' => 'desarrollo-web'],
+                'en' => ['name' => 'Web Development', 'slug' => 'web-development'],
+                'fr' => ['name' => 'Développement Web', 'slug' => 'developpement-web'],
+                'pt' => ['name' => 'Desenvolvimento Web', 'slug' => 'desenvolvimento-web'],
+            ],
+            [
+                'es' => ['name' => 'Diseño UI/UX',    'slug' => 'diseno-ui-ux'],
+                'en' => ['name' => 'UI/UX Design',      'slug' => 'ui-ux-design'],
+                'fr' => ['name' => 'Design UI/UX',      'slug' => 'design-ui-ux'],
+                'pt' => ['name' => 'Design UI/UX',      'slug' => 'design-ui-ux'],
+            ],
         ];
 
         $catIdMap = [];
@@ -121,8 +149,18 @@ class PortfolioCollectionSeeder extends Seeder
 
         // ── 4. Tags ────────────────────────────────────────────────────────────
         $tags = [
-            ['es' => ['name' => 'Reciente', 'slug' => 'reciente'], 'en' => ['name' => 'Recent', 'slug' => 'recent']],
-            ['es' => ['name' => 'Destacado', 'slug' => 'destacado'], 'en' => ['name' => 'Featured', 'slug' => 'featured']],
+            [
+                'es' => ['name' => 'Reciente', 'slug' => 'reciente'],
+                'en' => ['name' => 'Recent', 'slug' => 'recent'],
+                'fr' => ['name' => 'Récent', 'slug' => 'recent'],
+                'pt' => ['name' => 'Recente', 'slug' => 'recente'],
+            ],
+            [
+                'es' => ['name' => 'Destacado', 'slug' => 'destacado'],
+                'en' => ['name' => 'Featured', 'slug' => 'featured'],
+                'fr' => ['name' => 'En vedette', 'slug' => 'en-vedette'],
+                'pt' => ['name' => 'Destaque', 'slug' => 'destaque'],
+            ],
         ];
 
         $tagIdMap = [];
@@ -158,6 +196,22 @@ class PortfolioCollectionSeeder extends Seeder
                     'meta_description' => 'Success story on the development of a modern and scalable online store.',
                     'rich_text'        => '<p>We designed and developed a complete e-commerce solution enabling fast transactions, easy inventory management, and a highly intuitive mobile interface.</p><h2>From discovery to launch</h2><p>The team mapped the highest-friction moments: search, checkout, and order tracking. We used those insights to define a modular architecture and a visual system that could grow with the catalog.</p><ul><li>Catalog and filters ready for thousands of products.</li><li>A checkout flow optimized for small screens.</li><li>An editorial panel for campaign updates without developer support.</li></ul><p>The project delivered a 40% increase in mobile conversion during its first quarter.</p>',
                 ],
+                'fr' => [
+                    'title'            => 'Plateforme E-commerce Nationale',
+                    'slug'             => 'ecommerce-national',
+                    'excerpt'          => "Développement à grande échelle d'une boutique en ligne moderne avec passerelle de paiement intégrée.",
+                    'meta_title'       => 'Plateforme E-commerce | Portefeuille',
+                    'meta_description' => "Étude de cas sur le développement d'une boutique en ligne moderne et évolutive.",
+                    'rich_text'        => "<p>Nous avons conçu et développé une solution de commerce électronique complète permettant des transactions rapides, une gestion simple des stocks et une interface mobile extrêmement intuitive.</p><h2>De la découverte au lancement</h2><p>L'équipe a commencé par cartographier les moments de plus grande friction : la recherche, le paiement et le suivi de commande. Grâce à ces informations, nous avons défini une architecture modulaire et un système visuel capable de croître avec le catalogue.</p><ul><li>Catalogue et filtres prêts pour des milliers de produits.</li><li>Paiement optimisé pour les petits écrans.</li><li>Panneau éditorial pour mettre à jour les campagnes sans dépendre du développement.</li></ul><p>Le projet a permis une augmentation de 40 % des conversions mobiles au cours de son premier trimestre.</p>",
+                ],
+                'pt' => [
+                    'title'            => 'Plataforma de E-commerce Nacional',
+                    'slug'             => 'plataforma-ecommerce-nacional',
+                    'excerpt'          => 'Desenvolvimento em grande escala de uma loja online moderna com gateway de pagamento integrado.',
+                    'meta_title'       => 'Plataforma E-commerce | Portfólio',
+                    'meta_description' => 'Caso de sucesso sobre o desenvolvimento de uma loja online moderna e escalável.',
+                    'rich_text'        => '<p>Projetamos e desenvolvemos uma solução de comércio eletrônico completa que permite transações rápidas, gestão simples de estoque e uma interface móvel extremamente intuitiva.</p><h2>Da descoberta ao lançamento</h2><p>A equipe começou mapeando os momentos de maior atrito: busca, checkout e rastreamento do pedido. Com essas informações, definimos uma arquitetura modular e um sistema visual capaz de crescer junto com o catálogo.</p><ul><li>Catálogo e filtros preparados para milhares de produtos.</li><li>Checkout otimizado para telas pequenas.</li><li>Painel editorial para atualizar campanhas sem depender de desenvolvimento.</li></ul><p>O projeto alcançou um aumento de 40% nas conversões móveis em seu primeiro trimestre.</p>',
+                ],
             ],
             [
                 'featured_image'     => $this->mediaReference('https://picsum.photos/id/10/600/400'),
@@ -179,6 +233,22 @@ class PortfolioCollectionSeeder extends Seeder
                     'meta_title'       => 'Banking UI/UX Redesign | Portfolio',
                     'meta_description' => 'UI/UX design project to transform the digital mobile banking experience.',
                     'rich_text'        => '<p>We conducted user-centered research and design workshops to simplify bank transfers from 5 to just 2 steps, achieving a clean and modern design.</p><h2>Fewer steps, more confidence</h2><p>Research showed that people did not need more features; they needed better guidance at critical moments. We turned those signals into prototypes, moderated tests, and an accessible interface.</p><ul><li>The primary flow was reduced from five steps to two.</li><li>Statuses and confirmations became easier to understand.</li><li>Accessible, consistent components were used across the app.</li></ul><p>The result was a clearer experience for new users and a faster one for people completing daily transactions.</p>',
+                ],
+                'fr' => [
+                    'title'            => "Refonte de l'application de Banque Numérique",
+                    'slug'             => 'refonte-banque-numerique',
+                    'excerpt'          => "Nouvelle proposition d'interface et d'expérience utilisateur axée sur la simplicité et l'accessibilité.",
+                    'meta_title'       => 'Refonte UI/UX Banque | Portefeuille',
+                    'meta_description' => "Projet de design UX/UI pour transformer l'expérience de banque mobile numérique.",
+                    'rich_text'        => "<p>Nous avons mené des ateliers de recherche et de conception centrée sur l'utilisateur afin de simplifier le parcours de virement bancaire, le faisant passer de 5 à seulement 2 étapes, avec un design épuré et moderne.</p><h2>Moins d'étapes, plus de confiance</h2><p>La recherche a révélé que les utilisateurs n'avaient pas besoin de plus de fonctionnalités, mais d'une meilleure orientation aux moments critiques. Nous avons transformé ces signaux en prototypes, tests modérés et une interface accessible.</p><ul><li>Parcours principal réduit de cinq étapes à deux.</li><li>États et confirmations plus faciles à comprendre.</li><li>Composants accessibles et cohérents dans toute l'application.</li></ul><p>Le résultat a été une expérience plus claire pour les nouveaux utilisateurs et plus rapide pour ceux qui effectuent des opérations quotidiennes.</p>",
+                ],
+                'pt' => [
+                    'title'            => 'Redesign do Aplicativo de Banco Digital',
+                    'slug'             => 'redesign-banco-digital',
+                    'excerpt'          => 'Nova proposta de interface e experiência do usuário focada em simplicidade e acessibilidade.',
+                    'meta_title'       => 'Redesign UI/UX Banco | Portfólio',
+                    'meta_description' => 'Projeto de design UX/UI para transformar a experiência de banco móvel digital.',
+                    'rich_text'        => '<p>Realizamos workshops de pesquisa e design centrado no usuário para simplificar o fluxo de transferências bancárias de 5 para apenas 2 etapas, alcançando um design limpo e moderno.</p><h2>Menos etapas, mais confiança</h2><p>A pesquisa revelou que as pessoas não precisavam de mais funcionalidades, mas de melhor orientação nos momentos críticos. Transformamos esses sinais em protótipos, testes moderados e uma interface acessível.</p><ul><li>Fluxo principal reduzido de cinco etapas para duas.</li><li>Estados e confirmações mais fáceis de entender.</li><li>Componentes acessíveis e consistentes em todo o aplicativo.</li></ul><p>O resultado foi uma experiência mais clara para novos usuários e mais rápida para quem realiza operações diariamente.</p>',
                 ],
             ],
         ];
@@ -248,7 +318,7 @@ class PortfolioCollectionSeeder extends Seeder
             $keptInstanceIds = array_values(array_filter([$instImageId, $instRichTextId]));
 
             // Translations
-            foreach (['es', 'en'] as $langCode) {
+            foreach (['es', 'en', 'fr', 'pt'] as $langCode) {
                 $langId = $langIds[$langCode] ?? null;
                 if ($langId === null) {
                     continue;
@@ -274,13 +344,19 @@ class PortfolioCollectionSeeder extends Seeder
                 ]);
 
                 // Insert translation for Block 1: image
+                $captionPrefixes = [
+                    'es' => 'Proyecto finalizado: ',
+                    'en' => 'Completed project: ',
+                    'fr' => 'Projet terminé : ',
+                    'pt' => 'Projeto concluído: ',
+                ];
                 $this->upsertRecord('cms_block_instance_translations', [
                     'instance_id' => $instImageId,
                     'language_id' => $langId,
                 ], [
                     'block_data'  => json_encode([
                         'alt'     => $tData['title'],
-                        'caption' => 'Proyecto finalizado: ' . $tData['title']
+                        'caption' => ($captionPrefixes[$langCode] ?? '') . $tData['title']
                     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 ]);
 
