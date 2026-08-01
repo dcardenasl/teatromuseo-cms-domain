@@ -11,6 +11,7 @@ use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
 use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\Entities\EntryEntity;
 use App\Interfaces\Cms\EntryServiceInterface;
+use App\Libraries\Cms\BlockInstancePurger;
 use App\Libraries\Cms\EntryTaxonomyPivotResolver;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
@@ -41,6 +42,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     private EntryBlockTemplateInitializer $blockTemplateInitializer;
 
+    private BlockInstancePurger $blockInstancePurger;
+
     private PublicEntryReader $publicReader;
 
     private EntryTaxonomyPivotResolver $taxonomyPivotResolver;
@@ -63,6 +66,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         PublicEntryReader $publicReader,
         EntryTaxonomyPivotResolver $taxonomyPivotResolver,
         EntryBlockTemplateInitializer $blockTemplateInitializer,
+        BlockInstancePurger $blockInstancePurger,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
@@ -73,6 +77,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->translationResolver = $translationResolver;
         $this->publicReader = $publicReader;
         $this->taxonomyPivotResolver = $taxonomyPivotResolver;
+        $this->blockInstancePurger = $blockInstancePurger;
         $this->blockTemplateInitializer = $blockTemplateInitializer;
         $this->translationSynchronizer = $translationSynchronizer;
     }
@@ -210,6 +215,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
+        // cms_entries is soft-deleted, but cms_block_instances has no such column
+        // (BlockInstanceModel::$useSoftDeletes = false) — leaving them behind turns
+        // them into orphans that still hold cms_file_references rows, which blocks
+        // Hub file deletion with a 409 "in use" for files nothing can reach anymore.
+        $this->blockInstancePurger->purgeForOwner('entry', (int) $entity->id);
         $this->fileReferenceSynchronizer->removeResourceReferences('entry', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['entries']);
     }
