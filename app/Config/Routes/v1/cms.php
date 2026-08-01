@@ -127,6 +127,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->get('submissions/counts', 'FormSubmissionController::counts', ['filter' => 'permission:cms.submissions.read']);
         $routes->get('submissions/(:num)', 'FormSubmissionController::show/$1', ['filter' => 'permission:cms.submissions.read']);
         $routes->patch('submissions/(:num)/status', 'FormSubmissionController::updateStatus/$1', ['filter' => 'permission:cms.submissions.write']);
+        $routes->post('submissions/import', 'FormSubmissionController::import', ['filter' => 'permission:cms.submissions.write']);
 
         // Forms (admin — dynamic form builder)
         $routes->get('forms', 'FormController::index', ['filter' => 'permission:cms.forms.read']);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Cms;
 
 use App\DTO\Request\Cms\FormSubmissionCreateRequestDTO;
+use App\DTO\Request\Cms\FormSubmissionImportRequestDTO;
 use App\DTO\Request\Cms\FormSubmissionIndexRequestDTO;
 use App\DTO\Request\Cms\FormSubmissionUpdateStatusRequestDTO;
 use App\DTO\Response\Cms\FormSubmissionResponseDTO;
@@ -113,6 +114,34 @@ class FormSubmissionService
         }
 
         return $submission;
+    }
+
+    /**
+     * Backfill a historical submission (e.g. legacy migration ETL). Skips
+     * CAPTCHA and email-notification jobs — those only make sense for live
+     * submissions — and preserves the caller's created_at/status instead of
+     * stamping the import time.
+     */
+    public function import(FormSubmissionImportRequestDTO $dto): FormSubmissionResponseDTO
+    {
+        $dataJson = json_encode($dto->form_data, JSON_UNESCAPED_UNICODE) ?: '{}';
+
+        $id = $this->model->insert([
+            'form_id'     => $dto->form_id,
+            'form_key'    => $dto->form_key,
+            'page_id'     => $dto->page_id,
+            'language_id' => $dto->language_id,
+            'data_json'   => $dataJson,
+            'status'      => $dto->status,
+            'ip_address'  => $dto->ip_address ?? '',
+            'user_agent'  => $dto->user_agent ?? '',
+        ], true);
+
+        if ($dto->created_at !== null) {
+            $this->model->builder()->where('id', $id)->update(['created_at' => $dto->created_at]);
+        }
+
+        return $this->get((int) $id);
     }
 
     private function verifyRecaptcha(string $token): bool

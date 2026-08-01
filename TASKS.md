@@ -16,6 +16,21 @@ las decisiones de producto pendientes se mantienen en el tracker global.)*
 
 ## ✅ Completadas
 
+- **IMPORT-001 — Vía de importación autenticada para `cms_form_submissions` (2026-08-01):**
+  Necesaria para `LEGACY-MAP-017` en `teatromuseo-api/TASKS.md` (backfill de 157 mensajes de
+  contacto legacy con PII real). El endpoint público existente (`POST public/submissions`)
+  siempre pisa `created_at`=ahora y `status`=new, así que no servía para preservar el histórico
+  real. Nuevo `POST /api/v1/cms/submissions/import` (admin, `cms.submissions.write`, ya
+  existente — no hizo falta sincronizar permisos nuevos): `FormSubmissionImportRequestDTO` +
+  `FormSubmissionService::import()`, sin CAPTCHA ni jobs de notificación por email (no aplica a
+  un backfill histórico). `useTimestamps=true` en `FormSubmissionModel` pisa cualquier
+  `created_at` pasado a `insert()`/`update()`, así que `import()` inserta normal y luego corrige
+  la fecha con `$this->model->builder()->where('id', $id)->update(['created_at' => ...])` —
+  pasa por el modelo ya inyectado, no viola el guardrail de `ServiceModelDependencyConventionsTest`
+  (baseline de `model()` calls sin cambios: la resolución de `form_id` por `form_key` se movió al
+  DTO, igual patrón que `FormSubmissionCreateRequestDTO`, en vez de duplicarla en el Service).
+  `composer quality` ✅ (522/522 tests, 1 skip preexistente).
+
 - **AUDIT-001 — Falso positivo "outdated" en la auditoría de traducciones a nivel de entrada (2026-08-01):**
   Mismo patrón ya diagnosticado el 2026-07-21 para bloques (ver comentario en
   `TranslationAuditSupport::collapseForBlockBadge()`, confirmado con David en su momento), pero
