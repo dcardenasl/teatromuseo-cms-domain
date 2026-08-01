@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`POST /api/v1/cms/submissions/import`** — authenticated bulk-import endpoint for
+  `cms_form_submissions` (`FormSubmissionImportRequestDTO` + `FormSubmissionService::import()`,
+  gated by `cms.submissions.write`), for backfilling historical submissions with their real
+  `created_at`/`status` instead of the public endpoint's always-now/always-new behavior.
 - **Catalog and event block presets** — page structure seeders now wire richer block sets for catalog and event detail pages, including fallback media and new block types.
 - **Public listing page types & menu link targets** — added `events`, `catalog_listing`, `template_catalog_item`, `template_event_item` page types (folded into the base `CreateCmsPages` migration) in `CmsEnums`. Added `target_blank` link target support in `MenuItemModel`, DTOs, and services.
 - **Public page reader API** — implemented `PublicPageReader` service and `/api/v1/cms/public/pages/*` endpoints (`PublicPageController`) for resolving public pages by slug/type and handling site redirects.
