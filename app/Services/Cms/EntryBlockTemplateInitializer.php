@@ -92,8 +92,10 @@ class EntryBlockTemplateInitializer
                 }
 
                 // Derive initial block_data from wizard_extra if provided (once per block, shared across languages)
-                $rawSchema   = $blockType->schema_definition ?? null;
-                $schemaDef   = is_array($rawSchema) ? $rawSchema : [];
+                // `schema_definition` is cast as 'json' on BlockTypeEntity, which CI4 decodes to
+                // stdClass (recursively) rather than array — go through the normalizer instead of
+                // an `is_array()` check, which would always be false and silently drop every field.
+                $schemaDef   = \App\Libraries\Cms\JsonCastNormalizer::toArray($blockType->schema_definition ?? null);
                 $schemaFields = is_array($schemaDef['fields'] ?? null) ? (array) $schemaDef['fields'] : [];
 
                 $extraction   = $wizardExtra !== null
