@@ -256,6 +256,7 @@ class CmsBlockTypeSeeder extends Seeder
                         'order_by'         => ['type' => 'select', 'label' => 'Ordenar por',               'required' => false, 'options' => ['published_at', 'sort_order', 'created_at', 'title'], 'default' => 'published_at'],
                         'order_direction'  => ['type' => 'select', 'label' => 'Dirección',                 'required' => false, 'options' => ['asc', 'desc'], 'default' => 'desc'],
                         'layout_variant'   => ['type' => 'select', 'label' => 'Variante visual',           'required' => false, 'options' => ['cards', 'compact', 'portfolio', 'list'], 'default' => 'cards'],
+                        'image_aspect_ratio' => ['type' => 'select', 'label' => 'Proporción de la imagen de portada', 'description' => 'Controla el alto de la imagen en cada tarjeta; el ancho siempre lo define la cuadrícula.', 'required' => false, 'options' => ['16/9', '4/3', '1/1', '3/4', '2/3'], 'default' => '16/9'],
                         'show_search'      => ['type' => 'boolean', 'label' => 'Mostrar búsqueda',          'required' => false, 'default' => true],
                         'show_categories'  => ['type' => 'boolean', 'label' => 'Mostrar categorías',       'required' => false, 'default' => true],
                         'show_tags'        => ['type' => 'boolean', 'label' => 'Mostrar etiquetas',         'required' => false, 'default' => false],
