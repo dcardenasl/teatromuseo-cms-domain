@@ -67,7 +67,15 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
         'app/Services/Cms/MenuItemService.php' => ['model_call' => 6],
         'app/Services/Cms/MenuService.php' => ['model_call' => 2],
         'app/Services/Cms/PageService.php' => ['model_call' => 8],
-        'app/Services/Cms/PublicEntryReader.php' => ['model_call' => 6],
+        // 2026-08-02: model_call grew from 6 to 7 — added blockInstanceTranslationModel()
+        // (same lazy-getter pattern as the other 6 models already here) so
+        // batchResolveCursoStartDates() could join cms_block_instance_translations ->
+        // cms_block_instances -> cms_content_blocks via the Model layer instead of
+        // Database::connect() (which would have added a new db_connect violation
+        // instead). Needed for the cursos listing's "upcoming first, then most-recent-
+        // past" ordering — start_date lives in a block's translated block_data, not a
+        // cms_entries column, so no existing model already exposed it.
+        'app/Services/Cms/PublicEntryReader.php' => ['model_call' => 7],
         'app/Services/Cms/SettingService.php' => ['model_call' => 2],
         'app/Services/Cms/TagService.php' => ['model_call' => 4],
     ];

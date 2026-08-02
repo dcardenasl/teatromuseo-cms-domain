@@ -16,6 +16,48 @@ las decisiones de producto pendientes se mantienen en el tracker global.)*
 
 ## ✅ Completadas
 
+- **CURSOS-001 — Portadas/galerías de cursos, unificación actual/histórico, y orden por
+  fecha (2026-08-02):** David pidió revisar qué pasó con las portadas e imágenes de galería
+  de la colección `cursos`, confirmar que los cursos actuales e históricos quedan unificados
+  en un solo listado, y ordenar la colección con los próximos primero (ascendente) y luego el
+  resto por fecha descendente — el mismo criterio ya aplicado a la Cartelera pública
+  (event-domain EVT-DOM-007).
+  - **Portadas/galería:** confirmado con `LegacyAssetResolver` contra el dump real que los 20
+    `sn_cursos.image_cover` existentes apuntaban a archivos bajo `/images/escuela/` que
+    nunca se descargaron al asset-root local durante la preparación original
+    (LEGACY-MAP-022) — pero seguían disponibles en `https://teatromuseo.cl/images/escuela/`
+    (200 OK los 20). Descargados y re-corrida `legacy:apply --slice B`: portadas de cursos
+    100→19/48 (los 20 con `image_cover` real menos 1 que no corresponde a un curso visible
+    actualmente; el resto de los 48 cursos genuinamente no tiene imagen en el dump legacy —
+    confirmado, no es un bug). Galería (`sn_escuela_img`) ya estaba correctamente migrada.
+    Idempotencia verificada con una segunda corrida (0 archivos nuevos).
+  - **Unificación actual/histórico:** confirmado que NO hay dos tablas legacy separadas —
+    "Curso Actuales" (`/teatroescuela`) y "Curso Históricos" (`/teatroescuela-historico`) en
+    el sitio legacy son solo dos filtros de navegación sobre la misma fuente (`sn_escuela`),
+    igual que "Cartelera Actual"/"Cartelera Histórica" resultaron ser sobre `sn_obra`
+    (ver histórico de LEGACY-MAP en `../teatromuseo-api/TASKS.md`). Ya migrados como una sola
+    colección `cursos`, un solo listado público `/cursos` — nada que unificar, el diseño
+    actual ya es correcto.
+  - **Orden por fecha:** a diferencia de eventos (donde `start_time` es una columna real de
+    `events`), en cursos la fecha vive dentro del `block_data` traducido del bloque
+    `curso_ficha`, no en una columna de `cms_entries` — un `ORDER BY` no puede expresarlo.
+    Nuevo `PublicEntryReader::sortCursosUpcomingFirst()` (activado solo cuando
+    `collection_key === 'cursos'`, sin tocar el orden genérico de las demás colecciones):
+    recorre todas las filas que matchean los filtros existentes, resuelve el `start_date` de
+    cada una en una sola query batch (`batchResolveCursoStartDates()`, N+1-safe, mismo patrón
+    que los otros resolvers de este reader), ordena en PHP y pagina el resultado. Requirió
+    agregar `blockInstanceTranslationModel()` (mismo patrón lazy-getter que los otros 6
+    modelos del archivo) — actualizado el baseline de
+    `ServiceModelDependencyConventionsTest` para `PublicEntryReader.php` (`model_call` 6→7,
+    documentado y justificado: reemplaza lo que habría sido un `Database::connect()` directo,
+    no una violación nueva del patrón).
+  - **Verificado:** nuevo test `testCursosCollectionOrdersUpcomingFirstThenMostRecentPast`
+    (16/16 tests en `PublicEntryControllerTest.php`), `composer quality` ✅. Orden verificado
+    contra los 48 `start_date` reales en BD (no solo "se ve plausible en el navegador") —
+    coincide exactamente salvo un empate legítimo entre dos cursos con la misma fecha
+    (2020-01-20). Confirmado en vivo en `http://localhost:8184/es/cursos`: el único curso con
+    fecha futura ("La Escuela de los Nuevos Comediantes") aparece primero.
+
 - **CLEANUP-001 — Eliminar seeders y datos de ejemplo mezclados con contenido real (2026-08-02):**
   David notó (a raíz del carrusel de inicio, ya corregido en LEGACY-MAP-021/026) que había
   contenido de ejemplo mezclado con el migrado desde la BD legacy de teatromuseo.cl — pidió

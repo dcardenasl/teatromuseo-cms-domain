@@ -351,6 +351,63 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertSame(2, (int) $body['meta']['per_page']);
     }
 
+    public function testCursosCollectionOrdersUpcomingFirstThenMostRecentPast(): void
+    {
+        // "Cursos" reads as a program calendar, not an article feed: the next upcoming
+        // course first, then the rest most-recent-first — the same reasoning already
+        // applied to the public Cartelera listing (event-domain EVT-DOM-007). The date
+        // that drives this lives in the curso_ficha block's block_data, not a cms_entries
+        // column, so this exercises PublicEntryReader::sortCursosUpcomingFirst() end-to-end.
+        $cursos = $this->fixtures->collection([
+            [
+                'language_id' => $this->langEsId,
+                'slug' => 'cursos',
+                'name' => 'Cursos',
+            ],
+        ], ['collection_key' => 'cursos']);
+
+        $this->db->table('cms_content_blocks')->insert([
+            'block_key' => 'curso_ficha',
+            'name' => 'Ficha de curso',
+            'schema_definition' => json_encode(['fields' => []], JSON_THROW_ON_ERROR),
+        ]);
+        $blockId = (int) $this->db->insertID();
+
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $courses = [
+            'hace-un-ano' => $now->modify('-1 year')->format('Y-m-d'),
+            'manana' => $now->modify('+1 day')->format('Y-m-d'),
+            'ayer' => $now->modify('-1 day')->format('Y-m-d'),
+            'en-un-mes' => $now->modify('+1 month')->format('Y-m-d'),
+            'hace-una-semana' => $now->modify('-1 week')->format('Y-m-d'),
+        ];
+
+        foreach ($courses as $slug => $startDate) {
+            $entry = $this->fixtures->entry($cursos['id'], [
+                [
+                    'language_id' => $this->langEsId,
+                    'slug' => $slug,
+                    'title' => $slug,
+                ],
+            ]);
+
+            $block = $this->fixtures->block($blockId, 'entry', $entry['id']);
+            $this->db->table('cms_block_instance_translations')->insert([
+                'instance_id' => $block['id'],
+                'language_id' => $this->langEsId,
+                'block_data' => json_encode(['start_date' => $startDate], JSON_THROW_ON_ERROR),
+            ]);
+        }
+
+        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/entries/cursos?per_page=10');
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $slugs = array_column($body['data'], 'slug');
+
+        $this->assertSame(['manana', 'en-un-mes', 'ayer', 'hace-una-semana', 'hace-un-ano'], $slugs);
+    }
+
     public function testPublicEntriesFilterByLocalizedTitleAndReturnEmptyForUnknownSearch(): void
     {
         foreach ([

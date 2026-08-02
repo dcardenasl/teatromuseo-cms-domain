@@ -36,6 +36,8 @@ class PublicEntryReader
 
     private ?\App\Models\EntryTranslationModel $entryTranslationModel = null;
 
+    private ?\App\Models\BlockInstanceTranslationModel $blockInstanceTranslationModel = null;
+
     private ?\App\Models\LanguageModel $languageModel = null;
 
     public function __construct(
@@ -99,6 +101,17 @@ class PublicEntryReader
         }
 
         return $this->entryTranslationModel;
+    }
+
+    private function blockInstanceTranslationModel(): \App\Models\BlockInstanceTranslationModel
+    {
+        if ($this->blockInstanceTranslationModel === null) {
+            /** @var \App\Models\BlockInstanceTranslationModel $resolved */
+            $resolved = model(\App\Models\BlockInstanceTranslationModel::class);
+            $this->blockInstanceTranslationModel = $resolved;
+        }
+
+        return $this->blockInstanceTranslationModel;
     }
 
     private function languageModel(): \App\Models\LanguageModel
@@ -200,27 +213,38 @@ class PublicEntryReader
 
         $total = (int) $builder->countAllResults(false);
 
-        $orderColumn = match ($dto->order_by) {
-            'published_at' => 'cms_entries.published_at',
-            'created_at'   => 'cms_entries.created_at',
-            'title'        => 'entry_title_order',
-            default        => 'cms_entries.sort_order',
-        };
+        if ($dto->collection_key === 'cursos') {
+            // "Cursos" reads as a program calendar, not an article feed: upcoming courses
+            // first (soonest first), then past ones most-recent-first — the same reasoning
+            // as the public Cartelera listing (event-domain EVT-DOM-007). start_date lives
+            // inside the curso_ficha block's translated block_data, not a cms_entries column,
+            // so a single ORDER BY can't express it — walk every matching row (bounded by
+            // this collection's real size, a single institution's course catalog), resolve
+            // each entry's start_date in one batched query, sort in PHP, then paginate.
+            $entries = $this->sortCursosUpcomingFirst($builder, $langId, $defaultLangId, $dto->page, $dto->per_page);
+        } else {
+            $orderColumn = match ($dto->order_by) {
+                'published_at' => 'cms_entries.published_at',
+                'created_at'   => 'cms_entries.created_at',
+                'title'        => 'entry_title_order',
+                default        => 'cms_entries.sort_order',
+            };
 
-        if ($dto->order_by === 'title') {
-            $builder->join(
-                'cms_entry_translations title_trans',
-                'title_trans.entry_id = cms_entries.id AND title_trans.language_id = ' . (int) $langId,
-                'left'
-            )
-                ->select('cms_entries.*')
-                ->select('title_trans.title AS entry_title_order', false);
+            if ($dto->order_by === 'title') {
+                $builder->join(
+                    'cms_entry_translations title_trans',
+                    'title_trans.entry_id = cms_entries.id AND title_trans.language_id = ' . (int) $langId,
+                    'left'
+                )
+                    ->select('cms_entries.*')
+                    ->select('title_trans.title AS entry_title_order', false);
+            }
+
+            $entries = $builder
+                ->orderBy($orderColumn, $dto->order_direction)
+                ->orderBy('cms_entries.created_at', 'DESC')
+                ->findAll($dto->per_page, $offset);
         }
-
-        $entries = $builder
-            ->orderBy($orderColumn, $dto->order_direction)
-            ->orderBy('cms_entries.created_at', 'DESC')
-            ->findAll($dto->per_page, $offset);
 
         if (empty($entries)) {
             return PaginatedResponseDTO::fromArray([
@@ -277,6 +301,113 @@ class PublicEntryReader
             'page'     => $dto->page,
             'per_page' => $dto->per_page,
         ]);
+    }
+
+    /**
+     * @return list<EntryEntity>
+     */
+    private function sortCursosUpcomingFirst(\App\Models\EntryModel $builder, int $langId, int $defaultLangId, int $page, int $perPage): array
+    {
+        $allEntries = array_values(array_filter(
+            $builder->findAll(),
+            static fn (mixed $entry): bool => $entry instanceof EntryEntity
+        ));
+
+        $entryIds = [];
+        foreach ($allEntries as $entry) {
+            $entryIds[] = (int) $entry->id;
+        }
+
+        $startDates = $this->batchResolveCursoStartDates($entryIds, $langId, $defaultLangId);
+        $today      = date('Y-m-d');
+
+        usort($allEntries, static function (EntryEntity $a, EntryEntity $b) use ($startDates, $today): int {
+            $aDate   = $startDates[(int) $a->id] ?? '';
+            $bDate   = $startDates[(int) $b->id] ?? '';
+            $aFuture = $aDate !== '' && $aDate >= $today;
+            $bFuture = $bDate !== '' && $bDate >= $today;
+
+            if ($aFuture !== $bFuture) {
+                return $aFuture ? -1 : 1;
+            }
+            // A course with no start_date at all can't be placed on the timeline — push it
+            // to the very end rather than letting empty-string comparisons sort it first.
+            if ($aDate === '' || $bDate === '') {
+                return match (true) {
+                    $aDate === '' && $bDate === '' => 0,
+                    $aDate === ''                  => 1,
+                    default                        => -1,
+                };
+            }
+
+            return $aFuture ? $aDate <=> $bDate : $bDate <=> $aDate;
+        });
+
+        return array_slice($allEntries, ($page - 1) * $perPage, $perPage);
+    }
+
+    /**
+     * Batch-resolves the `curso_ficha` block's `start_date` for a set of entries in one
+     * query (N+1-safe, matching the batch-resolve pattern used elsewhere in this reader) —
+     * the date lives in `cms_block_instance_translations.block_data`, not a queryable
+     * `cms_entries` column.
+     *
+     * @param list<int> $entryIds
+     * @return array<int, string> entry_id => start_date (Y-m-d), only entries that have one
+     */
+    private function batchResolveCursoStartDates(array $entryIds, int $langId, int $defaultLangId): array
+    {
+        if ($entryIds === []) {
+            return [];
+        }
+
+        $languageIds = $langId === $defaultLangId ? [$langId] : [$langId, $defaultLangId];
+
+        // Routed through the injected BlockInstanceTranslationModel (not Database::connect())
+        // to stay within this Service layer's model-coupling guardrail
+        // (ServiceModelDependencyConventionsTest) — CI4 Models proxy join()/where()/etc.
+        // straight to their query builder, same as the entryModel() joins above. The model
+        // is shared/memoized across requests, so reset its builder first — same reasoning
+        // as the entryModel() reset at the top of listPublic().
+        $this->blockInstanceTranslationModel()->builder()->resetQuery();
+
+        $rows = $this->blockInstanceTranslationModel()
+            ->select('cms_block_instances.owner_id AS entry_id, cms_block_instance_translations.language_id, cms_block_instance_translations.block_data')
+            ->join('cms_block_instances', 'cms_block_instances.id = cms_block_instance_translations.instance_id')
+            ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
+            ->where('cms_block_instances.owner_type', 'entry')
+            ->where('cms_content_blocks.block_key', 'curso_ficha')
+            ->whereIn('cms_block_instance_translations.language_id', $languageIds)
+            ->whereIn('cms_block_instances.owner_id', $entryIds)
+            ->findAll();
+
+        // Requested language wins over the default-language fallback when both exist.
+        $byEntryAndLang = [];
+        foreach ($rows as $row) {
+            if (!$row instanceof \App\Entities\BlockInstanceTranslationEntity) {
+                continue;
+            }
+            // owner_id was selected under an alias (entry_id) — it isn't a declared
+            // attribute on the entity, so it comes back as a dynamic property.
+            $entryId    = (int) $row->entry_id;
+            $languageId = (int) $row->language_id;
+            $byEntryAndLang[$entryId][$languageId] = $row->block_data;
+        }
+
+        $map = [];
+        foreach ($byEntryAndLang as $entryId => $byLang) {
+            $raw = $byLang[$langId] ?? $byLang[$defaultLangId] ?? null;
+            if ($raw === null) {
+                continue;
+            }
+            $decoded   = \App\Libraries\Cms\JsonCastNormalizer::toArray($raw);
+            $startDate = trim((string) ($decoded['start_date'] ?? ''));
+            if ($startDate !== '') {
+                $map[$entryId] = $startDate;
+            }
+        }
+
+        return $map;
     }
 
     public function showPublic(PublicEntryShowRequestDTO $dto): DataTransferObjectInterface
