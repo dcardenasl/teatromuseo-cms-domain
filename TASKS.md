@@ -16,6 +16,48 @@ las decisiones de producto pendientes se mantienen en el tracker global.)*
 
 ## ✅ Completadas
 
+- **BLOCK-002 — Campo `image_aspect_ratio` configurable en `collection_listing` (2026-08-02):**
+  David pidió poder definir, por bloque, la proporción de las imágenes de portada en el listado
+  público, y que esa proporción afecte solo el alto de la tarjeta (el ancho ya lo define la
+  cuadrícula). Nuevo `config_field` tipo `select` en `CmsBlockTypeSeeder.php` (options `16/9`,
+  `4/3`, `1/1`, `3/4`, `2/3`, default `16/9`), mismo patrón ya usado por `map_embed.aspect_ratio`.
+  La mitad de la corrección (ViewModel + plantilla en `teatromuseo-web`, mapeo a clases Tailwind
+  literales — necesario porque el build no puede compilar una clase `aspect-[...]` construida en
+  tiempo de ejecución) vive en `teatromuseo-web`. Ver BLOCK-003 para el ajuste real por colección
+  contra datos de portadas reales (el default `16/9` que dejé aquí sin verificar resultó
+  incorrecto para varias colecciones).
+
+- **BLOCK-003 — Ajuste de `image_aspect_ratio` en cada página que usa `collection_listing`
+  (2026-08-02):** David pidió revisar todas las páginas que usan el bloque `collection_listing`
+  (campo `image_aspect_ratio` agregado en BLOCK-002, mismo día) y ajustar la proporción
+  configurada a la que realmente tienen sus portadas. Medí el ancho/alto real de cada
+  `featured_image`/`cover_file_id` en la tabla `files` del hub (no solo revisé visualmente) y
+  calculé la moda/mediana por colección:
+  - `noticias` (52/68 portadas ~1:1), `obras` (291/365 ~1:1, pero la página pública
+    `/es/obras` está redirigida a `/cartelera` desde antes — dato legacy, no afecta nada visible),
+    `publicaciones` (13/15 ~1:1), `festivales` (única muestra, 1:1), cartelera/`event_items`
+    (292/366 portadas ~1:1) → **1/1**.
+  - `cursos` (11/20 portadas ~4:5, 9/20 ~1:1) → **3/4** (mejor ajuste que el 16/9 que dejé por
+    defecto en BLOCK-002 sin verificar contra datos reales — corregido aquí).
+  - `personas` (10/10 portadas ~450×550=0.82) → **3/4**.
+  - `exposiciones` (4/5 portadas ~0.56, retrato marcado) → **2/3** (el preset disponible más
+    cercano; ninguno de los 5 valores fijos es un match exacto para 0.56).
+  - `companias` y `videos`: **sin cambios** — 0 entradas con portada en ambas colecciones
+    (verificado en vivo, 0 `<img>` en la grilla), no hay datos que informen una proporción mejor
+    que el default.
+  - `museo/coleccion` (`catalog_items`): **sin cambios** — colección vacía (0 ítems activos,
+    ninguno con `cover_file_id` — catalog-domain nunca tuvo contenido legacy real, ver
+    limpieza de seeders de ejemplo del 2026-08-02).
+  - Bloque huérfano `id=83` (`owner_id=28`, `collection_id=10`): página 28 no existe en
+    `cms_pages` y la colección 10 no existe — instancia de bloque muerta de algún estado previo,
+    no tocada (fuera de alcance; podría limpiarse en una tarea aparte).
+  - Aplicado vía `PUT /cms/pages/{id}/blocks/{id}` (8 bloques actualizados), caché de
+    `teatromuseo-web` invalidada. Verificado en vivo por HTML crudo (`grep` de la clase
+    `aspect-*` renderizada) y por `getBoundingClientRect()` en el navegador: el ancho del
+    contenedor de imagen no cambia entre proporciones (siempre lo define la cuadrícula), solo
+    el alto — confirmado exacto para `cursos` (3/4), `personas` (3/4), `exposiciones` (2/3),
+    `noticias`/`festivales`/cartelera (1/1).
+
 - **CURSOS-002 — display_date real para cursos en el listado público (2026-08-02):** David
   reportó que la fecha mostrada en las tarjetas de `/es/cursos` no correspondía al `Start Date`
   real del curso y que debía ordenarse por esa fecha. El orden ya era correcto
