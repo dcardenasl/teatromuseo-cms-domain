@@ -213,6 +213,11 @@ class PublicEntryReader
 
         $total = (int) $builder->countAllResults(false);
 
+        // Populated only for the 'cursos' branch below — carries each entry's real
+        // start_date so it can be exposed as `display_date` on the response without a
+        // second batch query (the sort below already resolves it for every entry).
+        $cursoStartDates = [];
+
         if ($dto->collection_key === 'cursos') {
             // "Cursos" reads as a program calendar, not an article feed: upcoming courses
             // first (soonest first), then past ones most-recent-first — the same reasoning
@@ -221,7 +226,7 @@ class PublicEntryReader
             // so a single ORDER BY can't express it — walk every matching row (bounded by
             // this collection's real size, a single institution's course catalog), resolve
             // each entry's start_date in one batched query, sort in PHP, then paginate.
-            $entries = $this->sortCursosUpcomingFirst($builder, $langId, $defaultLangId, $dto->page, $dto->per_page);
+            $entries = $this->sortCursosUpcomingFirst($builder, $langId, $defaultLangId, $dto->page, $dto->per_page, $cursoStartDates);
         } else {
             $orderColumn = match ($dto->order_by) {
                 'published_at' => 'cms_entries.published_at',
@@ -278,6 +283,11 @@ class PublicEntryReader
             unset($item['entry_title_order']);
             // Normalize featured/OG images into canonical nested objects.
             $item = $this->normalizeEntryMedia($item);
+            if ($dto->collection_key === 'cursos') {
+                // The course's real start_date, not published_at — the public listing
+                // template prefers this for the card's date badge and already sorts by it.
+                $item['display_date'] = $cursoStartDates[$entryId] ?? null;
+            }
             $data[] = $item;
         }
 
@@ -304,9 +314,11 @@ class PublicEntryReader
     }
 
     /**
+     * @param array<int, string> $startDatesOut Populated with entry_id => start_date so the
+     *      caller can expose the same resolved dates as `display_date` without re-querying.
      * @return list<EntryEntity>
      */
-    private function sortCursosUpcomingFirst(\App\Models\EntryModel $builder, int $langId, int $defaultLangId, int $page, int $perPage): array
+    private function sortCursosUpcomingFirst(\App\Models\EntryModel $builder, int $langId, int $defaultLangId, int $page, int $perPage, array &$startDatesOut): array
     {
         $allEntries = array_values(array_filter(
             $builder->findAll(),
@@ -318,8 +330,9 @@ class PublicEntryReader
             $entryIds[] = (int) $entry->id;
         }
 
-        $startDates = $this->batchResolveCursoStartDates($entryIds, $langId, $defaultLangId);
-        $today      = date('Y-m-d');
+        $startDates    = $this->batchResolveCursoStartDates($entryIds, $langId, $defaultLangId);
+        $startDatesOut = $startDates;
+        $today         = date('Y-m-d');
 
         usort($allEntries, static function (EntryEntity $a, EntryEntity $b) use ($startDates, $today): int {
             $aDate   = $startDates[(int) $a->id] ?? '';

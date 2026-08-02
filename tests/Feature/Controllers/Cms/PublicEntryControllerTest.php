@@ -406,6 +406,14 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $slugs = array_column($body['data'], 'slug');
 
         $this->assertSame(['manana', 'en-un-mes', 'ayer', 'hace-una-semana', 'hace-un-ano'], $slugs);
+
+        // The listing template shows/sorts by the course's real start_date, not
+        // published_at — exposed as `display_date` so the web layer doesn't need a
+        // second per-entry lookup to get the same value already resolved for sorting.
+        $displayDatesBySlug = array_combine($slugs, array_column($body['data'], 'display_date'));
+        foreach ($courses as $slug => $startDate) {
+            $this->assertSame($startDate, $displayDatesBySlug[$slug]);
+        }
     }
 
     public function testPublicEntriesFilterByLocalizedTitleAndReturnEmptyForUnknownSearch(): void
