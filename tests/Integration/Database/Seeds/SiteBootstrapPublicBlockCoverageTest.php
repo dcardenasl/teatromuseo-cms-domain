@@ -61,6 +61,15 @@ final class SiteBootstrapPublicBlockCoverageTest extends CIUnitTestCase
 
     public function testBootstrapCoversAllPublicTopLevelBlocks(): void
     {
+        // 'gallery', 'video_player', 'tabs', 'alert', and 'container' intentionally have no
+        // entry in $expected below (removed 2026-08-02 along with the demo pages — Portfolio/
+        // Components/Media/Landing — that were their only page-level user, per a fresh
+        // SiteBootstrapSeeder run with those seeders gone). 'gallery' is still meaningfully
+        // used on this site, just at entry scope (real obras/festivales galleries via the
+        // legacy ETL), never on a top-level page, which is what this test checks. The other
+        // four have zero usage anywhere now — this site's real content never needed them
+        // (e.g. video content uses the project-specific `video_ficha` fields instead of the
+        // generic `video_player` block).
         $seeder = \Config\Database::seeder();
         $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
 
@@ -95,13 +104,8 @@ final class SiteBootstrapPublicBlockCoverageTest extends CIUnitTestCase
             'metrics_grid',
             'cards_slider',
             'asset_showcase',
-            'gallery',
             'accordion',
-            'video_player',
             'collection_listing',
-            'tabs',
-            'alert',
-            'container',
         ];
 
         foreach ($expected as $blockKey) {

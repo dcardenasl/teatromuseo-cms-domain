@@ -16,6 +16,58 @@ las decisiones de producto pendientes se mantienen en el tracker global.)*
 
 ## ✅ Completadas
 
+- **CLEANUP-001 — Eliminar seeders y datos de ejemplo mezclados con contenido real (2026-08-02):**
+  David notó (a raíz del carrusel de inicio, ya corregido en LEGACY-MAP-021/026) que había
+  contenido de ejemplo mezclado con el migrado desde la BD legacy de teatromuseo.cl — pidió
+  limpiar todo y eliminar los seeders que agregan ejemplos, en cms-domain/event-domain/
+  catalog-domain. Auditoría directa (cruce contra `legacy_migration_map` del hub + inspección
+  de cada seeder) confirmó:
+  - `CmsTeatroMuseoPilotSeeder` ("synthetic pilot entries... deliberately separate from the
+    legacy ETL") creaba 2 entradas "piloto mínima/completa" en **cada una** de las 9
+    colecciones reales (ids 3-20, ej. "Compañía piloto completa" visible en el listado
+    público de Compañías).
+  - `PortfolioCollectionSeeder`+`SitePortfolioPageSeeder`: colección "portafolio" 100% demo
+    (2 entradas genéricas de e-commerce/banca digital), sin respaldo legacy — colección y
+    página eliminadas por completo.
+  - `SiteComponentsPageSeeder`/`SiteMediaPageSeeder`/`SiteLandingPageSeeder`: páginas de
+    showcase del starter kit (`/bloques`, `/multimedia`, `/landing`), ninguna en el nav real.
+  - `CmsHeroSliderChildrenSeeder`: si se re-ejecuta, borra los slides reales del carrusel de
+    inicio y los reemplaza por "Bienvenidos a TeatroMuseo" + foto de picsum.photos — el
+    carrusel ya tenía los 5 slides reales (LEGACY-MAP-021/026), pero el seeder quedaba como
+    bomba de tiempo.
+  - `NewsCollectionSeeder`: nunca se ejecutó en esta BD, pero comparte la MISMA
+    `collection_key` ('noticias') que las 70 noticias reales — mismo riesgo si alguien lo
+    corría manualmente.
+  - `SiteAboutPageSeeder`/`SiteHistoryPageSeeder`: nunca llamados por `SiteBootstrapSeeder` —
+    el Nosotros/Historia real viene de `CmsTeatroMuseoInstitutionalPagesSeeder`.
+  - `WizardConfigSeeder`: solo reparaba el `block_template` de Noticias/Portafolio demo.
+
+  **Casi-error evitado:** `Concerns/CollectionBlockPresets.php` se borró primero por error —
+  `CmsTeatroMuseoCollectionSeeder` (estructural, real) en verdad depende de su preset
+  `news()` para la ESTRUCTURA (block_template/wizard_config) de la colección `noticias` real
+  (no es solo contenido de ejemplo). Restaurado; solo se quitó el preset `portfolio()`
+  (100% muerto tras borrar esa colección).
+
+  **Ejecutado:** las 18 entradas piloto + 2 de portafolio + 3 páginas demo borradas vía
+  `DELETE /cms/entries|pages|collections/{id}` (soft-delete, sin filas huérfanas). Los 12
+  archivos de seeder/tests demo eliminados; `SiteBootstrapSeeder::run()` ya no los llama.
+  3 tests de contrato (`SiteBootstrapSeederTest`, `SiteBootstrapContentTest`,
+  `SiteBootstrapPublicBlockCoverageTest`) actualizados para reflejar la nueva realidad de un
+  bootstrap limpio: `cms_pages` 31→27, `cms_collections` 10→9, `cms_entries` 20→0; y se quitó
+  `gallery`/`video_player`/`tabs`/`alert`/`container` de la lista de bloques con cobertura a
+  nivel página (solo se demostraban en las páginas demo eliminadas — `gallery` sigue en uso
+  real a nivel de entrada en obras/festivales, los otros cuatro no se usan en ningún lado).
+
+  **Verificado:** `composer quality` ✅ (PHPStan sin errores, suite completa incl. los 8 tests
+  de `SeederContracts`). En vivo: home muestra el carrusel real, `/bloques` da 404,
+  `/companias` y `/noticias` ya no muestran entradas "piloto".
+
+  **Trabajo relacionado en otros repos (mismo día):** `teatromuseo-event-domain` eliminó
+  `TeatroMuseoEventSeeder` (13 eventos falsos mezclados con los 368 reales) y
+  `teatromuseo-catalog-domain` eliminó `TeatroMuseoCatalogSeeder` por completo (los 4
+  `collection_items` eran 100% demo, cero contenido real migrado a ese dominio — `/museo/
+  colección` queda vacío hasta que se decida qué contenido legacy real, si existe, va ahí).
+
 - **IMPORT-001 — Vía de importación autenticada para `cms_form_submissions` (2026-08-01):**
   Necesaria para `LEGACY-MAP-017` en `teatromuseo-api/TASKS.md` (backfill de 157 mensajes de
   contacto legacy con PII real). El endpoint público existente (`POST public/submissions`)

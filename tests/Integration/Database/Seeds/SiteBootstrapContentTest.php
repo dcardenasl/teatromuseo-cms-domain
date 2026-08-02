@@ -79,9 +79,9 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
             )
         );
 
-        $this->assertSame(31, $this->db->table('cms_pages')->countAllResults());
-        $this->assertSame(10, $this->db->table('cms_collections')->countAllResults());
-        $this->assertSame(20, $this->db->table('cms_entries')->countAllResults());
+        $this->assertSame(27, $this->db->table('cms_pages')->countAllResults());
+        $this->assertSame(9, $this->db->table('cms_collections')->countAllResults());
+        $this->assertSame(0, $this->db->table('cms_entries')->countAllResults());
 
         $menu = $this->db->table('cms_menus')->whereIn('menu_key', ['main', 'footer', 'legal'])->get()->getResultArray();
         $this->assertCount(3, $menu);

@@ -9,10 +9,15 @@ use Config\Services;
 
 /**
  * Seeds the TeatroMuseo bootstrap content: languages, settings, structural
- * pages, institutional/legal pages, collections, menus, the block-coverage
- * demo pages (portfolio, components, media, landing), and the synthetic
- * pilot entries used to validate the public IA. Migrations define the CMS
- * structure; this seeder is not required for the wizard to run.
+ * pages, institutional/legal pages, collections, menus. Migrations define
+ * the CMS structure; this seeder is not required for the wizard to run.
+ *
+ * The starter kit's block-coverage demo pages (portfolio, components, media,
+ * landing) and the synthetic pilot entries used to validate the public IA
+ * were removed 2026-08-02 — this project's public site must only ever show
+ * content that actually exists on the legacy teatromuseo.cl site or was
+ * migrated from it. Do not reintroduce a seeder that injects placeholder
+ * content into a real collection.
  */
 class SiteBootstrapSeeder extends Seeder
 {
@@ -33,18 +38,10 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(CmsTeatroMuseoInstitutionalPagesSeeder::class);
         $this->call(CmsTeatroMuseoLegalPagesSeeder::class);
         $this->call(CmsTeatroMuseoPublicListingPagesSeeder::class);
-        $this->call(PortfolioCollectionSeeder::class);
-        $this->call(SitePortfolioPageSeeder::class);
-        $this->call(SiteComponentsPageSeeder::class);
-        $this->call(SiteMediaPageSeeder::class);
-        $this->call(SiteLandingPageSeeder::class);
-        $this->call(WizardConfigSeeder::class);
         $this->call(CmsPageBlockSeeder::class);
-        $this->call(CmsHeroSliderChildrenSeeder::class);
         $this->call(CmsSocialLinksChildrenSeeder::class);
         $this->call(CmsTeatroMuseoNavigationSeeder::class);
         $this->call(CmsTeatroMuseoRedirectSeeder::class);
-        $this->call(CmsTeatroMuseoPilotSeeder::class);
 
         // Seeders write directly for deterministic bootstrap performance, so
         // finish through the same canonical reference synchronizer used by the
