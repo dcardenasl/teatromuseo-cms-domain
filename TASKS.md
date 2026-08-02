@@ -16,6 +16,19 @@ las decisiones de producto pendientes se mantienen en el tracker global.)*
 
 ## ✅ Completadas
 
+- **CURSOS-002 — display_date real para cursos en el listado público (2026-08-02):** David
+  reportó que la fecha mostrada en las tarjetas de `/es/cursos` no correspondía al `Start Date`
+  real del curso y que debía ordenarse por esa fecha. El orden ya era correcto
+  (`sortCursosUpcomingFirst()`, CURSOS-001) pero la fecha *mostrada* en la tarjeta venía de
+  `published_at`/`created_at` (genérico para toda colección), no del `start_date` real del bloque
+  `curso_ficha`. Fix: `PublicEntryReader::listPublic()` reutiliza el mismo mapa de fechas ya
+  resuelto por `sortCursosUpcomingFirst()` (sin query adicional) y lo expone como
+  `display_date` en cada entry de la colección `cursos`. Nuevo test en
+  `PublicEntryControllerTest::testCursosCollectionOrdersUpcomingFirstThenMostRecentPast`
+  verifica `display_date` además del orden. Ver también `teatromuseo-web` TASKS.md para la
+  mitad de la corrección (formato de fecha localizado + preferencia por `display_date` en las
+  plantillas). `composer quality` ✅ (506 tests + 8 de seeds, 0 fallos).
+
 - **CURSOS-001 — Portadas/galerías de cursos, unificación actual/histórico, y orden por
   fecha (2026-08-02):** David pidió revisar qué pasó con las portadas e imágenes de galería
   de la colección `cursos`, confirmar que los cursos actuales e históricos quedan unificados
