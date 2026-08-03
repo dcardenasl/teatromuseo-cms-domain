@@ -999,6 +999,59 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->assertSame('incomplete', $ownerAudit['blocks'][$instanceId]['en']['status']);
     }
 
+    public function testIdenticalBlockUrlAcrossLanguagesIsNotFlaggedAsUntranslated(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_content_blocks')->insert([
+            'block_key' => 'collection_grid',
+            'name' => 'Collection Grid',
+            'category' => 'content',
+            'schema_definition' => json_encode([
+                'fields' => [
+                    'section_title' => ['type' => 'string', 'required' => false],
+                    'view_all_url' => ['type' => 'url', 'required' => false],
+                ],
+            ]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+        $blockTypeId = $this->db->insertID();
+
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => $pageId,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $instanceId = $this->db->insertID();
+
+        foreach ([
+            $this->langEsId => ['section_title' => 'Cartelera', 'view_all_url' => '/cartelera'],
+            $this->langEnId => ['section_title' => "What's on", 'view_all_url' => '/cartelera'],
+        ] as $languageId => $data) {
+            $this->db->table('cms_block_instance_translations')->insert([
+                'instance_id' => $instanceId,
+                'language_id' => $languageId,
+                'block_data' => json_encode($data),
+                'is_published' => 1,
+            ]);
+        }
+
+        $audit = Services::translationAuditService(false)->auditResource('block_instance', $instanceId);
+
+        $this->assertSame('complete', $audit['en']['status']);
+    }
+
     public function testOverallCompletenessIncludesExpandedCmsResources(): void
     {
         $this->db->table('cms_collections')->insert([

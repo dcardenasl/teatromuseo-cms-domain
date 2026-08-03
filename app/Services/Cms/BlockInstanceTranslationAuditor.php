@@ -311,15 +311,16 @@ class BlockInstanceTranslationAuditor
             }
 
             $fieldKey = (string) $fieldKey;
+            $fieldType = strtolower((string) ($fieldDef['type'] ?? 'string'));
             $translatable[$fieldKey] = [
                 'required' => (bool) ($fieldDef['required'] ?? false),
-                'type' => strtolower((string) ($fieldDef['type'] ?? 'string')),
+                'type' => $fieldType,
                 'data_key' => $fieldKey,
-                // Every field reaching this point already passed
-                // isAuditableBlockField()'s type/translatable filter, so it's
-                // free-text editorial content by definition — safe to compare
-                // against the default language's value.
-                'compareToSource' => true,
+                // URLs are routing/technical values. A localized block may
+                // legitimately point to the same route in every language;
+                // copying that route must not make an otherwise complete
+                // translation appear incomplete in the admin badges.
+                'compareToSource' => $fieldType !== 'url',
             ];
         }
 
