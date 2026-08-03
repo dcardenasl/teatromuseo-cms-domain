@@ -56,7 +56,7 @@ final class CmsCollectionGridAspectRatioSeederTest extends CIUnitTestCase
         $this->db->enableForeignKeyChecks();
     }
 
-    public function testSeederNormalizesKnownCollectionGridRatios(): void
+    public function testSeederPreservesEditoriallyChosenCollectionGridRatios(): void
     {
         $seeder = \Config\Database::seeder();
         $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
@@ -102,6 +102,6 @@ final class CmsCollectionGridAspectRatioSeederTest extends CIUnitTestCase
 
         $config = json_decode((string) $row['block_config'], true);
         $this->assertIsArray($config);
-        $this->assertSame('3/4', $config['image_aspect_ratio'] ?? null);
+        $this->assertSame('4/3', $config['image_aspect_ratio'] ?? null);
     }
 }

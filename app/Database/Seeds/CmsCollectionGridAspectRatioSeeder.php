@@ -61,7 +61,10 @@ final class CmsCollectionGridAspectRatioSeeder extends Seeder
                 continue;
             }
 
-            if ((string) ($config['image_aspect_ratio'] ?? '') === $desiredRatio) {
+            // This is a default for new/unfinished blocks, not a repair pass.
+            // An editor may intentionally choose another ratio.
+            if (isset($config['image_aspect_ratio'])
+                && trim((string) $config['image_aspect_ratio']) !== '') {
                 continue;
             }
 
