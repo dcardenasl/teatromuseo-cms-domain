@@ -36,21 +36,33 @@ class SlugRedirectRecorder
         int $languageId,
         string $oldSlug,
         string $newSlug,
-        string $oldFullPath
+        string $oldFullPath,
+        bool $force = false
     ): void {
-        if ($oldSlug === '' || $oldSlug === $newSlug) {
+        if ($oldFullPath === '') {
             return;
         }
 
         // Limpiar barras iniciales/finales
         $oldFullPath = trim($oldFullPath, '/');
+        if ($oldFullPath === '') {
+            return;
+        }
 
-        // Validar si ya existe este redirect exacto para evitar duplicados
+        if (! $force && $oldSlug === $newSlug) {
+            return;
+        }
+
+        // Validar si ya existe este redirect exacto para evitar duplicados.
+        // El mismo slug puede reaparecer con un path distinto cuando cambia
+        // el árbol padre (páginas) o el prefijo de colección (entradas), por
+        // eso la unicidad se ancla también al old_full_path.
         $exists = $this->db->table('cms_slug_redirects')
             ->where('entity_type', $entityType)
             ->where('entity_id', $entityId)
             ->where('language_id', $languageId)
             ->where('old_slug', $oldSlug)
+            ->where('old_full_path', $oldFullPath)
             ->countAllResults() > 0;
 
         if (!$exists) {
