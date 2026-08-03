@@ -120,6 +120,11 @@ class TranslationAuditSupport
      * @param array<string, mixed>|object|null $translation
      * @param array<int, array<string, mixed>|object|null> $translationsByLanguage
      * @param array<string, mixed> $fieldDefinitions
+     * @param int|null $defaultLanguageId The site's default (source) language —
+     *   e.g. Spanish for this project. Pass null to skip the untranslated-text
+     *   check entirely (e.g. auditing the default language against itself, or
+     *   a resource type where "identical to source" is meaningless, like
+     *   settings).
      * @return array{0: string, 1: string}
      */
     public function evaluateTranslationState(
@@ -128,7 +133,8 @@ class TranslationAuditSupport
         array $fieldDefinitions,
         int $languageId,
         callable $valueResolver,
-        ?string $resourceUpdatedAt = null
+        ?string $resourceUpdatedAt = null,
+        ?int $defaultLanguageId = null
     ): array {
         if ($translation === null) {
             return ['missing', 'Translation is missing completely'];
@@ -137,6 +143,15 @@ class TranslationAuditSupport
         $row = $this->toArray($translation);
         $missingRequired = [];
         $mismatchedOptional = [];
+        $untranslated = [];
+
+        $sourceRow = null;
+        if ($defaultLanguageId !== null && $defaultLanguageId !== $languageId) {
+            $sourceTranslation = $translationsByLanguage[$defaultLanguageId] ?? null;
+            if ($sourceTranslation !== null) {
+                $sourceRow = $this->toArray($sourceTranslation);
+            }
+        }
 
         foreach ($fieldDefinitions as $fieldKey => $fieldDefinition) {
             $fieldKey = (string) $fieldKey;
@@ -161,12 +176,26 @@ class TranslationAuditSupport
                         break;
                     }
                 }
+
+                continue;
+            }
+
+            if ($sourceRow !== null && (bool) ($fieldDefinition['compareToSource'] ?? false)) {
+                $sourceValue = $valueResolver($sourceRow, $fieldKey, $fieldDefinition);
+                if (! $this->isBlank($sourceValue) && $this->valuesAreIdentical($currentValue, $sourceValue)) {
+                    $untranslated[] = $fieldKey;
+                }
             }
         }
 
         $missingRequired = array_values(array_unique($missingRequired));
         if ($missingRequired !== []) {
             return ['incomplete', 'Missing required fields: ' . implode(', ', $missingRequired)];
+        }
+
+        $untranslated = array_values(array_unique($untranslated));
+        if ($untranslated !== []) {
+            return ['untranslated', 'Same text as the default language: ' . implode(', ', $untranslated)];
         }
 
         $mismatchedOptional = array_values(array_unique($mismatchedOptional));
@@ -186,6 +215,21 @@ class TranslationAuditSupport
     }
 
     /**
+     * Byte-for-byte comparison after trimming — deliberately not
+     * case-insensitive or whitespace-normalized beyond that: this only needs
+     * to catch the "value was copy-pasted verbatim from the source language"
+     * case, not near-duplicates a translator might legitimately produce.
+     */
+    private function valuesAreIdentical(mixed $a, mixed $b): bool
+    {
+        if (is_string($a) && is_string($b)) {
+            return trim($a) === trim($b);
+        }
+
+        return $a === $b;
+    }
+
+    /**
      * Collapses the full audit vocabulary (missing, incomplete, mismatch,
      * outdated, complete) into the 4-state vocabulary the admin's
      * block-scoped UI uses (badges in the block list + status dots on the
@@ -194,7 +238,9 @@ class TranslationAuditSupport
      * TranslationStatus::badgeClasses() (admin, PHP), which has no
      * 'mismatch' case.
      *
-     * 'mismatch' collapses to 'incomplete': still needs editorial attention.
+     * 'mismatch' and 'untranslated' both collapse to 'incomplete': both still
+     * need editorial attention, and the 4-state badge vocabulary has no
+     * dedicated slot for "copied from the source language verbatim".
      *
      * 'outdated' collapses to 'complete' (2026-07-21, confirmed with David
      * after a false-positive report): `cms_block_instances` uses CI4's
@@ -213,7 +259,7 @@ class TranslationAuditSupport
     public static function collapseForBlockBadge(string $status): string
     {
         return match ($status) {
-            'mismatch' => 'incomplete',
+            'mismatch', 'untranslated' => 'incomplete',
             'outdated' => 'complete',
             default => $status,
         };

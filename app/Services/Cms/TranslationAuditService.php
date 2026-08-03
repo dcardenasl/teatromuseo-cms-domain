@@ -153,12 +153,14 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             return [];
         }
 
+        $defaultLanguageId = $this->getDefaultLanguageId();
+
         $issues = [];
         foreach ($this->simpleResources as $descriptor) {
-            $issues = array_merge($issues, $this->auditSimpleResources($descriptor, $activeLanguages, $filters));
+            $issues = array_merge($issues, $this->auditSimpleResources($descriptor, $activeLanguages, $filters, $defaultLanguageId));
         }
         $issues = array_merge($issues, $this->auditSettingTranslations($activeLanguages, $filters));
-        $issues = array_merge($issues, $this->blockAuditor->audit($activeLanguages, $filters));
+        $issues = array_merge($issues, $this->blockAuditor->audit($activeLanguages, $filters, $defaultLanguageId));
 
         return array_values(array_filter($issues, function (array $issue) use ($filters): bool {
             $resource = (string) ($filters['resource'] ?? '');
@@ -198,7 +200,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
         $valueResolver = static function (array $row, string $fieldKey, array $fieldDefinition): mixed {
             return $row[$fieldKey] ?? null;
         };
-        $defaultLanguageId = null;
+        $defaultLanguageId = $this->getDefaultLanguageId();
         $resourceRow = [];
 
         $descriptor = $this->findSimpleResourceDescriptor($resourceType);
@@ -226,7 +228,6 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 'setting_id'
             )[$resourceId] ?? [];
             $fieldDefinitions = TranslationResourceCatalog::fields('setting');
-            $defaultLanguageId = $this->getDefaultLanguageId();
             $resourceRow = $this->support->toArray($resource);
             if ($defaultLanguageId !== null) {
                 $translations[$defaultLanguageId] = ['setting_value' => $resourceRow['setting_value'] ?? null];
@@ -258,7 +259,8 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 $fieldDefinitions,
                 $langId,
                 $valueResolver,
-                $isSettingDefaultLanguage ? null : (isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null)
+                $isSettingDefaultLanguage ? null : (isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null),
+                $resourceType === 'setting' ? null : $defaultLanguageId
             );
 
             // The admin's block-editor tab dots consume this same endpoint
@@ -291,7 +293,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             return ['blocks' => [], 'summary' => []];
         }
 
-        return $this->blockAuditor->auditForOwner($ownerType, $ownerId, $activeLanguages);
+        return $this->blockAuditor->auditForOwner($ownerType, $ownerId, $activeLanguages, $this->getDefaultLanguageId());
     }
 
     /**
@@ -493,7 +495,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
      * @param array<string, mixed> $filters
      * @return list<array<string, mixed>>
      */
-    private function auditSimpleResources(array $descriptor, array $activeLanguages, array $filters): array
+    private function auditSimpleResources(array $descriptor, array $activeLanguages, array $filters, ?int $defaultLanguageId): array
     {
         $resources = ($descriptor['fetch'])();
         $translationsByResource = $this->support->groupTranslationsByResource(
@@ -527,7 +529,8 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                     $fieldDefinitions,
                     $langId,
                     $valueResolver,
-                    isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null
+                    isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null,
+                    $defaultLanguageId
                 );
                 if ($status === 'complete') {
                     continue;

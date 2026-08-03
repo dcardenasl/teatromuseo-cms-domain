@@ -28,7 +28,7 @@ class BlockInstanceTranslationAuditor
      * @param array<string, mixed> $filters
      * @return list<array<string, mixed>>
      */
-    public function audit(array $activeLanguages, array $filters): array
+    public function audit(array $activeLanguages, array $filters, ?int $defaultLanguageId = null): array
     {
         $instances = $this->getBlockInstancesWithTypes();
         $translationsByInstance = $this->support->groupTranslationsByResource(
@@ -64,7 +64,8 @@ class BlockInstanceTranslationAuditor
                     function (array $row, string $fieldKey, array $fieldDefinition): mixed {
                         return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
                     },
-                    isset($instance['updated_at']) ? (string) $instance['updated_at'] : null
+                    isset($instance['updated_at']) ? (string) $instance['updated_at'] : null,
+                    $defaultLanguageId
                 );
                 if ($status === 'complete') {
                     continue;
@@ -95,7 +96,7 @@ class BlockInstanceTranslationAuditor
      * 'block_instance' resource type: resolves the instance + its schema + its
      * translations, ready for the caller to run through evaluateTranslationState().
      *
-     * @return array{0: array<string, mixed>, 1: array<string, array{required: bool, type: string, data_key: string}>, 2: array<int, array<string, mixed>>, 3: callable(array<string, mixed>, string, array<string, mixed>): mixed}|null
+     * @return array{0: array<string, mixed>, 1: array<string, array{required: bool, type: string, data_key: string, compareToSource: bool}>, 2: array<int, array<string, mixed>>, 3: callable(array<string, mixed>, string, array<string, mixed>): mixed}|null
      */
     public function resolveForResource(int $resourceId): ?array
     {
@@ -140,7 +141,7 @@ class BlockInstanceTranslationAuditor
      *   summary: array<string, array{complete:int,total:int}>,
      * }
      */
-    public function auditForOwner(string $ownerType, int $ownerId, array $activeLanguages): array
+    public function auditForOwner(string $ownerType, int $ownerId, array $activeLanguages, ?int $defaultLanguageId = null): array
     {
         $summary = [];
         foreach ($activeLanguages as $lang) {
@@ -185,7 +186,8 @@ class BlockInstanceTranslationAuditor
                     function (array $row, string $fieldKey, array $fieldDefinition): mixed {
                         return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
                     },
-                    isset($instance['updated_at']) ? (string) $instance['updated_at'] : null
+                    isset($instance['updated_at']) ? (string) $instance['updated_at'] : null,
+                    $defaultLanguageId
                 );
 
                 $status = $this->support->collapseForBlockBadge($status);
@@ -281,7 +283,7 @@ class BlockInstanceTranslationAuditor
 
     /**
      * @param array<string, mixed>|array<int, mixed>|string|null $schemaDefinition
-     * @return array<string, array{required: bool, type: string, data_key: string}>
+     * @return array<string, array{required: bool, type: string, data_key: string, compareToSource: bool}>
      */
     private function getTranslatableBlockFieldDefinitions(mixed $schemaDefinition): array
     {
@@ -313,6 +315,11 @@ class BlockInstanceTranslationAuditor
                 'required' => (bool) ($fieldDef['required'] ?? false),
                 'type' => strtolower((string) ($fieldDef['type'] ?? 'string')),
                 'data_key' => $fieldKey,
+                // Every field reaching this point already passed
+                // isAuditableBlockField()'s type/translatable filter, so it's
+                // free-text editorial content by definition — safe to compare
+                // against the default language's value.
+                'compareToSource' => true,
             ];
         }
 

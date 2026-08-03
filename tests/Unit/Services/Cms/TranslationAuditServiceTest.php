@@ -847,6 +847,158 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->assertSame(['complete' => 0, 'total' => 0], $result['summary']['en']);
     }
 
+    /**
+     * Root cause of the 2026-08-02 report: the legacy migration seeded every
+     * non-Spanish translation row with the Spanish text as a placeholder,
+     * and this audit never checked for that — 98% of migrated entries
+     * silently reported "complete". A non-default-language value that is
+     * byte-identical to the default language's own value on a genuine
+     * content field (title, excerpt, ...) must now report 'untranslated',
+     * not 'complete'.
+     */
+    public function testAuditResourceFlagsTextIdenticalToTheDefaultLanguageAsUntranslated(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => $this->langEsId,
+            'slug' => 'inicio',
+            'title' => 'Inicio',
+            'excerpt' => 'Resumen en español',
+        ]);
+
+        // EN row exists and every required field is non-blank, but the
+        // title/excerpt were never actually translated — copy-pasted
+        // verbatim from the Spanish source.
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => $this->langEnId,
+            'slug' => 'home',
+            'title' => 'Inicio',
+            'excerpt' => 'Resumen en español',
+        ]);
+
+        $service = Services::translationAuditService(false);
+        $audit = $service->auditResource('page', $pageId);
+
+        $this->assertSame('complete', $audit['es']['status']);
+        $this->assertSame('untranslated', $audit['en']['status']);
+        $this->assertStringContainsString('title', $audit['en']['detail']);
+        $this->assertStringContainsString('excerpt', $audit['en']['detail']);
+
+        $report = $service->getMissingTranslationsReport();
+        $pageIssue = array_values(array_filter($report, static fn (array $r): bool => $r['resource'] === 'page'))[0];
+        $this->assertSame('untranslated', $pageIssue['status']);
+    }
+
+    /**
+     * `slug` is deliberately excluded from the identical-to-source check:
+     * this site intentionally reuses the same slug across locales for some
+     * pages (confirmed live against teatromuseo.cl), so an identical slug
+     * must never be flagged even though title/excerpt genuinely differ.
+     */
+    public function testIdenticalSlugAcrossLanguagesIsNotFlaggedAsUntranslated(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => $this->langEsId,
+            'slug' => 'home',
+            'title' => 'Inicio',
+        ]);
+
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => $this->langEnId,
+            'slug' => 'home',
+            'title' => 'Home',
+        ]);
+
+        $service = Services::translationAuditService(false);
+        $audit = $service->auditResource('page', $pageId);
+
+        $this->assertSame('complete', $audit['en']['status']);
+    }
+
+    /**
+     * Block content (rich text, hero sliders, CTAs, ...) is the largest
+     * share of the untranslated-legacy-content backlog. Verified through
+     * both entry points that consume evaluateTranslationState() for block
+     * instances: the sitewide report shows 'untranslated' verbatim, while
+     * the block-scoped endpoints collapse it to 'incomplete' — same
+     * treatment as 'mismatch', per collapseForBlockBadge().
+     */
+    public function testBlockInstanceTextIdenticalToDefaultLanguageIsFlaggedAsUntranslated(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_content_blocks')->insert([
+            'block_key' => 'rich_text',
+            'name' => 'Rich Text',
+            'category' => 'content',
+            'schema_definition' => json_encode([
+                'fields' => ['body' => ['type' => 'richtext', 'required' => true]],
+            ]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+        $blockTypeId = $this->db->insertID();
+
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => $pageId,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $instanceId = $this->db->insertID();
+
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $instanceId,
+            'language_id' => $this->langEsId,
+            'block_data' => json_encode(['body' => 'Texto en español']),
+            'is_published' => 1,
+        ]);
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $instanceId,
+            'language_id' => $this->langEnId,
+            'block_data' => json_encode(['body' => 'Texto en español']),
+            'is_published' => 1,
+        ]);
+
+        $service = Services::translationAuditService(false);
+
+        $report = $service->getMissingTranslationsReport();
+        $blockIssue = array_values(array_filter($report, static fn (array $r): bool => $r['resource'] === 'block_instance'))[0];
+        $this->assertSame('untranslated', $blockIssue['status']);
+
+        $resourceAudit = $service->auditResource('block_instance', $instanceId);
+        $this->assertSame('incomplete', $resourceAudit['en']['status']);
+
+        $ownerAudit = $service->auditOwnerBlocks('page', $pageId);
+        $this->assertSame('incomplete', $ownerAudit['blocks'][$instanceId]['en']['status']);
+    }
+
     public function testOverallCompletenessIncludesExpandedCmsResources(): void
     {
         $this->db->table('cms_collections')->insert([
