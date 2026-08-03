@@ -66,7 +66,6 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
             }
 
             $this->upsertPageTranslations($pageId, $definition, $languages);
-            $this->resetPageBlocks($pageId);
             $this->upsertPageBlocks($pageId, $collectionId, $definition, $languages, $blockIds);
         }
 
@@ -77,7 +76,6 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
             }
 
             $this->upsertTemplatePageTranslations($pageId, $definition, $languages);
-            $this->resetPageBlocks($pageId);
             $this->upsertTemplatePageBlocks($pageId, $definition, $languages, $blockIds);
         }
     }

@@ -60,7 +60,6 @@ class SiteLegalPagesSeederChile extends Seeder
             'schema_data'      => null,
         ]);
 
-        $this->resetPageBlocks($legalNoticeId);
         $this->upsertBlock($legalNoticeId, $blockIds, 'page_header', 1, [], [
             'es' => ['heading' => 'Aviso Legal', 'subheading' => 'Información sobre el propietario y operación del sitio'],
             'en' => ['heading' => 'Legal Notice', 'subheading' => 'Information about the website operator and operations']
@@ -99,7 +98,6 @@ class SiteLegalPagesSeederChile extends Seeder
             'schema_data'      => null,
         ]);
 
-        $this->resetPageBlocks($privacyId);
         $this->upsertBlock($privacyId, $blockIds, 'page_header', 1, [], [
             'es' => ['heading' => 'Política de Privacidad', 'subheading' => 'Tu privacidad es importante. Conoce cómo protegemos tus datos.'],
             'en' => ['heading' => 'Privacy Policy', 'subheading' => 'Your privacy matters to us. Learn how we protect your data.']
@@ -158,7 +156,6 @@ class SiteLegalPagesSeederChile extends Seeder
             'schema_data'      => null,
         ]);
 
-        $this->resetPageBlocks($cookiesId);
         $this->upsertBlock($cookiesId, $blockIds, 'page_header', 1, [], [
             'es' => ['heading' => 'Política de Cookies', 'subheading' => 'Transparencia en el uso de tecnologías de seguimiento'],
             'en' => ['heading' => 'Cookie Policy', 'subheading' => 'Transparency in the use of tracking technologies']
@@ -197,7 +194,6 @@ class SiteLegalPagesSeederChile extends Seeder
             'schema_data'      => null,
         ]);
 
-        $this->resetPageBlocks($termsId);
         $this->upsertBlock($termsId, $blockIds, 'page_header', 1, [], [
             'es' => ['heading' => 'Términos de Servicio', 'subheading' => 'Normas y condiciones de uso de nuestro sitio'],
             'en' => ['heading' => 'Terms of Service', 'subheading' => 'Rules and conditions of use of our website']
@@ -236,7 +232,6 @@ class SiteLegalPagesSeederChile extends Seeder
             'schema_data'      => null,
         ]);
 
-        $this->resetPageBlocks($dataRightsId);
         $this->upsertBlock($dataRightsId, $blockIds, 'page_header', 1, [], [
             'es' => ['heading' => 'Tus Derechos sobre Datos', 'subheading' => 'Cómo ejercer tus derechos según la Ley 19.628'],
             'en' => ['heading' => 'Your Data Rights', 'subheading' => 'How to exercise your rights under CCPA']
@@ -295,7 +290,6 @@ class SiteLegalPagesSeederChile extends Seeder
             'schema_data'      => null,
         ]);
 
-        $this->resetPageBlocks($transparencyId);
         $this->upsertBlock($transparencyId, $blockIds, 'page_header', 1, [], [
             'es' => ['heading' => 'Transparencia Corporativa', 'subheading' => 'Comprometidos con la operación transparente y ética'],
             'en' => ['heading' => 'Corporate Transparency', 'subheading' => 'Committed to transparent and ethical operations']
@@ -334,7 +328,6 @@ class SiteLegalPagesSeederChile extends Seeder
             'schema_data'      => null,
         ]);
 
-        $this->resetPageBlocks($accessibilityId);
         $this->upsertBlock($accessibilityId, $blockIds, 'page_header', 1, [], [
             'es' => ['heading' => 'Accesibilidad Web', 'subheading' => 'Comprometidos a ser accesibles para todos'],
             'en' => ['heading' => 'Web Accessibility', 'subheading' => 'Committed to accessibility for everyone']
@@ -377,11 +370,7 @@ class SiteLegalPagesSeederChile extends Seeder
                 ->getRowArray();
 
             if ($existingSingleton !== null) {
-                $pageId = (int) $existingSingleton['id'];
-                $this->db->table('cms_pages')
-                    ->where('id', $pageId)
-                    ->update(array_merge($pageData, ['page_type' => $pageType]));
-                return $pageId;
+                return (int) $existingSingleton['id'];
             }
         }
 
@@ -391,11 +380,7 @@ class SiteLegalPagesSeederChile extends Seeder
             ->getRowArray();
 
         if ($existing !== null) {
-            $pageId = (int) $existing['page_id'];
-            $this->db->table('cms_pages')
-                ->where('id', $pageId)
-                ->update(array_merge($pageData, ['page_type' => $pageType]));
-            return $pageId;
+            return (int) $existing['page_id'];
         }
 
         $payload = array_merge($pageData, ['page_type' => $pageType]);
@@ -410,11 +395,7 @@ class SiteLegalPagesSeederChile extends Seeder
                 ->getRowArray();
 
             if ($fallback !== null) {
-                $pageId = (int) $fallback['id'];
-                $this->db->table('cms_pages')
-                    ->where('id', $pageId)
-                    ->update($payload);
-                return $pageId;
+                return (int) $fallback['id'];
             }
 
             throw $exception;

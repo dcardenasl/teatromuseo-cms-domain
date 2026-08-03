@@ -337,14 +337,7 @@ class SitePagesSeeder extends Seeder
                 ->get()
                 ->getRowArray();
             if ($slugConflict !== null && (int) $slugConflict['page_id'] !== $pageId) {
-                $this->db->table('cms_page_translations')
-                    ->where('id', (int) $slugConflict['id'])
-                    ->update(array_merge($translationData, [
-                        'page_id'     => $pageId,
-                        'language_id' => $languageId,
-                        'updated_at'   => date('Y-m-d H:i:s'),
-                    ]));
-
+                // A slug owned by another page is editorial data; never steal it.
                 return;
             }
         }

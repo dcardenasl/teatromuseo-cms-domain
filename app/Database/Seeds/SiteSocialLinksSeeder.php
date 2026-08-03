@@ -27,7 +27,7 @@ class SiteSocialLinksSeeder extends Seeder
         $settings = [
             [
                 'setting_key'     => 'social_facebook',
-                'setting_value'   => 'https://www.facebook.com/',
+                'setting_value'   => 'https://www.facebook.com/teatromuseo/',
                 'setting_type'    => 'string',
                 'input_type'      => 'url',
                 'setting_group'   => 'social',
@@ -39,7 +39,7 @@ class SiteSocialLinksSeeder extends Seeder
             ],
             [
                 'setting_key'     => 'social_instagram',
-                'setting_value'   => 'https://www.instagram.com/',
+                'setting_value'   => 'https://www.instagram.com/teatromuseo/',
                 'setting_type'    => 'string',
                 'input_type'      => 'url',
                 'setting_group'   => 'social',
@@ -75,7 +75,7 @@ class SiteSocialLinksSeeder extends Seeder
             ],
             [
                 'setting_key'     => 'social_youtube',
-                'setting_value'   => 'https://www.youtube.com/',
+                'setting_value'   => 'https://www.youtube.com/user/Teatromuseo1',
                 'setting_type'    => 'string',
                 'input_type'      => 'url',
                 'setting_group'   => 'social',

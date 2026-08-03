@@ -9,26 +9,32 @@ use CodeIgniter\Database\Exceptions\DatabaseException;
 trait IdempotentSeederSupport
 {
     /**
-     * Upsert a row using a deterministic lookup set.
+     * Ensure a row exists using a deterministic lookup set.
      *
      * The method prefers updating an existing row, falls back to inserting when
-     * needed, and tolerates race/uniqueness collisions by re-reading the row and
-     * updating it in place. It returns the primary key when the table exposes an
-     * `id` column, or null otherwise.
+     * Existing rows are deliberately left untouched. Seeders run against databases
+     * that may already contain editorial work, so "idempotent" must mean both
+     * no duplicates and no overwrites. Passing `$overwriteExisting` is reserved
+     * for an explicitly destructive migration and must not be used by bootstrap
+     * seeders.
      *
      * @param array<string, scalar|null> $lookup
      * @param array<string, mixed>        $data
      */
-    protected function upsertRecord(string $table, array $lookup, array $data): ?int
-    {
+    protected function upsertRecord(
+        string $table,
+        array $lookup,
+        array $data,
+        bool $overwriteExisting = false
+    ): ?int {
         $supportsId = $this->db->fieldExists('id', $table);
         $supportsCreatedAt = $this->db->fieldExists('created_at', $table);
         $supportsUpdatedAt = $this->db->fieldExists('updated_at', $table);
 
-        $existing = $this->db->table($table)
+        $existingResult = $this->db->table($table)
             ->where($lookup)
-            ->get()
-            ->getRowArray();
+            ->get();
+        $existing = $existingResult === false ? null : $existingResult->getRowArray();
 
         $payload = array_merge($lookup, $data);
 
@@ -46,29 +52,21 @@ trait IdempotentSeederSupport
 
                 return $supportsId ? (int) $this->db->insertID() : null;
             } catch (DatabaseException) {
-                $fallback = $this->db->table($table)
+                $fallbackResult = $this->db->table($table)
                     ->where($lookup)
-                    ->get()
-                    ->getRowArray();
+                    ->get();
+                $fallback = $fallbackResult === false ? null : $fallbackResult->getRowArray();
 
                 if ($fallback !== null) {
-                    if (isset($fallback['id'])) {
-                        $this->db->table($table)
-                            ->where('id', (int) $fallback['id'])
-                            ->update($payload);
-
-                        return (int) $fallback['id'];
-                    }
-
-                    $this->db->table($table)
-                        ->where($lookup)
-                        ->update($payload);
-
-                    return null;
+                    return isset($fallback['id']) ? (int) $fallback['id'] : null;
                 }
 
                 return null;
             }
+        }
+
+        if (! $overwriteExisting) {
+            return isset($existing['id']) ? (int) $existing['id'] : null;
         }
 
         $updatePayload = $payload;
@@ -76,16 +74,12 @@ trait IdempotentSeederSupport
 
         if (isset($existing['id'])) {
             $id = (int) $existing['id'];
-            $this->db->table($table)
-                ->where('id', $id)
-                ->update($updatePayload);
+            $this->db->table($table)->where('id', $id)->update($updatePayload);
 
             return $id;
         }
 
-        $this->db->table($table)
-            ->where($lookup)
-            ->update($updatePayload);
+        $this->db->table($table)->where($lookup)->update($updatePayload);
 
         return null;
     }
@@ -128,30 +122,6 @@ trait IdempotentSeederSupport
             'page_type'     => 'collection_index',
             'collection_id' => $collectionId,
         ], $data);
-    }
-
-    /**
-     * Delete every block instance (and its translations) owned by a page, so
-     * a re-run of the seeder can insert a clean set instead of accumulating
-     * duplicates. Extracted from 8 page seeders that each carried a
-     * byte-identical copy (2026-07-15 hygiene cleanup, DEBT-001).
-     */
-    protected function resetPageBlocks(int $pageId): void
-    {
-        $instanceIds = $this->db->table('cms_block_instances')
-            ->select('id')
-            ->where('owner_type', 'page')
-            ->where('owner_id', $pageId)
-            ->get()
-            ->getResultArray();
-
-        if ($instanceIds === []) {
-            return;
-        }
-
-        $ids = array_map(static fn (array $row): int => (int) $row['id'], $instanceIds);
-        $this->db->table('cms_block_instance_translations')->whereIn('instance_id', $ids)->delete();
-        $this->db->table('cms_block_instances')->whereIn('id', $ids)->delete();
     }
 
     /**

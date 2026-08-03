@@ -116,12 +116,6 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
             ->getRowArray();
         $this->assertNotNull($contactBlockType);
 
-        $collectionGridType = $this->db->table('cms_content_blocks')
-            ->where('block_key', 'collection_grid')
-            ->get()
-            ->getRowArray();
-        $this->assertNotNull($collectionGridType);
-
         $contactBlock = $this->db->table('cms_block_instances')
             ->where('block_id', (int) $contactBlockType['id'])
             ->where('owner_type', 'page')
@@ -138,17 +132,20 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $homePage = $this->pageBySlug(['home']);
         $this->assertNotNull($homePage);
 
-        $homeCollectionGrid = $this->db->table('cms_block_instances')
+        $collectionGridType = $this->db->table('cms_content_blocks')
+            ->where('block_key', 'collection_grid')
+            ->get()->getRowArray();
+        $this->assertNotNull($collectionGridType);
+
+        $homeGrids = $this->db->table('cms_block_instances')
             ->where('block_id', (int) $collectionGridType['id'])
             ->where('owner_type', 'page')
             ->where('owner_id', (int) $homePage['id'])
-            ->get()
-            ->getRowArray();
-
-        $this->assertNotNull($homeCollectionGrid);
-        $homeConfig = json_decode((string) $homeCollectionGrid['block_config'], true);
-        $this->assertIsArray($homeConfig);
-        $this->assertSame('1/1', $homeConfig['image_aspect_ratio'] ?? null);
+            ->orderBy('sort_order', 'ASC')
+            ->get()->getResultArray();
+        $this->assertCount(3, $homeGrids);
+        $this->assertSame('cartelera', json_decode((string) $homeGrids[0]['block_config'], true)['collection_key']);
+        $this->assertSame('cursos', json_decode((string) $homeGrids[1]['block_config'], true)['collection_key']);
 
         $contactTranslation = $this->db->table('cms_block_instance_translations')
             ->where('instance_id', (int) $contactBlock['id'])
@@ -156,6 +153,49 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
             ->getResultArray();
 
         $this->assertNotEmpty($contactTranslation);
+
+        $socialLinksType = $this->db->table('cms_content_blocks')
+            ->where('block_key', 'social_links')
+            ->get()
+            ->getRowArray();
+        $socialLinkItemType = $this->db->table('cms_content_blocks')
+            ->where('block_key', 'social_link_item')
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($socialLinksType);
+        $this->assertNotNull($socialLinkItemType);
+
+        $socialLinks = $this->db->table('cms_block_instances')
+            ->where('block_id', (int) $socialLinksType['id'])
+            ->where('owner_type', 'page')
+            ->where('owner_id', (int) $contactPage['id'])
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($socialLinks);
+
+        $socialChildren = $this->db->table('cms_block_instances')
+            ->where('block_id', (int) $socialLinkItemType['id'])
+            ->where('owner_type', 'page')
+            ->where('owner_id', (int) $contactPage['id'])
+            ->where('parent_instance_id', (int) $socialLinks['id'])
+            ->orderBy('sort_order', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $this->assertCount(3, $socialChildren);
+        $this->assertSame(
+            [
+                'https://www.youtube.com/user/Teatromuseo1',
+                'https://www.facebook.com/teatromuseo/',
+                'https://www.instagram.com/teatromuseo/',
+            ],
+            array_map(
+                static fn (array $row): string => (string) (json_decode((string) $row['block_config'], true)['url'] ?? ''),
+                $socialChildren
+            )
+        );
 
         $newsCollection = $this->db->table('cms_collections')
             ->where('collection_key', 'noticias')
@@ -211,6 +251,33 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         ] as $slugs) {
             $this->assertNotNull($this->pageBySlug($slugs));
         }
+    }
+
+    public function testBootstrapIsIdempotentForContactSocialLinks(): void
+    {
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
+        $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
+
+        $contactPage = $this->db->table('cms_pages')
+            ->where('page_type', 'contact')
+            ->get()
+            ->getRowArray();
+        $socialLinkItemType = $this->db->table('cms_content_blocks')
+            ->where('block_key', 'social_link_item')
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($contactPage);
+        $this->assertNotNull($socialLinkItemType);
+        $this->assertSame(
+            3,
+            $this->db->table('cms_block_instances')
+                ->where('block_id', (int) $socialLinkItemType['id'])
+                ->where('owner_type', 'page')
+                ->where('owner_id', (int) $contactPage['id'])
+                ->countAllResults()
+        );
     }
 
     public function testBootstrapSeederIsIdempotent(): void

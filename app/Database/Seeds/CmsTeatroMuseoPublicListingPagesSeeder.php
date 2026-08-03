@@ -56,7 +56,6 @@ final class CmsTeatroMuseoPublicListingPagesSeeder extends Seeder
             }
 
             $this->upsertPageTranslations($pageId, $definition['translations'], $languages);
-            $this->resetPageBlocks($pageId);
             $this->upsertPageBlocks($pageId, $definition, $blockIds, $languages);
         }
     }

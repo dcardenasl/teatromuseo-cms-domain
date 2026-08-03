@@ -30,7 +30,7 @@ final class IdempotentSeederSupportTest extends CIUnitTestCase
         $this->db->enableForeignKeyChecks();
     }
 
-    public function testUpsertRowUpdatesExistingLocalizedRecordsWithoutDuplicatingThem(): void
+    public function testUpsertRowPreservesExistingLocalizedRecordsWithoutDuplicatingThem(): void
     {
         $this->db->table('cms_languages')->insert([
             'code'        => 'es',
@@ -111,7 +111,7 @@ final class IdempotentSeederSupportTest extends CIUnitTestCase
             ->get()
             ->getRowArray();
 
-        $this->assertSame('Quiénes Somos Actualizado', $row['title']);
-        $this->assertSame('Segunda versión', $row['excerpt']);
+        $this->assertSame('Quiénes Somos', $row['title']);
+        $this->assertSame('Primera versión', $row['excerpt']);
     }
 }

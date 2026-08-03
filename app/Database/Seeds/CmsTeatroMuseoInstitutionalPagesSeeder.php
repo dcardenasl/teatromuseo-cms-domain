@@ -89,8 +89,6 @@ final class CmsTeatroMuseoInstitutionalPagesSeeder extends Seeder
             ],
         ], $languages);
 
-        $this->resetPageBlocks($pageId);
-
         $this->upsertBlock($pageId, $blockIds, 'page_header', 1, [
             'bg_color' => 'bg-slate-100',
             'css_class' => '',
@@ -454,8 +452,6 @@ HTML,
             ],
         ], $languages);
 
-        $this->resetPageBlocks($pageId);
-
         $this->upsertBlock($pageId, $blockIds, 'page_header', 1, [
             'bg_color' => 'bg-slate-100',
             'css_class' => '',
@@ -767,12 +763,7 @@ HTML,
         }
 
         if ($existing !== null) {
-            $pageId = (int) $existing['id'];
-            $this->db->table('cms_pages')
-                ->where('id', $pageId)
-                ->update($payload);
-
-            return $pageId;
+            return (int) $existing['id'];
         }
 
         $pageId = $this->createRecord('cms_pages', $payload);

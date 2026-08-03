@@ -96,28 +96,19 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
             ->where('page_type', 'home')
             ->get()
             ->getRowArray();
+        $this->assertNotNull($homePage);
+
         $homeBlocks = $this->db->table('cms_block_instances')
-            ->where('owner_type', 'page')
-            ->where('owner_id', (int) $homePage['id'])
-            ->orderBy('sort_order', 'ASC')
-            ->get()
-            ->getResultArray();
-        $this->assertGreaterThanOrEqual(3, count($homeBlocks));
-
-        $heroBlock = $this->db->table('cms_content_blocks')
-            ->where('block_key', 'hero_slider')
-            ->get()
-            ->getRowArray();
-        $this->assertNotNull($heroBlock);
-
-        $heroInstance = $this->db->table('cms_block_instances')
-            ->where('owner_type', 'page')
-            ->where('owner_id', (int) $homePage['id'])
-            ->where('block_id', (int) $heroBlock['id'])
-            ->get()
-            ->getRowArray();
-        $this->assertNotNull($heroInstance);
-
+            ->select('cms_content_blocks.block_key, cms_block_instances.block_config')
+            ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
+            ->where('cms_block_instances.owner_type', 'page')
+            ->where('cms_block_instances.owner_id', (int) $homePage['id'])
+            ->where('cms_block_instances.parent_instance_id IS NULL', null, false)
+            ->orderBy('cms_block_instances.sort_order', 'ASC')
+            ->get()->getResultArray();
+        $this->assertSame(['hero_slider', 'collection_grid', 'collection_grid', 'collection_grid', 'cta'], array_column($homeBlocks, 'block_key'));
+        $this->assertSame('cartelera', json_decode((string) $homeBlocks[1]['block_config'], true)['collection_key']);
+        $this->assertSame('cursos', json_decode((string) $homeBlocks[2]['block_config'], true)['collection_key']);
         $contactBlock = $this->db->table('cms_content_blocks')
             ->where('block_key', 'form_embed')
             ->get()

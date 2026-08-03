@@ -714,16 +714,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
     /** @param list<int> $keepIds */
     private function pruneMenuItems(int $menuId, array $keepIds): void
     {
-        $keepIds = array_values(array_unique(array_filter(
-            array_map(static fn (int $id): int => $id, $keepIds),
-            static fn (int $id): bool => $id > 0
-        )));
-        $builder = $this->db->table('cms_menu_items')->where('menu_id', $menuId);
-
-        if ($keepIds !== []) {
-            $builder->whereNotIn('id', $keepIds);
-        }
-
-        $builder->delete();
+        // Never remove menu items: custom navigation is editorial content.
+        unset($menuId, $keepIds);
     }
 }

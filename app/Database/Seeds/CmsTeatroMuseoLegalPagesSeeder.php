@@ -505,8 +505,6 @@ HTML,
     {
         $pageId = $this->upsertPage($definition['lookup_slugs'], $definition['sort_order'], $definition['key']);
         $this->upsertPageTranslations($pageId, $definition['translations'], $languages);
-        $this->resetPageBlocks($pageId);
-
         $this->upsertBlock($pageId, $blockIds, 'page_header', 1, [
             'bg_color' => 'bg-slate-100',
             'css_class' => '',
@@ -550,12 +548,7 @@ HTML,
         }
 
         if ($existing !== null) {
-            $pageId = (int) $existing['id'];
-            $this->db->table('cms_pages')
-                ->where('id', $pageId)
-                ->update($payload);
-
-            return $pageId;
+            return (int) $existing['id'];
         }
 
         $pageId = $this->createRecord('cms_pages', $payload);
@@ -925,16 +918,7 @@ HTML,
      */
     private function pruneMenuItems(int $menuId, array $keepIds): void
     {
-        $keepIds = array_values(array_unique(array_filter(
-            array_map(static fn (int $id): int => $id, $keepIds),
-            static fn (int $id): bool => $id > 0
-        )));
-
-        $builder = $this->db->table('cms_menu_items')->where('menu_id', $menuId);
-        if ($keepIds !== []) {
-            $builder->whereNotIn('id', $keepIds);
-        }
-
-        $builder->delete();
+        // Custom legal links are editorial content and must survive bootstrap.
+        unset($menuId, $keepIds);
     }
 }
