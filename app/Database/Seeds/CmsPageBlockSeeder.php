@@ -67,6 +67,7 @@ class CmsPageBlockSeeder extends Seeder
                     'order_by'        => 'published_at',
                     'order_direction' => 'desc',
                     'layout_variant'  => 'cards',
+                    'image_aspect_ratio' => '1/1',
                     'css_class'       => '',
                 ],
                 'data'      => [

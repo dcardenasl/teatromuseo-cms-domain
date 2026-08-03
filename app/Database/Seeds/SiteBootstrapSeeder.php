@@ -39,6 +39,7 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(CmsTeatroMuseoLegalPagesSeeder::class);
         $this->call(CmsTeatroMuseoPublicListingPagesSeeder::class);
         $this->call(CmsPageBlockSeeder::class);
+        $this->call(CmsCollectionGridAspectRatioSeeder::class);
         $this->call(CmsSocialLinksChildrenSeeder::class);
         $this->call(CmsTeatroMuseoNavigationSeeder::class);
         $this->call(CmsTeatroMuseoRedirectSeeder::class);

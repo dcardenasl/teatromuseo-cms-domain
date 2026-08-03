@@ -135,6 +135,21 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $this->assertSame('contact', $config['form_key'] ?? null);
         $this->assertArrayNotHasKey('show_info_boxes', $config);
 
+        $homePage = $this->pageBySlug(['home']);
+        $this->assertNotNull($homePage);
+
+        $homeCollectionGrid = $this->db->table('cms_block_instances')
+            ->where('block_id', (int) $collectionGridType['id'])
+            ->where('owner_type', 'page')
+            ->where('owner_id', (int) $homePage['id'])
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($homeCollectionGrid);
+        $homeConfig = json_decode((string) $homeCollectionGrid['block_config'], true);
+        $this->assertIsArray($homeConfig);
+        $this->assertSame('1/1', $homeConfig['image_aspect_ratio'] ?? null);
+
         $contactTranslation = $this->db->table('cms_block_instance_translations')
             ->where('instance_id', (int) $contactBlock['id'])
             ->get()
