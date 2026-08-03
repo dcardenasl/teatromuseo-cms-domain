@@ -211,6 +211,7 @@ class CmsBlockTypeSeeder extends Seeder
                     ],
                     'config_fields' => [
                         'collection_key'  => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => true,  'default' => 'noticias'],
+                        'source_type'     => ['type' => 'select', 'label' => 'Origen de contenido', 'description' => 'Usa CMS, catálogo del museo o programación sin cambiar el bloque visual.', 'required' => false, 'options' => ['auto', 'cms_collection', 'catalog_items', 'event_items'], 'default' => 'auto'],
                         'items_limit'     => ['type' => 'number', 'label' => 'Máx. elementos',           'required' => false, 'default' => 3],
                         'order_by'        => ['type' => 'select', 'label' => 'Ordenar por',              'required' => false, 'options' => ['published_at', 'sort_order', 'created_at', 'title'], 'default' => 'published_at'],
                         'order_direction' => ['type' => 'select', 'label' => 'Dirección',                'required' => false, 'options' => ['asc', 'desc'], 'default' => 'desc'],
