@@ -169,9 +169,9 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
             'category_id',
             $categoryId,
             $translations,
-            static fn (array $translation): array => [
+            fn (array $translation): array => [
                 'language_id'      => (int) $translation['language_id'],
-                'slug'             => $translation['slug'],
+                'slug'             => (new \App\Libraries\Cms\SlugGenerator())->slugify((string) $translation['slug']),
                 'name'             => $translation['name'],
                 'description'      => $translation['description'] ?? null,
                 'meta_title'       => $translation['meta_title'] ?? null,
@@ -182,6 +182,8 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
 
     public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool
     {
+        $slug = (new \App\Libraries\Cms\SlugGenerator())->slugify($slug);
+
         return (new \App\Models\CategoryTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
     }
 }

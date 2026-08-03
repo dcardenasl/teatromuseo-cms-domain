@@ -190,15 +190,16 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     {
         /** @var \App\Models\CollectionTranslationModel $translationModel */
         $translationModel = model(\App\Models\CollectionTranslationModel::class);
+        $slugGenerator = new \App\Libraries\Cms\SlugGenerator();
 
         ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
             $translationModel,
             'collection_id',
             $collectionId,
             $translations,
-            static fn (array $translation): array => [
+            fn (array $translation): array => [
                 'language_id'              => (int) $translation['language_id'],
-                'slug'                     => isset($translation['slug']) ? trim((string) $translation['slug'], " \t\n\r\0\x0B/") : null,
+                'slug'                     => isset($translation['slug']) ? $slugGenerator->slugify((string) $translation['slug']) : null,
                 'name'                     => (string) $translation['name'],
                 'description'              => $translation['description'] ?? null,
                 'listing_title'            => $translation['listing_title'] ?? null,
@@ -223,7 +224,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
                 continue;
             }
 
-            $slug = trim((string) ($translation['slug'] ?? ''), " \t\n\r\0\x0B/");
+            $slug = (new \App\Libraries\Cms\SlugGenerator())->slugify((string) ($translation['slug'] ?? ''));
             $languageId = (int) ($translation['language_id'] ?? 0);
 
             if ($slug === '' || $languageId <= 0) {
@@ -241,6 +242,8 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
 
     public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool
     {
+        $slug = (new \App\Libraries\Cms\SlugGenerator())->slugify($slug);
+
         return (new \App\Models\CollectionTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
     }
 }

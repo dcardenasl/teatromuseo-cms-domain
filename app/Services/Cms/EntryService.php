@@ -320,10 +320,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     {
         /** @var \App\Models\EntryTranslationModel $translationModel */
         $translationModel = model(\App\Models\EntryTranslationModel::class);
+        $slugGenerator = new \App\Libraries\Cms\SlugGenerator();
 
         foreach ($translations as $translation) {
             $langId = (int) $translation['language_id'];
-            $slug = (string) $translation['slug'];
+            $slug = $slugGenerator->slugify((string) $translation['slug']);
 
             $existing = $translationModel
                 ->where('language_id', $langId)
@@ -371,7 +372,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
             foreach ($translations as $translation) {
                 $langId  = (int) $translation['language_id'];
-                $newSlug = (string) $translation['slug'];
+                $newSlug = $slugGenerator->slugify((string) $translation['slug']);
                 if (isset($currentSlugs[$langId]) && $currentSlugs[$langId] !== $newSlug) {
                     $langCode = $languageCodeMap[$langId] ?? null;
                     $resolvedPrefix = '';
@@ -404,7 +405,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             $rows[] = [
                 'entry_id'         => $entryId,
                 'language_id'      => (int) $translation['language_id'],
-                'slug'             => (string) $translation['slug'],
+                'slug'             => $slugGenerator->slugify((string) $translation['slug']),
                 'title'            => $translation['title'],
                 'excerpt'          => $translation['excerpt'] ?? null,
                 'featured_file_id' => $featuredImage['file_id'],
@@ -626,6 +627,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool
     {
+        $slug = (new \App\Libraries\Cms\SlugGenerator())->slugify($slug);
+
         return (new \App\Models\EntryTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
     }
 }

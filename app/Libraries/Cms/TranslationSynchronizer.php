@@ -45,7 +45,7 @@ final class TranslationSynchronizer
                 continue;
             }
 
-            $row = $mapRow($translation);
+            $row = $this->normalizeRow($mapRow($translation));
             $languageId = (int) ($row['language_id'] ?? 0);
             if ($languageId <= 0) {
                 throw new \InvalidArgumentException('A translation must have a valid language_id.');
@@ -173,5 +173,27 @@ final class TranslationSynchronizer
         }
 
         return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function normalizeRow(array $row): array
+    {
+        if (! array_key_exists('slug', $row)) {
+            return $row;
+        }
+
+        $slug = trim((string) $row['slug']);
+        if ($slug === '') {
+            $row['slug'] = '';
+
+            return $row;
+        }
+
+        $row['slug'] = (new SlugGenerator())->slugify($slug);
+
+        return $row;
     }
 }

@@ -130,9 +130,9 @@ class TagService extends BaseCrudService implements TagServiceInterface
             'tag_id',
             $tagId,
             $translations,
-            static fn (array $translation): array => [
+            fn (array $translation): array => [
                 'language_id' => (int) $translation['language_id'],
-                'slug'        => $translation['slug'],
+                'slug'        => (new \App\Libraries\Cms\SlugGenerator())->slugify((string) $translation['slug']),
                 'name'        => $translation['name'],
             ],
         );

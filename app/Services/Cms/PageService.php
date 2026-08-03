@@ -213,10 +213,11 @@ class PageService extends BaseCrudService implements PageServiceInterface
     {
         /** @var \App\Models\PageTranslationModel $translationModel */
         $translationModel = model(\App\Models\PageTranslationModel::class);
+        $slugGenerator = new \App\Libraries\Cms\SlugGenerator();
 
         foreach ($translations as $translation) {
             $langId = (int) $translation['language_id'];
-            $slug = (string) $translation['slug'];
+            $slug = $slugGenerator->slugify((string) $translation['slug']);
             $ogImage = $this->fileUrlResolver->normalizeMediaReference(
                 $translation['og_image'] ?? [
                     'file_id' => $translation['og_image_file_id'] ?? null,
@@ -250,7 +251,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
         $rows = [];
         foreach ($translations as $translation) {
             $langId = (int) $translation['language_id'];
-            $newSlug = (string) $translation['slug'];
+            $newSlug = $slugGenerator->slugify((string) $translation['slug']);
 
             // Record redirection if slug changed
             if (isset($currentSlugs[$langId]) && $currentSlugs[$langId] !== $newSlug) {
@@ -478,6 +479,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
     public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool
     {
+        $slug = (new \App\Libraries\Cms\SlugGenerator())->slugify($slug);
+
         return (new \App\Models\PageTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
     }
 }
