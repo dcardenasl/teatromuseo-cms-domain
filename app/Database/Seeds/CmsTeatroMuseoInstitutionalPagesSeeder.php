@@ -126,21 +126,7 @@ final class CmsTeatroMuseoInstitutionalPagesSeeder extends Seeder
             'pt' => [],
         ], $languages);
 
-        $this->seedChildBlocks($pageId, $heroSliderId, 'slide_banner', [
-            [
-                'sort_order' => 1,
-                'config' => [
-                    'image' => $this->mediaReference('https://picsum.photos/id/1041/1920/1080'),
-                    'navigation_mode' => 'none',
-                    'text_color' => '#0f172a',
-                    'overlay_color' => 'rgba(255, 255, 255, 0.0)',
-                ],
-                'es' => ['heading' => 'Museo', 'subtitle' => '', 'cta_label' => 'Ver más', 'external_url' => ''],
-                'en' => ['heading' => 'Museum', 'subtitle' => '', 'cta_label' => 'Learn more', 'external_url' => ''],
-                'fr' => ['heading' => 'Musée', 'subtitle' => '', 'cta_label' => 'Voir plus', 'external_url' => ''],
-                'pt' => ['heading' => 'Museu', 'subtitle' => '', 'cta_label' => 'Ver mais', 'external_url' => ''],
-            ],
-        ], $blockIds, $languages);
+        $this->removeSyntheticAboutHeroSlide($pageId, $heroSliderId, $blockIds['slide_banner']);
 
         $this->upsertBlock($pageId, $blockIds, 'rich_text', 3, [
             'css_class' => '',
@@ -324,11 +310,6 @@ HTML,
             ],
         ], $languages);
 
-        // Historia is intentionally authoritative: remove stale/demo blocks
-        // before rebuilding the canonical two-block page below. This also
-        // removes nested timeline/metrics children left by older seed runs.
-        $this->clearPageBlocks($pageId);
-
         $this->upsertBlock($pageId, $blockIds, 'page_header', 1, [
             'bg_color' => 'bg-slate-100',
             'css_class' => '',
@@ -355,7 +336,25 @@ HTML,
             ],
         ], $languages);
 
-        $this->upsertBlock($pageId, $blockIds, 'rich_text', 2, [
+        // The legacy migration appends the historical banners as slide_banner
+        // children of this container. Keep the container in the canonical
+        // page structure and never delete its children during bootstrap.
+        $this->upsertBlock($pageId, $blockIds, 'hero_slider', 2, [
+            'autoplay'          => true,
+            'interval'          => 5000,
+            'transition'        => 'fade',
+            'overlay_opacity'   => '20',
+            'caption_position'  => 'below',
+            'controls_position' => 'below',
+            'css_class'         => '',
+        ], [
+            'es' => [],
+            'en' => [],
+            'fr' => [],
+            'pt' => [],
+        ], $languages);
+
+        $this->upsertBlock($pageId, $blockIds, 'rich_text', 3, [
             'css_class' => '',
         ], [
             'es' => [
@@ -389,11 +388,7 @@ HTML,
             ],
         ], $languages);
 
-        // The old image, timeline, metrics and CTA blocks are deliberately not
-        // recreated: the official history is now presented as one clean text
-        // block and the reset above removes any previous copies.
         return;
-
         $this->upsertBlock($pageId, $blockIds, 'image', 3, [
             'image' => $this->mediaReference('https://picsum.photos/id/1019/800/600'),
             'aspect_ratio' => '16/9',
@@ -689,13 +684,36 @@ HTML,
         }
     }
 
-    /** Remove all block instances owned by a page, including nested children. */
-    private function clearPageBlocks(int $pageId): void
+    private function removeSyntheticAboutHeroSlide(int $pageId, int $heroSliderId, int $slideBlockId): void
     {
-        $this->db->table('cms_block_instances')
-            ->where('owner_type', 'page')
-            ->where('owner_id', $pageId)
-            ->delete();
+        $children = $this->db->table('cms_block_instances')
+            ->select('id, block_config')
+            ->where([
+                'block_id' => $slideBlockId,
+                'owner_type' => 'page',
+                'owner_id' => $pageId,
+                'parent_instance_id' => $heroSliderId,
+            ])
+            ->get()
+            ->getResultArray();
+
+        foreach ($children as $child) {
+            $config = json_decode((string) ($child['block_config'] ?? '{}'), true);
+            $url = is_array($config) && is_array($config['image'] ?? null)
+                ? (string) ($config['image']['url'] ?? '')
+                : '';
+
+            if ($url !== 'https://picsum.photos/id/1041/1920/1080') {
+                continue;
+            }
+
+            $this->db->table('cms_block_instance_translations')
+                ->where('instance_id', (int) $child['id'])
+                ->delete();
+            $this->db->table('cms_block_instances')
+                ->where('id', (int) $child['id'])
+                ->delete();
+        }
     }
 
     /**
@@ -717,13 +735,16 @@ HTML,
             return 0;
         }
 
+        // `sort_order` is presentation data, not part of the natural key.
+        // Including it creates a second root block when an editorial reorder
+        // changes the position of an existing block.
         $instanceId = $this->upsertRecord('cms_block_instances', [
             'block_id' => $blockId,
             'owner_type' => 'page',
             'owner_id' => $pageId,
             'parent_instance_id' => null,
-            'sort_order' => $sortOrder,
         ], [
+            'sort_order' => $sortOrder,
             'column_index' => null,
             'is_active' => 1,
             'block_config' => json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),

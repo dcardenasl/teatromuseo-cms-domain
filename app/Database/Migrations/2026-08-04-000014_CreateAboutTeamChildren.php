@@ -106,7 +106,9 @@ final class CreateAboutTeamChildren extends Migration
                     'profession' => (string) ($extra['profession'] ?? ''),
                     'email' => (string) ($extra['email'] ?? ''),
                     'bio' => $excerpt,
-                    'roles' => array_values(array_filter([(string) ($extra['profession'] ?? ''), (string) ($extra['position'] ?? $excerpt)])),
+                    // Roles are additional responsibilities only. Profession
+                    // and primary position have their own dedicated fields.
+                    'roles' => [],
                     'linkedin_url' => '',
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'is_published' => 1,
@@ -169,7 +171,7 @@ final class CreateAboutTeamChildren extends Migration
         }
         $schema['fields']['profession'] = ['type' => 'string', 'label' => 'Profesión', 'required' => false];
         $schema['fields']['email'] = ['type' => 'email', 'label' => 'Correo público', 'required' => false];
-        $schema['fields']['roles'] = ['type' => 'repeater', 'label' => 'Roles', 'required' => false, 'item_fields' => ['label' => ['type' => 'string', 'label' => 'Rol', 'required' => false]]];
+        $schema['fields']['roles'] = ['type' => 'repeater', 'label' => 'Roles adicionales', 'required' => false, 'item_fields' => ['label' => ['type' => 'string', 'label' => 'Rol adicional', 'required' => false]]];
         $schema['config_fields']['hover_photo'] = ['type' => 'media_reference', 'label' => 'Foto al pasar el cursor', 'accept' => 'image', 'required' => false];
         $this->db->table('cms_content_blocks')->where('block_key', 'team_member')->update([
             'schema_definition' => json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
