@@ -95,11 +95,24 @@ final class CmsTeatroMuseoNavigationSeederTest extends CIUnitTestCase
 
         $museoId = $this->menuItemId((int) $mainMenu['id'], 'Museo');
         $this->assertNotNull($museoId);
-        $this->assertSame(['Colección', 'Exposiciones', 'Personas'], $this->menuLabels((int) $mainMenu['id'], 'es', $museoId));
+        $this->assertSame(['Colección', 'Exposiciones'], $this->menuLabels((int) $mainMenu['id'], 'es', $museoId));
 
         $prensaId = $this->menuItemId((int) $mainMenu['id'], 'Prensa y Medios');
         $this->assertNotNull($prensaId);
-        $this->assertSame(['Noticias', 'Multimedia', 'Prensa'], $this->menuLabels((int) $mainMenu['id'], 'es', $prensaId));
+        $this->assertSame(['Noticias', 'Multimedia', 'Editorial', 'Prensa'], $this->menuLabels((int) $mainMenu['id'], 'es', $prensaId));
+        $editorialItem = $this->db->table('cms_menu_items')
+            ->where('menu_id', (int) $mainMenu['id'])
+            ->where('parent_id', $prensaId)
+            ->where('link_type', 'collection_listing')
+            ->where('page_id IS NULL', null, false)
+            ->where('collection_id IS NOT NULL', null, false)
+            ->join('cms_menu_item_translations', 'cms_menu_item_translations.menu_item_id = cms_menu_items.id')
+            ->join('cms_languages', 'cms_languages.id = cms_menu_item_translations.language_id')
+            ->where('cms_languages.code', 'es')
+            ->where('cms_menu_item_translations.label', 'Editorial')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($editorialItem);
 
         $footerMenu = $this->db->table('cms_menus')
             ->where('menu_key', 'footer')
@@ -131,7 +144,7 @@ final class CmsTeatroMuseoNavigationSeederTest extends CIUnitTestCase
 
         $footerPrensaId = $this->menuItemId((int) $footerMenu['id'], 'Prensa y Medios');
         $this->assertNotNull($footerPrensaId);
-        $this->assertSame(['Noticias', 'Multimedia', 'Prensa'], $this->menuLabels((int) $footerMenu['id'], 'es', $footerPrensaId));
+        $this->assertSame(['Noticias', 'Multimedia', 'Editorial', 'Prensa'], $this->menuLabels((int) $footerMenu['id'], 'es', $footerPrensaId));
 
         $legalMenu = $this->db->table('cms_menus')
             ->where('menu_key', 'legal')

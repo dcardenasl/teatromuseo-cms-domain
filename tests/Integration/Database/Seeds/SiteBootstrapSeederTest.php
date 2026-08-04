@@ -77,8 +77,8 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         );
         $this->assertSame(['es', 'en', 'fr', 'pt'], $languageCodes);
 
-        $this->assertSame(27, $this->db->table('cms_pages')->countAllResults());
-        $this->assertSame(9, $this->db->table('cms_collections')->countAllResults());
+        $this->assertSame(26, $this->db->table('cms_pages')->countAllResults());
+        $this->assertSame(11, $this->db->table('cms_collections')->countAllResults());
         $this->assertSame(0, $this->db->table('cms_entries')->countAllResults());
         $this->assertCount(3, $this->db->table('cms_menus')->whereIn('menu_key', ['main', 'footer', 'legal'])->get()->getResultArray());
 
@@ -145,7 +145,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
             ->get()->getResultArray();
         $this->assertCount(3, $homeGrids);
         $this->assertSame('cartelera', json_decode((string) $homeGrids[0]['block_config'], true)['collection_key']);
-        $this->assertSame('cursos', json_decode((string) $homeGrids[1]['block_config'], true)['collection_key']);
+        $this->assertSame('teatroescuela', json_decode((string) $homeGrids[1]['block_config'], true)['collection_key']);
 
         $contactTranslation = $this->db->table('cms_block_instance_translations')
             ->where('instance_id', (int) $contactBlock['id'])
@@ -238,7 +238,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $historyPage = $this->pageBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
         $this->assertNotNull($historyPage);
         $this->assertSame(['historia', 'history', 'histoire', 'nossa-historia'], $this->pageTranslationSlugs((int) $historyPage['id']));
-        $this->assertSame(['page_header', 'rich_text', 'image', 'timeline', 'metrics_grid', 'cta'], $this->pageBlockKeys((int) $historyPage['id']));
+        $this->assertSame(['page_header', 'hero_slider', 'rich_text'], $this->pageBlockKeys((int) $historyPage['id']));
 
         $catalogTemplatePage = $this->pageBySlug(['__template_catalog_item']);
         $this->assertNotNull($catalogTemplatePage);

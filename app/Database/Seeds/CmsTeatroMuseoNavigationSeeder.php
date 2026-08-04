@@ -52,7 +52,6 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         $eventsPageId = $this->pageIdByType('events');
         $catalogListingPageId = $this->pageIdByType('catalog_listing');
         $pressPageId = $this->pageIdByType('press');
-        $publicationsPageId = $this->pageIdByType('publications');
         $transparencyPageId = $this->pageIdByType('transparency');
 
         if ($homePageId === null || $contactPageId === null) {
@@ -61,8 +60,8 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
             return;
         }
 
-        $this->seedMainMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId, $eventsPageId, $catalogListingPageId, $pressPageId, $publicationsPageId);
-        $this->seedFooterMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId, $eventsPageId, $catalogListingPageId, $publicationsPageId);
+        $this->seedMainMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId, $eventsPageId, $catalogListingPageId, $pressPageId);
+        $this->seedFooterMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId, $eventsPageId, $catalogListingPageId, $pressPageId);
         $this->seedTransparencyInLegalMenu($languages, $transparencyPageId);
     }
 
@@ -90,8 +89,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ?int $historyPageId,
         ?int $eventsPageId,
         ?int $catalogListingPageId,
-        ?int $pressPageId,
-        ?int $publicationsPageId
+        ?int $pressPageId
     ): void {
         $menuId = $this->upsertMenu('main', 'header', [
             'es' => 'Navegación principal',
@@ -132,14 +130,6 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
                 'en' => 'History',
                 'fr' => 'Histoire',
                 'pt' => 'História',
-            ],
-            [
-                'page_id' => $pressPageId,
-                'sort_order' => 3,
-                'es' => 'Prensa',
-                'en' => 'Press',
-                'fr' => 'Presse',
-                'pt' => 'Imprensa',
             ],
         ], $languages));
 
@@ -211,14 +201,6 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ], $languages);
         $this->appendId($keepIds, $exposicionesId);
 
-        $personasId = $this->addCollectionItem($menuId, 'personas', $museoGroupId, $museoChildSortOrder, [
-            'es' => 'Personas',
-            'en' => 'People',
-            'fr' => 'Personnes',
-            'pt' => 'Pessoas',
-        ], $languages);
-        $this->appendId($keepIds, $personasId);
-
         $coursesId = $this->addCollectionItem($menuId, 'teatroescuela', null, $sortOrder++, [
             'es' => 'TeatroEscuela',
             'en' => 'TeatroEscuela',
@@ -253,14 +235,25 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ], $languages);
         $this->appendId($keepIds, $videosId);
 
-        if ($publicationsPageId !== null) {
-            $publicationsId = $this->addPageItem($menuId, $publicationsPageId, $pressGroupId, $pressChildSortOrder, [
-                'es' => 'Publicaciones',
-                'en' => 'Publications',
-                'fr' => 'Publications',
-                'pt' => 'Publicações',
+        if (($editorialCollectionKey = $this->editorialCollectionKey()) !== null) {
+            $editorialId = $this->addCollectionItem($menuId, $editorialCollectionKey, $pressGroupId, $pressChildSortOrder, [
+                'es' => 'Editorial',
+                'en' => 'Editorial',
+                'fr' => 'Éditorial',
+                'pt' => 'Editorial',
             ], $languages);
-            $this->appendId($keepIds, $publicationsId);
+            $this->appendId($keepIds, $editorialId);
+            $pressChildSortOrder++;
+        }
+
+        if ($pressPageId !== null) {
+            $pressPageItemId = $this->addPageItem($menuId, $pressPageId, $pressGroupId, $pressChildSortOrder, [
+                'es' => 'Prensa',
+                'en' => 'Press',
+                'fr' => 'Presse',
+                'pt' => 'Imprensa',
+            ], $languages);
+            $this->appendId($keepIds, $pressPageItemId);
         }
 
         $contactId = $this->addPageItem($menuId, $contactPageId, null, $sortOrder, [
@@ -283,7 +276,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ?int $historyPageId,
         ?int $eventsPageId,
         ?int $catalogListingPageId,
-        ?int $publicationsPageId
+        ?int $pressPageId
     ): void {
         $menuId = $this->upsertMenu('footer', 'footer', [
             'es' => 'Pie de página',
@@ -392,7 +385,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ], $languages);
         $this->appendId($keepIds, $contactId);
 
-        // "Prensa y Medios" column — Noticias, Multimedia, Publicaciones
+        // "Prensa y Medios" column — Noticias, Multimedia, Editorial, Prensa
         $pressGroupId = $this->upsertMenuItemNoLink($menuId, null, $sortOrder, [
             'es' => 'Prensa y Medios',
             'en' => 'Press & Media',
@@ -422,15 +415,32 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
             $this->appendId($keepIds, $itemId);
             $pressChildSortOrder++;
         }
-        if ($publicationsPageId !== null) {
-            $publicationsId = $this->addPageItem($menuId, $publicationsPageId, $pressGroupId, $pressChildSortOrder, [
-                'es' => 'Publicaciones', 'en' => 'Publications', 'fr' => 'Publications', 'pt' => 'Publicações',
+        if (($editorialCollectionKey = $this->editorialCollectionKey()) !== null) {
+            $editorialId = $this->addCollectionItem($menuId, $editorialCollectionKey, $pressGroupId, $pressChildSortOrder, [
+                'es' => 'Editorial', 'en' => 'Editorial', 'fr' => 'Éditorial', 'pt' => 'Editorial',
             ], $languages);
-            $this->appendId($keepIds, $publicationsId);
+            $this->appendId($keepIds, $editorialId);
             $pressChildSortOrder++;
+        }
+        if ($pressPageId !== null) {
+            $pressPageItemId = $this->addPageItem($menuId, $pressPageId, $pressGroupId, $pressChildSortOrder, [
+                'es' => 'Prensa', 'en' => 'Press', 'fr' => 'Presse', 'pt' => 'Imprensa',
+            ], $languages);
+            $this->appendId($keepIds, $pressPageItemId);
         }
 
         $this->pruneMenuItems($menuId, $keepIds);
+    }
+
+    private function editorialCollectionKey(): ?string
+    {
+        foreach (['editoriales', 'editorial'] as $key) {
+            if ($this->collectionIdByKey($key) !== null) {
+                return $key;
+            }
+        }
+
+        return null;
     }
 
     /**

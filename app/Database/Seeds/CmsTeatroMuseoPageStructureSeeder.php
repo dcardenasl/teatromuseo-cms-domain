@@ -470,13 +470,11 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
         return [
             ['collection_key' => 'noticias', 'es_name' => 'Noticias', 'en_name' => 'News', 'fr_name' => 'Actualités', 'pt_name' => 'Notícias', 'es_slug' => 'noticias', 'en_slug' => 'news', 'fr_slug' => 'actualites', 'pt_slug' => 'noticias', 'sort_order' => 10],
             ['collection_key' => 'companias', 'es_name' => 'Compañías', 'en_name' => 'Companies', 'fr_name' => 'Compagnies', 'pt_name' => 'Companhias', 'es_slug' => 'companias', 'en_slug' => 'companies', 'fr_slug' => 'compagnies', 'pt_slug' => 'companhias', 'sort_order' => 20],
-            ['collection_key' => 'personas', 'es_name' => 'Personas', 'en_name' => 'People', 'fr_name' => 'Personnes', 'pt_name' => 'Pessoas', 'es_slug' => 'personas', 'en_slug' => 'people', 'fr_slug' => 'personnes', 'pt_slug' => 'pessoas', 'sort_order' => 30],
-            ['collection_key' => 'obras', 'es_name' => 'Obras', 'en_name' => 'Works', 'fr_name' => 'Oeuvres', 'pt_name' => 'Obras', 'es_slug' => 'obras', 'en_slug' => 'works', 'fr_slug' => 'oeuvres', 'pt_slug' => 'obras', 'sort_order' => 40],
             ['collection_key' => 'videos', 'es_name' => 'Videos', 'en_name' => 'Videos', 'fr_name' => 'Vidéos', 'pt_name' => 'Vídeos', 'es_slug' => 'videos', 'en_slug' => 'videos', 'fr_slug' => 'videos', 'pt_slug' => 'videos', 'sort_order' => 50],
             ['collection_key' => 'festivales', 'es_name' => 'Festivales', 'en_name' => 'Festivals', 'fr_name' => 'Festivals', 'pt_name' => 'Festivais', 'es_slug' => 'festivales', 'en_slug' => 'festivals', 'fr_slug' => 'festivals', 'pt_slug' => 'festivais', 'sort_order' => 60],
             ['collection_key' => 'exposiciones', 'es_name' => 'Exposiciones', 'en_name' => 'Exhibitions', 'fr_name' => 'Expositions', 'pt_name' => 'Exposições', 'es_slug' => 'exposiciones', 'en_slug' => 'exhibitions', 'fr_slug' => 'expositions', 'pt_slug' => 'exposicoes', 'sort_order' => 70],
             ['collection_key' => 'teatroescuela', 'es_name' => 'TeatroEscuela', 'en_name' => 'TeatroEscuela', 'fr_name' => 'TeatroEscuela', 'pt_name' => 'TeatroEscuela', ...array_combine(['es_slug', 'en_slug', 'fr_slug', 'pt_slug'], array_values(TeatroMuseoPublicRoutes::collectionSlugs('teatroescuela'))), 'sort_order' => 80],
-            ['collection_key' => 'editoriales', 'es_name' => 'Publicaciones', 'en_name' => 'Publications', 'fr_name' => 'Publications', 'pt_name' => 'Publicações', 'es_slug' => 'publicaciones', 'en_slug' => 'publications', 'fr_slug' => 'publications', 'pt_slug' => 'publicacoes', 'sort_order' => 90],
+            ['collection_key' => 'editoriales', 'es_name' => 'Editorial', 'en_name' => 'Editorial', 'fr_name' => 'Éditorial', 'pt_name' => 'Editorial', 'es_slug' => 'editorial', 'en_slug' => 'editorial', 'fr_slug' => 'editorial', 'pt_slug' => 'editorial', 'sort_order' => 90],
         ];
     }
 }
