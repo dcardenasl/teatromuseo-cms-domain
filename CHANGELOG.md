@@ -72,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Publication type rollback** — rolling back publication page types now reclassifies affected
+  pages as generic instead of aborting or deleting editorial records.
+
 - **Duplicate TeatroEscuela collections** — identifier normalization now merges legacy and
   canonical collections, reassigns their content and translations, and removes the obsolete
   duplicate safely.

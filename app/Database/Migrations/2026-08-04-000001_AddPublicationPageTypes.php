@@ -23,15 +23,12 @@ final class AddPublicationPageTypes extends Migration
 
     public function down(): void
     {
-        // Listing pages must be removed or reclassified before rolling this
-        // migration back; silently truncating their semantic type would make
-        // navigation and canonical URLs ambiguous.
-        $remaining = $this->db->table('cms_pages')
+        // Preserve listing pages during rollback by reclassifying them before
+        // shrinking the enum. Deleting editorial pages would make test cleanup
+        // and operational rollback unnecessarily destructive.
+        $this->db->table('cms_pages')
             ->whereIn('page_type', ['press', 'publications', 'transparency'])
-            ->countAllResults();
-        if ($remaining > 0) {
-            throw new \RuntimeException('Cannot remove publication page types while listing pages still exist.');
-        }
+            ->update(['page_type' => 'generic']);
 
         $legacyTypes = "'home','generic','contact','privacy','terms','404','500','maintenance','about','history','events','catalog_listing','collection_index','template_catalog_item','template_event_item'";
         $this->db->query("ALTER TABLE cms_pages MODIFY page_type ENUM(" . $legacyTypes . ") NOT NULL DEFAULT 'generic'");
