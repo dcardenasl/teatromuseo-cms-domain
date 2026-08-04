@@ -196,6 +196,19 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
             'icon' => 'layers',
             'schema_definition' => json_encode([
                 'fields' => $fields,
+                // Date fields are an explicit, safe public projection for
+                // collection_grid/listing. The block data itself remains
+                // private to the detail page.
+                'listing_fields' => array_map(
+                    static fn (array $field): array => [
+                        'label' => (string) ($field['label'] ?? ''),
+                        'type' => 'date',
+                    ],
+                    array_filter(
+                        $fields,
+                        static fn (mixed $field): bool => is_array($field) && ($field['type'] ?? '') === 'date'
+                    )
+                ),
                 'config_fields' => $configFields,
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'supports_pages' => $supportsPages ? 1 : 0,

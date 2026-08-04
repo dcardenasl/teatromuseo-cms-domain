@@ -18,9 +18,10 @@ final class EntryListingContentResolver
 
     /**
      * @param list<array<string, mixed>> $entries
-     * @return array<int, array{rich_text: string, image: array{url: string, alt: string}|null, hover_image: array{url: string, alt: string}|null, secondary_action: array{label: string, url: string}|null, documents: list<array{url: string, title: string, description: string, file_id: int|null}>, publication_date: string, video: array{provider: string, id: string, url: string}|null}>
+     * @param list<string> $projectionFields
+     * @return array<int, array{rich_text: string, image: array{url: string, alt: string}|null, hover_image: array{url: string, alt: string}|null, secondary_action: array{label: string, url: string}|null, documents: list<array{url: string, title: string, description: string, file_id: int|null}>, publication_date: string, date_fields: array<string, string>, fields: array<string, mixed>, video: array{provider: string, id: string, url: string}|null}>
      */
-    public function resolveBatch(array $entries, string $langCode): array
+    public function resolveBatch(array $entries, string $langCode, array $projectionFields = []): array
     {
         $entryIds = [];
         foreach ($entries as $entry) {
@@ -53,11 +54,95 @@ final class EntryListingContentResolver
                 'documents' => $this->documentsFromBlocks($blocks),
                 'publication_date' => $this->publicationDateFromBlocks($blocks)
                     ?: $this->publicationYearFromEntry($entry),
+                'date_fields' => $this->dateFieldsFromBlocks($blocks),
+                'fields' => $this->projectionValues($entry, $blocks, $projectionFields),
                 'video' => $this->videoFromBlocks($blocks),
             ];
         }
 
         return $result;
+    }
+
+    /**
+     * Resolve only fields explicitly requested by a listing projection.
+     * Unknown values are omitted from the public contract. Scalar fields are
+     * exposed as strings and media references keep their canonical metadata so
+     * a card can use the same projection contract for text and images.
+     *
+     * @param array<string, mixed> $entry
+     * @param list<array<string, mixed>> $blocks
+     * @param list<string> $projectionFields
+     * @return array<string, mixed>
+     */
+    private function projectionValues(array $entry, array $blocks, array $projectionFields): array
+    {
+        $values = [];
+        foreach ($projectionFields as $reference) {
+            $reference = trim($reference);
+            if (str_starts_with($reference, 'entry.')) {
+                $value = $entry[substr($reference, 6)] ?? null;
+            } elseif ($reference === 'taxonomy.categories' || $reference === 'taxonomy.tags') {
+                $taxonomy = $entry[$reference === 'taxonomy.categories' ? 'categories' : 'tags'] ?? [];
+                $value = is_array($taxonomy)
+                    ? implode(', ', array_values(array_filter(array_map(static fn (mixed $item): string => is_array($item) ? trim((string) ($item['name'] ?? $item['label'] ?? $item['slug'] ?? '')) : trim((string) $item), $taxonomy))))
+                    : null;
+            } elseif (str_starts_with($reference, 'block.')) {
+                $parts = explode('.', $reference, 3);
+                $value = null;
+                if (count($parts) === 3) {
+                    foreach ($blocks as $block) {
+                        if ((string) ($block['block_key'] ?? '') !== $parts[1]) {
+                            continue;
+                        }
+                        $declared = is_array($block['listing_fields'] ?? null) ? $block['listing_fields'] : [];
+                        if (! isset($declared[$parts[2]])) {
+                            continue;
+                        }
+                        $data = is_array($block['block_data'] ?? null) ? $block['block_data'] : [];
+                        $value = $data[$parts[2]] ?? null;
+                        break;
+                    }
+                }
+            } else {
+                $value = null;
+            }
+
+            if (is_array($value) && trim((string) ($value['url'] ?? '')) !== '') {
+                $values[$reference] = $value;
+            } elseif (is_scalar($value) && trim((string) $value) !== '') {
+                $values[$reference] = trim((string) $value);
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * Return only date fields explicitly declared by a block schema. This is
+     * the stable listing contract; arbitrary block_data is never exposed.
+     *
+     * @param list<array<string, mixed>> $blocks
+     * @return array<string, string>
+     */
+    private function dateFieldsFromBlocks(array $blocks): array
+    {
+        $fields = [];
+        foreach ($blocks as $block) {
+            $declared = is_array($block['listing_fields'] ?? null) ? $block['listing_fields'] : [];
+            $data = is_array($block['block_data'] ?? null) ? $block['block_data'] : [];
+
+            foreach ($declared as $field => $definition) {
+                if (! is_array($definition) || ($definition['type'] ?? '') !== 'date') {
+                    continue;
+                }
+                $value = $this->stringValue($data[$field] ?? null);
+                if ($value !== '') {
+                    $fields[(string) $field] = $value;
+                }
+            }
+        }
+
+        return $fields;
     }
 
     /** @return array<string, mixed> */

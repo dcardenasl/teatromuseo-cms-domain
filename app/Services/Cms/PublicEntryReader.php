@@ -214,22 +214,51 @@ class PublicEntryReader
                 ->orWhere('scheduled_at <=', $now)
             ->groupEnd();
 
-        $total = (int) $builder->countAllResults(false);
+        $filteredEntries = null;
+        $filteredFieldValues = [];
+        if ($dto->filter_by !== null && $dto->filter_value !== null) {
+            $candidateEntries = array_values(array_filter(
+                $builder->findAll(),
+                static fn (mixed $entry): bool => $entry instanceof EntryEntity,
+            ));
+            $candidateIds = array_map(static fn (EntryEntity $entry): int => (int) $entry->id, $candidateEntries);
+            $candidateValues = $this->batchResolveListingField($candidateIds, $langId, $defaultLangId, $dto->filter_by);
+            $needle = mb_strtolower($dto->filter_value);
+            $filteredEntries = array_values(array_filter($candidateEntries, function (EntryEntity $entry) use ($candidateValues, $needle, $dto): bool {
+                $value = mb_strtolower((string) ($candidateValues[(int) $entry->id] ?? ''));
+                return $dto->filter_operator === 'contains' ? str_contains($value, $needle) : $value === $needle;
+            }));
+            $filteredFieldValues = $candidateValues;
+            $total = count($filteredEntries);
+        } else {
+            $total = (int) $builder->countAllResults(false);
+        }
 
-        // Populated only for the 'teatroescuela' branch below — carries each entry's real
-        // start_date so it can be exposed as `display_date` on the response without a
-        // second batch query (the sort below already resolves it for every entry).
-        $teatroEscuelaStartDates = [];
+        $listingFieldValues = [];
 
-        if ($dto->collection_key === 'teatroescuela') {
-            // TeatroEscuela reads as a program calendar, not an article feed: upcoming instances
-            // first (soonest first), then past ones most-recent-first — the same reasoning
-            // as the public Cartelera listing (event-domain EVT-DOM-007). start_date lives
-            // inside the teatroescuela_ficha block's translated block_data, not a cms_entries column,
-            // so a single ORDER BY can't express it — walk every matching row (bounded by
-            // this collection's real size, a single institution's course catalog), resolve
-            // each entry's start_date in one batched query, sort in PHP, then paginate.
-            $entries = $this->sortTeatroEscuelaUpcomingFirst($builder, $langId, $defaultLangId, $dto->page, $dto->per_page, $teatroEscuelaStartDates);
+        if ($filteredEntries !== null) {
+            if ($dto->listing_field !== null) {
+                $descending = strtoupper($dto->order_direction) === 'DESC';
+                usort($filteredEntries, static function (EntryEntity $a, EntryEntity $b) use ($filteredFieldValues, $descending): int {
+                    $comparison = (string) ($filteredFieldValues[(int) $a->id] ?? '') <=> (string) ($filteredFieldValues[(int) $b->id] ?? '');
+                    return $descending ? -$comparison : $comparison;
+                });
+            }
+            $entries = array_slice($filteredEntries, $offset, $dto->per_page);
+        } elseif ($dto->listing_field !== null) {
+            // A listing field is declared by the block schema and resolved in
+            // one batch. The public reader does not need to know which
+            // collection owns the field.
+            $entries = $this->sortByListingField(
+                $builder,
+                $langId,
+                $defaultLangId,
+                $dto->page,
+                $dto->per_page,
+                $dto->listing_field,
+                $dto->order_direction,
+                $listingFieldValues,
+            );
         } else {
             $orderColumn = match ($dto->order_by) {
                 'published_at' => 'cms_entries.published_at',
@@ -286,16 +315,14 @@ class PublicEntryReader
             unset($item['entry_title_order']);
             // Normalize featured/OG images into canonical nested objects.
             $item = $this->normalizeEntryMedia($item);
-            if ($dto->collection_key === 'teatroescuela') {
-                // TeatroEscuela's real start_date, not published_at — the public listing
-                // template prefers this for the card's date badge and already sorts by it.
-                $item['display_date'] = $teatroEscuelaStartDates[$entryId] ?? null;
+            if ($dto->listing_field !== null) {
+                $item['display_date'] = $listingFieldValues[$entryId] ?? null;
             }
             $data[] = $item;
         }
 
         if ($dto->include_listing_content) {
-            $listingContentByEntry = $this->entryListingContentResolver->resolveBatch($data, $dto->lang);
+            $listingContentByEntry = $this->entryListingContentResolver->resolveBatch($data, $dto->lang, $dto->projection_fields);
 
             foreach ($data as &$item) {
                 $entryId = (int) ($item['id'] ?? 0);
@@ -303,6 +330,7 @@ class PublicEntryReader
                     'rich_text' => '',
                     'image' => null,
                     'secondary_action' => null,
+                    'date_fields' => [],
                 ];
             }
             unset($item);
@@ -317,11 +345,10 @@ class PublicEntryReader
     }
 
     /**
-     * @param array<int, string> $startDatesOut Populated with entry_id => start_date so the
-     *      caller can expose the same resolved dates as `display_date` without re-querying.
+     * @param array<int, string> $fieldValuesOut Populated with entry_id => field value.
      * @return list<EntryEntity>
      */
-    private function sortTeatroEscuelaUpcomingFirst(\App\Models\EntryModel $builder, int $langId, int $defaultLangId, int $page, int $perPage, array &$startDatesOut): array
+    private function sortByListingField(\App\Models\EntryModel $builder, int $langId, int $defaultLangId, int $page, int $perPage, string $field, string $direction, array &$fieldValuesOut): array
     {
         $allEntries = array_values(array_filter(
             $builder->findAll(),
@@ -333,51 +360,76 @@ class PublicEntryReader
             $entryIds[] = (int) $entry->id;
         }
 
-        $startDates    = $this->batchResolveTeatroEscuelaStartDates($entryIds, $langId, $defaultLangId);
-        $startDatesOut = $startDates;
-        $today         = date('Y-m-d');
+        $fieldValues = $this->batchResolveListingField($entryIds, $langId, $defaultLangId, $field);
+        $fieldValuesOut = $fieldValues;
+        $descending = strtoupper($direction) === 'DESC';
 
-        usort($allEntries, static function (EntryEntity $a, EntryEntity $b) use ($startDates, $today): int {
-            $aDate   = $startDates[(int) $a->id] ?? '';
-            $bDate   = $startDates[(int) $b->id] ?? '';
-            $aFuture = $aDate !== '' && $aDate >= $today;
-            $bFuture = $bDate !== '' && $bDate >= $today;
-
-            if ($aFuture !== $bFuture) {
-                return $aFuture ? -1 : 1;
-            }
-            // A TeatroEscuela entry with no start_date can't be placed on the timeline — push it
-            // to the very end rather than letting empty-string comparisons sort it first.
-            if ($aDate === '' || $bDate === '') {
+        usort($allEntries, static function (EntryEntity $a, EntryEntity $b) use ($fieldValues, $descending): int {
+            $aValue = $fieldValues[(int) $a->id] ?? '';
+            $bValue = $fieldValues[(int) $b->id] ?? '';
+            if ($aValue === '' || $bValue === '') {
                 return match (true) {
-                    $aDate === '' && $bDate === '' => 0,
-                    $aDate === ''                  => 1,
-                    default                        => -1,
+                    $aValue === '' && $bValue === '' => 0,
+                    $aValue === '' => 1,
+                    default => -1,
                 };
             }
 
-            return $aFuture ? $aDate <=> $bDate : $bDate <=> $aDate;
+            $comparison = $aValue <=> $bValue;
+            return $descending ? -$comparison : $comparison;
         });
 
         return array_slice($allEntries, ($page - 1) * $perPage, $perPage);
     }
 
     /**
-     * Batch-resolves the `teatroescuela_ficha` block's `start_date` for a set of entries in one
-     * query (N+1-safe, matching the batch-resolve pattern used elsewhere in this reader) —
-     * the date lives in `cms_block_instance_translations.block_data`, not a queryable
-     * `cms_entries` column.
+     * Resolves a safe listing field for a set of entries in one batch. Field
+     * references are derived from the entry contract (`entry.*`), taxonomy
+     * projection, or the selected collection's block schemas (`block.*`).
      *
      * @param list<int> $entryIds
-     * @return array<int, string> entry_id => start_date (Y-m-d), only entries that have one
+     * @return array<int, string> entry_id => field value, only entries that have one
      */
-    private function batchResolveTeatroEscuelaStartDates(array $entryIds, int $langId, int $defaultLangId): array
+    private function batchResolveListingField(array $entryIds, int $langId, int $defaultLangId, string $field): array
     {
         if ($entryIds === []) {
             return [];
         }
 
         $languageIds = $langId === $defaultLangId ? [$langId] : [$langId, $defaultLangId];
+        $values = [];
+
+        if (str_starts_with($field, 'entry.')) {
+            $entryField = substr($field, 6);
+            if (! in_array($entryField, ['published_at', 'created_at', 'sort_order'], true)) {
+                $translations = $this->entryTranslationModel()
+                    ->whereIn('entry_id', $entryIds)
+                    ->whereIn('language_id', $languageIds)
+                    ->findAll();
+                $byEntryAndLang = [];
+                foreach ($translations as $translation) {
+                    if (! $translation instanceof \App\Entities\EntryTranslationEntity) {
+                        continue;
+                    }
+                    $byEntryAndLang[(int) $translation->entry_id][(int) $translation->language_id] = $translation;
+                }
+                foreach ($entryIds as $entryId) {
+                    $translation = $byEntryAndLang[$entryId][$langId] ?? $byEntryAndLang[$entryId][$defaultLangId] ?? null;
+                    if ($translation instanceof \App\Entities\EntryTranslationEntity) {
+                        $values[$entryId] = trim((string) ($translation->{$entryField} ?? ''));
+                    }
+                }
+            } else {
+                foreach ($this->entryModel()->whereIn('id', $entryIds)->findAll() as $entry) {
+                    if (! $entry instanceof EntryEntity) {
+                        continue;
+                    }
+                    $values[(int) $entry->id] = trim((string) ($entry->{$entryField} ?? ''));
+                }
+            }
+
+            return array_filter($values, static fn (string $value): bool => $value !== '');
+        }
 
         // Routed through the injected BlockInstanceTranslationModel (not Database::connect())
         // to stay within this Service layer's model-coupling guardrail
@@ -388,11 +440,10 @@ class PublicEntryReader
         $this->blockInstanceTranslationModel()->builder()->resetQuery();
 
         $rows = $this->blockInstanceTranslationModel()
-            ->select('cms_block_instances.owner_id AS entry_id, cms_block_instance_translations.language_id, cms_block_instance_translations.block_data')
+            ->select('cms_block_instances.owner_id AS entry_id, cms_block_instance_translations.language_id, cms_block_instance_translations.block_data, cms_content_blocks.schema_definition, cms_content_blocks.block_key')
             ->join('cms_block_instances', 'cms_block_instances.id = cms_block_instance_translations.instance_id')
             ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
             ->where('cms_block_instances.owner_type', 'entry')
-            ->whereIn('cms_content_blocks.block_key', ['teatroescuela_ficha', 'curso_ficha'])
             ->whereIn('cms_block_instance_translations.language_id', $languageIds)
             ->whereIn('cms_block_instances.owner_id', $entryIds)
             ->findAll();
@@ -407,19 +458,35 @@ class PublicEntryReader
             // attribute on the entity, so it comes back as a dynamic property.
             $entryId    = (int) $row->entry_id;
             $languageId = (int) $row->language_id;
-            $byEntryAndLang[$entryId][$languageId] = $row->block_data;
+            $byEntryAndLang[$entryId][$languageId][] = $row;
         }
 
         $map = [];
         foreach ($byEntryAndLang as $entryId => $byLang) {
-            $raw = $byLang[$langId] ?? $byLang[$defaultLangId] ?? null;
-            if ($raw === null) {
-                continue;
-            }
-            $decoded   = \App\Libraries\Cms\JsonCastNormalizer::toArray($raw);
-            $startDate = trim((string) ($decoded['start_date'] ?? ''));
-            if ($startDate !== '') {
-                $map[$entryId] = $startDate;
+            $rowsForLanguage = $byLang[$langId] ?? $byLang[$defaultLangId] ?? [];
+            foreach ($rowsForLanguage as $row) {
+                $blockKey = trim((string) ($row->block_key ?? ''));
+                $prefix = 'block.' . $blockKey . '.';
+                $legacyField = ! str_contains($field, '.');
+                if (! $legacyField && ! str_starts_with($field, $prefix)) {
+                    continue;
+                }
+                $fieldKey = $legacyField ? $field : substr($field, strlen($prefix));
+                $schema = json_decode((string) ($row->schema_definition ?? '{}'), true);
+                $schemaFields = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
+                $definition = $schemaFields[$fieldKey] ?? null;
+                if (! is_array($definition) || ! in_array((string) ($definition['type'] ?? ''), ['string', 'text', 'textarea', 'richtext', 'date', 'datetime', 'number', 'integer', 'select', 'boolean'], true)) {
+                    continue;
+                }
+                $decoded = \App\Libraries\Cms\JsonCastNormalizer::toArray($row->block_data);
+                $value = $decoded[$fieldKey] ?? null;
+                if (is_array($value)) {
+                    $value = implode(', ', array_map(static fn (mixed $item): string => is_scalar($item) ? trim((string) $item) : '', $value));
+                }
+                if (is_scalar($value) && trim((string) $value) !== '') {
+                    $map[$entryId] = trim((string) $value);
+                    break;
+                }
             }
         }
 

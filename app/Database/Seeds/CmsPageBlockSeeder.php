@@ -103,8 +103,9 @@ class CmsPageBlockSeeder extends Seeder
                 'config'    => [
                     'collection_key'  => 'teatroescuela',
                     'items_limit'     => 3,
-                    'order_by'        => 'published_at',
-                    'order_direction' => 'desc',
+                    'date_field'      => 'listing.start_date',
+                    'order_by'        => 'field:start_date',
+                    'order_direction' => 'asc',
                     'layout_variant'  => 'cards',
                     'image_aspect_ratio' => '3/4',
                     'css_class'       => '',

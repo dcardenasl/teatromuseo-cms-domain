@@ -380,11 +380,9 @@ final class PublicEntryControllerTest extends CIUnitTestCase
 
     public function testTeatroEscuelaCollectionOrdersUpcomingFirstThenMostRecentPastAndSupportsLegacyAlias(): void
     {
-        // TeatroEscuela reads as a program calendar, not an article feed: the next upcoming
-        // course first, then the rest most-recent-first — the same reasoning already
-        // applied to the public Cartelera listing (event-domain EVT-DOM-007). The date
-        // that drives this lives in the teatroescuela_ficha block's block_data, not a cms_entries
-        // column, so this exercises PublicEntryReader::sortTeatroEscuelaUpcomingFirst() end-to-end.
+        // TeatroEscuela declares its start_date as a public listing field. The
+        // reader sorts it through the generic field contract rather than a
+        // collection-specific branch.
         $teatroEscuela = $this->fixtures->collection([
             [
                 'language_id' => $this->langEsId,
@@ -396,7 +394,10 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->db->table('cms_content_blocks')->insert([
             'block_key' => 'teatroescuela_ficha',
             'name' => 'Ficha de curso',
-            'schema_definition' => json_encode(['fields' => []], JSON_THROW_ON_ERROR),
+            'schema_definition' => json_encode([
+                'fields' => ['start_date' => ['type' => 'date', 'label' => 'Inicio']],
+                'listing_fields' => ['start_date' => ['type' => 'date', 'label' => 'Inicio']],
+            ], JSON_THROW_ON_ERROR),
         ]);
         $blockId = (int) $this->db->insertID();
 
@@ -426,17 +427,16 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             ]);
         }
 
-        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/entries/cursos?per_page=10');
+        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/entries/cursos?per_page=10&order_by=field:start_date&order_direction=asc');
 
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
         $slugs = array_column($body['data'], 'slug');
 
-        $this->assertSame(['manana', 'en-un-mes', 'ayer', 'hace-una-semana', 'hace-un-ano'], $slugs);
+        $this->assertSame(['hace-un-ano', 'hace-una-semana', 'ayer', 'manana', 'en-un-mes'], $slugs);
 
         // The listing template shows/sorts by the course's real start_date, not
-        // published_at — exposed as `display_date` so the web layer doesn't need a
-        // second per-entry lookup to get the same value already resolved for sorting.
+        // published_at — exposed as `display_date` through the generic contract.
         $displayDatesBySlug = array_combine($slugs, array_column($body['data'], 'display_date'));
         foreach ($courses as $slug => $startDate) {
             $this->assertSame($startDate, $displayDatesBySlug[$slug]);

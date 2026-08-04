@@ -207,6 +207,19 @@ class BlockInstanceSerializer
                 $blockConfig = $this->mergeFileMetadata($blockConfig, $schemaConfigFields, $fileMetaMap);
             }
 
+            $listingFields = is_array($schemaDefinition['listing_fields'] ?? null)
+                ? $schemaDefinition['listing_fields']
+                : [];
+            foreach ($schemaFields as $fieldKey => $fieldDefinition) {
+                if (! is_array($fieldDefinition) || ! in_array((string) ($fieldDefinition['type'] ?? ''), ['string', 'text', 'textarea', 'richtext', 'date', 'datetime', 'number', 'integer', 'select', 'boolean', 'media_reference'], true)) {
+                    continue;
+                }
+                $listingFields[(string) $fieldKey] = array_merge([
+                    'label' => (string) ($fieldDefinition['label'] ?? $fieldKey),
+                    'type' => (string) ($fieldDefinition['type'] ?? 'string'),
+                ], is_array($listingFields[(string) $fieldKey] ?? null) ? $listingFields[(string) $fieldKey] : []);
+            }
+
             $blockPayload = [
                 'id'                 => $instanceId,
                 'block_key'          => $instance['block_key'],
@@ -215,6 +228,7 @@ class BlockInstanceSerializer
                 'parent_instance_id' => isset($instance['parent_instance_id']) ? (int) $instance['parent_instance_id'] : null,
                 'block_config'       => $blockConfig,
                 'block_data'         => $blockData,
+                'listing_fields'     => $listingFields,
                 'is_fallback'        => $translation['is_fallback'] ?? true,
                 'children'           => [],
             ];
