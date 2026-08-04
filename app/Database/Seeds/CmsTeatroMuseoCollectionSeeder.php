@@ -7,10 +7,11 @@ namespace App\Database\Seeds;
 use App\Database\Seeds\Concerns\CollectionBlockPresets;
 use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use App\Database\Seeds\Concerns\TeatroMuseoCollectionPresets;
+use App\Database\Seeds\Concerns\TeatroMuseoPublicRoutes;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Creates the nine TeatroMuseo editorial collections without importing any
+ * Creates the eleven TeatroMuseo editorial collections without importing any
  * legacy rows. It is safe to run before or after the starter content seeders.
  */
 final class CmsTeatroMuseoCollectionSeeder extends Seeder
@@ -78,8 +79,10 @@ final class CmsTeatroMuseoCollectionSeeder extends Seeder
             $this->definition('videos', 'videos', 'Videos', 'Videos', 'Vidéos', 'Vídeos', 'Videos audiovisuales y registros.', 'Audiovisual videos and recordings.', 'Vidéos audiovisuelles et enregistrements.', 'Vídeos audiovisuais e registros.', 50, '0.6', 'monthly', false),
             $this->definition('festivales', 'festivales', 'Festivales', 'Festivals', 'Festivals', 'Festivais', 'Festivales y sus ediciones o programas.', 'Festivals and their editions or programs.', 'Festivals et leurs éditions ou programmes.', 'Festivais e suas edições ou programações.', 60, '0.8', 'monthly', false),
             $this->definition('exposiciones', 'exposiciones', 'Exposiciones', 'Exhibitions', 'Expositions', 'Exposições', 'Exposiciones vigentes e históricas.', 'Current and historical exhibitions.', 'Expositions actuelles et historiques.', 'Exposições atuais e históricas.', 70, '0.8', 'monthly', false),
-            $this->definition('cursos', 'cursos', 'Cursos', 'Courses', 'Cours', 'Cursos', 'Cursos, talleres y actividades formativas.', 'Courses, workshops, and learning activities.', 'Cours, ateliers et activités de formation.', 'Cursos, oficinas e atividades formativas.', 80, '0.7', 'weekly', false),
-            $this->definition('publicaciones', 'publicaciones', 'Publicaciones', 'Publications', 'Publications', 'Publicações', 'Publicaciones, prensa y documentos institucionales.', 'Publications, press, and institutional documents.', 'Publications, presse et documents institutionnels.', 'Publicações, imprensa e documentos institucionais.', 90, '0.6', 'monthly', false),
+            $this->definition('cursos', 'cursos', 'TeatroEscuela', 'TeatroEscuela', 'TeatroEscuela', 'TeatroEscuela', 'TeatroEscuela, talleres y actividades formativas.', 'TeatroEscuela, workshops, and learning activities.', 'TeatroEscuela, ateliers et activités de formation.', 'TeatroEscuela, oficinas e atividades formativas.', 80, '0.7', 'weekly', false),
+            $this->definition('editoriales', 'publicaciones', 'Publicaciones', 'Publications', 'Publications', 'Publicações', 'Publicaciones editoriales del TeatroMuseo.', 'TeatroMuseo editorial publications.', 'Publications éditoriales de TeatroMuseo.', 'Publicações editoriais do TeatroMuseo.', 90, '0.6', 'monthly', false),
+            $this->definition('prensa', 'prensa', 'Prensa', 'Press', 'Presse', 'Imprensa', 'Comunicados y documentos para medios.', 'Press releases and media documents.', 'Communiqués et documents pour les médias.', 'Comunicados e documentos para a imprensa.', 91, '0.6', 'monthly', false),
+            $this->definition('transparencia', 'transparencia', 'Transparencia', 'Transparency', 'Transparence', 'Transparência', 'Información institucional y documentos públicos.', 'Institutional information and public documents.', 'Informations institutionnelles et documents publics.', 'Informações institucionais e documentos públicos.', 92, '0.6', 'yearly', false),
         ];
     }
 
@@ -111,7 +114,7 @@ final class CmsTeatroMuseoCollectionSeeder extends Seeder
             'sort_order' => $sortOrder,
             'translations' => [
                 'es' => [
-                    'slug' => $key,
+                    'slug' => $slugs['es'],
                     'name' => $esName,
                     'description' => $description,
                     'listing_title' => $esName,
@@ -150,20 +153,20 @@ final class CmsTeatroMuseoCollectionSeeder extends Seeder
         ];
     }
 
-    /** @return array{en: string, fr: string, pt: string} */
+    /** @return array{es: string, en: string, fr: string, pt: string} */
     private function slugs(string $key): array
     {
         return match ($key) {
-            'noticias' => ['en' => 'news', 'fr' => 'actualites', 'pt' => 'noticias'],
-            'companias' => ['en' => 'companies', 'fr' => 'compagnies', 'pt' => 'companhias'],
-            'personas' => ['en' => 'people', 'fr' => 'personnes', 'pt' => 'pessoas'],
-            'obras' => ['en' => 'works', 'fr' => 'oeuvres', 'pt' => 'obras'],
-            'videos' => ['en' => 'videos', 'fr' => 'videos', 'pt' => 'videos'],
-            'festivales' => ['en' => 'festivals', 'fr' => 'festivals', 'pt' => 'festivais'],
-            'exposiciones' => ['en' => 'exhibitions', 'fr' => 'expositions', 'pt' => 'exposicoes'],
-            'cursos' => ['en' => 'courses', 'fr' => 'cours', 'pt' => 'cursos'],
-            'publicaciones' => ['en' => 'publications', 'fr' => 'publications', 'pt' => 'publicacoes'],
-            default => ['en' => $key, 'fr' => $key, 'pt' => $key],
+            'noticias' => ['es' => 'noticias', 'en' => 'news', 'fr' => 'actualites', 'pt' => 'noticias'],
+            'companias' => ['es' => 'companias', 'en' => 'companies', 'fr' => 'compagnies', 'pt' => 'companhias'],
+            'personas' => ['es' => 'personas', 'en' => 'people', 'fr' => 'personnes', 'pt' => 'pessoas'],
+            'obras' => ['es' => 'obras', 'en' => 'works', 'fr' => 'oeuvres', 'pt' => 'obras'],
+            'videos' => ['es' => 'videos', 'en' => 'videos', 'fr' => 'videos', 'pt' => 'videos'],
+            'festivales' => ['es' => 'festivales', 'en' => 'festivals', 'fr' => 'festivals', 'pt' => 'festivais'],
+            'exposiciones' => ['es' => 'exposiciones', 'en' => 'exhibitions', 'fr' => 'expositions', 'pt' => 'exposicoes'],
+            'cursos' => TeatroMuseoPublicRoutes::collectionSlugs('cursos'),
+            'publicaciones' => ['es' => 'publicaciones', 'en' => 'publications', 'fr' => 'publications', 'pt' => 'publicacoes'],
+            default => TeatroMuseoPublicRoutes::collectionSlugs($key),
         };
     }
 

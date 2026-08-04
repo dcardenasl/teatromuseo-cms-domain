@@ -7,7 +7,8 @@ namespace App\Database\Seeds\Concerns;
 /**
  * Single source of truth for the `block_template` + `wizard_config` of the
  * nine TeatroMuseo-specific editorial collections (companias, personas,
- * obras, videos, festivales, exposiciones, cursos, publicaciones).
+ * obras, videos, festivales, exposiciones, cursos, editoriales, prensa,
+ * transparencia).
  *
  * Kept separate from `CollectionBlockPresets`, which is the reusable starter
  * kit engine shared across projects (news, portfolio only) — mixing this
@@ -72,21 +73,39 @@ final class TeatroMuseoCollectionPresets
     /** @return array{block_template: array<string, mixed>, wizard_config: array<string, mixed>} */
     public static function cursos(): array
     {
-        return self::domainPreset('cursos', 'curso_ficha', 'Curso', 'Course', 'Ficha de curso con modalidad, fechas, responsables e inscripción.', [
-            self::optionalBlock('rich_text', 'Contenido del curso', 'Descripción extendida, objetivos y requisitos.', 2),
-            self::optionalBlock('gallery', 'Galería del curso', 'Imágenes y registros del curso.', 3),
-            self::optionalBlock('document_gallery', 'Documentos del curso', 'Programas, fichas y materiales descargables.', 4),
-            self::optionalBlock('external_links', 'Enlaces del curso', 'Formularios y recursos externos relacionados.', 5),
+        return self::domainPreset('cursos', 'curso_ficha', 'TeatroEscuela', 'TeatroEscuela', 'Ficha de TeatroEscuela con modalidad, fechas, responsables e inscripción.', [
+            self::optionalBlock('rich_text', 'Contenido de TeatroEscuela', 'Descripción extendida, objetivos y requisitos.', 2),
+            self::optionalBlock('gallery', 'Galería de TeatroEscuela', 'Imágenes y registros de TeatroEscuela.', 3),
+            self::optionalBlock('document_gallery', 'Documentos de TeatroEscuela', 'Programas, fichas y materiales descargables.', 4),
+            self::optionalBlock('external_links', 'Enlaces de TeatroEscuela', 'Formularios y recursos externos relacionados.', 5),
         ]);
     }
 
     /** @return array{block_template: array<string, mixed>, wizard_config: array<string, mixed>} */
-    public static function publicaciones(): array
+    public static function editoriales(): array
     {
-        return self::domainPreset('publicaciones', 'publicacion_metadata', 'Publicación', 'Publication', 'Metadatos editoriales y documento descargable.', [
+        return self::domainPreset('editoriales', 'publicacion_metadata', 'Editorial', 'Editorial', 'Publicación editorial con metadatos, contexto y documentos descargables.', [
             self::optionalBlock('rich_text', 'Descripción de la publicación', 'Presentación y contexto editorial.', 2),
             self::optionalBlock('document_gallery', 'Documentos', 'Archivos y versiones descargables.', 3),
             self::optionalBlock('external_links', 'Enlaces relacionados', 'Enlaces externos o plataformas de publicación.', 4),
+        ]);
+    }
+
+    public static function prensa(): array
+    {
+        return self::domainPreset('prensa', 'publicacion_metadata', 'Prensa', 'Press', 'Comunicado o material de prensa con documentos descargables.', [
+            self::optionalBlock('rich_text', 'Descripción del comunicado', 'Contexto y contenido para medios.', 2),
+            self::optionalBlock('document_gallery', 'Documentos de prensa', 'Uno o más archivos asociados al comunicado.', 3),
+            self::optionalBlock('external_links', 'Enlaces para medios', 'Enlaces relacionados.', 4),
+        ]);
+    }
+
+    public static function transparencia(): array
+    {
+        return self::domainPreset('transparencia', 'publicacion_metadata', 'Transparencia', 'Transparency', 'Documento institucional o de transparencia pública.', [
+            self::optionalBlock('rich_text', 'Descripción del documento', 'Contexto institucional del documento.', 2),
+            self::optionalBlock('document_gallery', 'Documentos públicos', 'Uno o más archivos asociados al periodo o informe.', 3),
+            self::optionalBlock('external_links', 'Enlaces institucionales', 'Enlaces relacionados.', 4),
         ]);
     }
 
@@ -185,7 +204,9 @@ final class TeatroMuseoCollectionPresets
             'festivales' => self::festivales(),
             'exposiciones' => self::exposiciones(),
             'cursos' => self::cursos(),
-            'publicaciones' => self::publicaciones(),
+            'editoriales' => self::editoriales(),
+            'prensa' => self::prensa(),
+            'transparencia' => self::transparencia(),
         ];
     }
 }

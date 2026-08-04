@@ -8,6 +8,7 @@ return [
     'delete_success' => 'BlockType deleted successfully.',
     'not_found'      => 'BlockType not found.',
     'invalid_content_source' => 'The selected content source is not valid.',
+    'invalid_navigation' => 'The block navigation definition is not valid.',
     'invalid_schema_fields' => 'The schema fields definition is invalid.',
     'invalid_reference_limits' => 'Reference field {0} has invalid item limits.',
     'reference_collection_required' => 'Reference field {0} must declare at least one collection.',

@@ -81,8 +81,8 @@ final class CmsCollectionGridAspectRatioSeeder extends Seeder
     private function desiredRatioForCollectionKey(string $collectionKey): ?string
     {
         return match ($collectionKey) {
-            'cartelera', 'events', 'eventos', 'obras', 'works', 'noticias', 'news', 'publicaciones', 'publications', 'festivales', 'festivals', 'companias', 'companies' => '1/1',
-            'cursos', 'courses', 'personas', 'people' => '3/4',
+            'cartelera', 'events', 'eventos', 'obras', 'works', 'noticias', 'news', 'editoriales', 'publicaciones', 'publications', 'prensa', 'press', 'transparencia', 'transparency', 'festivales', 'festivals', 'companias', 'companies' => '1/1',
+            'cursos', 'personas', 'people' => '3/4',
             'exposiciones', 'exhibitions' => '2/3',
             'videos', 'video', 'multimedia' => '16/9',
             default => null,

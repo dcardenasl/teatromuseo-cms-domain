@@ -29,7 +29,7 @@ final class CmsTeatroMuseoLegalPagesSeeder extends Seeder
         }
 
         $pageIds = [];
-        foreach ($this->definitions() as $definition) {
+        foreach (array_filter($this->definitions(), static fn (array $definition): bool => $definition['key'] !== 'transparency') as $definition) {
             $pageIds[$definition['key']] = $this->seedLegalPage($definition, $languages, $blockIds);
         }
 
@@ -794,16 +794,6 @@ HTML,
                     'en' => 'Terms of Service',
                     'fr' => 'Conditions d’utilisation',
                     'pt' => 'Termos de Uso',
-                ],
-            ],
-            [
-                'key' => 'transparency',
-                'sort_order' => 6,
-                'labels' => [
-                    'es' => 'Transparencia',
-                    'en' => 'Transparency',
-                    'fr' => 'Transparence',
-                    'pt' => 'Transparência',
                 ],
             ],
             [

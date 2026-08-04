@@ -32,6 +32,7 @@ final class CmsTeatroMuseoInstitutionalPagesSeeder extends Seeder
             'accordion',
             'accordion_item',
             'cta',
+            'team_grid',
         ]);
 
         if (! isset($languages['es'], $languages['en'], $languages['fr'], $languages['pt'])) {
@@ -40,7 +41,7 @@ final class CmsTeatroMuseoInstitutionalPagesSeeder extends Seeder
             return;
         }
 
-        if (! isset($blockIds['page_header'], $blockIds['hero_banner'], $blockIds['rich_text'], $blockIds['cards_grid'], $blockIds['card_item'], $blockIds['timeline'], $blockIds['timeline_item'], $blockIds['image'], $blockIds['metrics_grid'], $blockIds['metric_item'], $blockIds['cards_slider'], $blockIds['slide_card'], $blockIds['asset_showcase'], $blockIds['asset_item'], $blockIds['accordion'], $blockIds['accordion_item'], $blockIds['cta'])) {
+        if (! isset($blockIds['page_header'], $blockIds['hero_banner'], $blockIds['rich_text'], $blockIds['cards_grid'], $blockIds['card_item'], $blockIds['timeline'], $blockIds['timeline_item'], $blockIds['image'], $blockIds['metrics_grid'], $blockIds['metric_item'], $blockIds['cards_slider'], $blockIds['slide_card'], $blockIds['asset_showcase'], $blockIds['asset_item'], $blockIds['accordion'], $blockIds['accordion_item'], $blockIds['cta'], $blockIds['team_grid'])) {
             echo "CmsTeatroMuseoInstitutionalPagesSeeder: missing block types; skipping.\n";
 
             return;
@@ -97,25 +98,21 @@ final class CmsTeatroMuseoInstitutionalPagesSeeder extends Seeder
                 'heading' => 'Quiénes Somos',
                 'subheading' => 'Una plataforma editorial para memoria, programación y mediación.',
                 'breadcrumb_label' => 'Inicio',
-                'breadcrumb_url' => '/',
             ],
             'en' => [
                 'heading' => 'About Us',
                 'subheading' => 'An editorial platform for memory, programming, and mediation.',
                 'breadcrumb_label' => 'Home',
-                'breadcrumb_url' => '/',
             ],
             'fr' => [
                 'heading' => 'À propos',
                 'subheading' => 'Une plateforme éditoriale pour la mémoire, la programmation et la médiation.',
                 'breadcrumb_label' => 'Accueil',
-                'breadcrumb_url' => '/',
             ],
             'pt' => [
                 'heading' => 'Sobre Nós',
                 'subheading' => 'Uma plataforma editorial para memória, programação e mediação.',
                 'breadcrumb_label' => 'Início',
-                'breadcrumb_url' => '/',
             ],
         ], $languages);
 
@@ -160,8 +157,8 @@ final class CmsTeatroMuseoInstitutionalPagesSeeder extends Seeder
         ], [
             'es' => [
                 'content' => <<<'HTML'
-<p>TeatroMuseo reúne memoria, programación y mediación en un mismo espacio editorial. La idea es simple: que el sitio público muestre el archivo vivo del proyecto y ofrezca contenidos claros, navegables y siempre actualizados.</p>
-<p>La plataforma conecta colecciones, páginas institucionales, noticias y recursos audiovisuales para que el sitio no solo informe, sino que también acerque a artistas, equipos y audiencias a una misma experiencia cultural.</p>
+<p>Desde el año 2007, la Fundación Teatromuseo del títere y el payaso se ha dedicado a promover, difundir y profesionalizar estas artes de la representación en nuestro país. A través de una escuela de formación nacional e internacional, un museo especializado y una sala de teatro con cartelera familiar permanente.</p>
+<p>Somos un equipo de artistas y profesionales de la gestión cultural que creemos en la vida y la risa como herramientas de desarrollo humano.</p>
 HTML,
             ],
             'en' => [
@@ -200,8 +197,8 @@ HTML,
                 'sort_order' => 1,
                 'config' => [],
                 'es' => [
-                    'title' => 'Misión',
-                    'description' => 'Construir una presencia digital cuidada, accesible y fácil de mantener para TeatroMuseo.',
+                    'title' => 'Nuestra Misión',
+                    'description' => 'Fortalecer, difundir y desarrollar el arte del títere y el payaso, enriqueciendo el patrimonio cultural de nuestro país y formando nuevos exponentes mediante redes, escuelas, encuentros, publicaciones y salas de teatro.',
                     'link_label' => '',
                     'link_url' => '',
                 ],
@@ -228,8 +225,8 @@ HTML,
                 'sort_order' => 2,
                 'config' => [],
                 'es' => [
-                    'title' => 'Visión',
-                    'description' => 'Ser un archivo vivo, multilingüe y confiable para la comunidad que sigue TeatroMuseo.',
+                    'title' => 'Nuestra Visión',
+                    'description' => 'Consolidar a la Fundación Teatromuseo como un espacio de investigación y desarrollo de estas artes, logrando que Valparaíso sea reconocido nacional e internacionalmente como la capital cultural del títere y el payaso.',
                     'link_label' => '',
                     'link_url' => '',
                 ],
@@ -382,7 +379,20 @@ HTML,
             ],
         ], $blockIds, $languages);
 
-        $this->upsertBlock($pageId, $blockIds, 'cta', 8, [
+        $this->upsertBlock($pageId, $blockIds, 'team_grid', 8, [
+            'source_collection' => 'personas',
+            'items_limit' => 15,
+            'filter_names' => 'Víctor Quiroga,Paulina Beltrán,Constanza Valenzuela,Diego Zúñiga,Claudio Palacios,Felipe Lira,Tomás Arce,Barbara Quiroga,Kevin Zamora,Javiera Silva',
+                'columns' => '3',
+            'css_class' => '',
+        ], [
+            'es' => ['title' => 'Nuestro gran equipo', 'description' => 'Artistas y profesionales que hacen posible el trabajo de TeatroMuseo.'],
+            'en' => ['title' => 'Our team', 'description' => 'Artists and professionals who make TeatroMuseo possible.'],
+            'fr' => ['title' => 'Notre équipe', 'description' => 'Artistes et professionnels qui rendent TeatroMuseo possible.'],
+            'pt' => ['title' => 'Nossa equipe', 'description' => 'Artistas e profissionais que tornam o TeatroMuseo possível.'],
+        ], $languages);
+
+        $this->upsertBlock($pageId, $blockIds, 'cta', 9, [
             'variant' => 'blue',
             'css_class' => '',
         ], [
@@ -452,33 +462,34 @@ HTML,
             ],
         ], $languages);
 
+        // Historia is intentionally authoritative: remove stale/demo blocks
+        // before rebuilding the canonical two-block page below. This also
+        // removes nested timeline/metrics children left by older seed runs.
+        $this->clearPageBlocks($pageId);
+
         $this->upsertBlock($pageId, $blockIds, 'page_header', 1, [
             'bg_color' => 'bg-slate-100',
             'css_class' => '',
         ], [
             'es' => [
                 'heading' => 'Historia',
-                'subheading' => 'Una cronología breve del archivo, la programación y la plataforma.',
+                'subheading' => 'La historia de una institución dedicada al títere y el payaso.',
                 'breadcrumb_label' => 'Inicio',
-                'breadcrumb_url' => '/',
             ],
             'en' => [
                 'heading' => 'History',
                 'subheading' => 'A brief timeline of the archive, programming, and platform.',
                 'breadcrumb_label' => 'Home',
-                'breadcrumb_url' => '/',
             ],
             'fr' => [
                 'heading' => 'Histoire',
                 'subheading' => 'Une chronologie brève de l’archive, de la programmation et de la plateforme.',
                 'breadcrumb_label' => 'Accueil',
-                'breadcrumb_url' => '/',
             ],
             'pt' => [
                 'heading' => 'Nossa História',
                 'subheading' => 'Uma cronologia breve do arquivo, da programação e da plataforma.',
                 'breadcrumb_label' => 'Início',
-                'breadcrumb_url' => '/',
             ],
         ], $languages);
 
@@ -487,8 +498,13 @@ HTML,
         ], [
             'es' => [
                 'content' => <<<'HTML'
-<p>TeatroMuseo nace de una práctica de archivo y programación que conecta memoria, escena y mediación. Esta página resume cómo el proyecto fue ordenando sus contenidos para que el sitio público refleje con claridad la vida de la institución.</p>
-<p>Cada hito marca una decisión editorial: documentar mejor, publicar con más orden y cuidar la experiencia de quienes visitan el sitio en cualquiera de sus idiomas.</p>
+<p>Desde el año 2005 los cimientos de este proyecto están anclados en la pasión, visión, creatividad y entrega de sus fundadores, la compañía El Faro —Víctor Quiroga y Paulina Beltrán—, quienes junto a la Agrupación Sonrisa emprendieron este sueño. El 25 de julio de 2007 se inaugura el Teatromuseo del Títere y el Payaso en la antigua capilla San Judas Tadeo, ubicada en la Plaza Bismark del cerro Cárcel de Valparaíso.</p>
+<p>Del 2008 al 2010 se crea el Colectivo Teatromuseo del Títere y el Payaso, organización informal que reúne a titiriteros y payasos de Valparaíso y de Chile. Su objetivo fue fortalecer y valorar ambos oficios artísticos a través de la asociatividad, la formación, la mantención y la promoción de nuevas audiencias que descubran en el arte de la risa y la animación un espacio de participación cultural.</p>
+<p>Con el fruto de su trabajo, el Colectivo logra crear, implementar, mantener y habilitar un espacio cultural que cuenta con una sala de teatro para 100 personas, espacio de exposiciones, una pequeña biblioteca y dos salas-talleres.</p>
+<p>En 2011 se crea la Fundación Teatromuseo del Títere y el Payaso, organización sin fines de lucro cuyo fin es desarrollar un espacio cultural que combine virtuosamente la formación, creación, producción, distribución, consumo y conservación de los oficios artísticos del títere y el payaso. La Fundación contribuye al fortalecimiento del sector y a su valoración por parte de la ciudadanía, promoviendo el reconocimiento nacional e internacional de Valparaíso como Capital Cultural del Títere y el Payaso.</p>
+<p>Luego de 10 años de exitosa gestión, en su sala se han realizado ininterrumpidamente, y con la participación de compañías nacionales e internacionales, casi 2.000 funciones de teatro de muñecos y de clown.</p>
+<p>A la fecha se han realizado 5 ANIMATE y 5 UPA CHALUPA, encuentros internacionales de titiriteros y payasos que son espacios de intercambio y cooperación entre compañías nacionales e internacionales. En el departamento de Teatroescuela se han realizado más de 80 talleres de profesionalización y formación de nuevos exponentes del arte del títere y el payaso para adultos, jóvenes y niños, en varias comunas del Gran Valparaíso y ciudades de Chile.</p>
+<p>Gracias a su departamento de extensión y museo se han realizado funciones, intervenciones callejeras y visitas guiadas en todas las regiones del país, completando más de 1.500 acciones y beneficiando aproximadamente a 50.000 personas.</p>
 HTML,
             ],
             'en' => [
@@ -510,6 +526,11 @@ HTML,
 HTML,
             ],
         ], $languages);
+
+        // The old image, timeline, metrics and CTA blocks are deliberately not
+        // recreated: the official history is now presented as one clean text
+        // block and the reset above removes any previous copies.
+        return;
 
         $this->upsertBlock($pageId, $blockIds, 'image', 3, [
             'image' => $this->mediaReference('https://picsum.photos/id/1019/800/600'),
@@ -804,6 +825,15 @@ HTML,
                 'language_id' => $languageId,
             ], $translation);
         }
+    }
+
+    /** Remove all block instances owned by a page, including nested children. */
+    private function clearPageBlocks(int $pageId): void
+    {
+        $this->db->table('cms_block_instances')
+            ->where('owner_type', 'page')
+            ->where('owner_id', $pageId)
+            ->delete();
     }
 
     /**

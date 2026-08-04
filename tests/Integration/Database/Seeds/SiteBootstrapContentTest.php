@@ -140,13 +140,48 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
         $this->assertNotNull($museumListingPage);
         $this->assertSame(['page_header', 'collection_listing'], $this->pageBlockKeys((int) $museumListingPage['id']));
 
+        $this->assertSame(['en' => 'events', 'es' => 'cartelera', 'fr' => 'programme', 'pt' => 'eventos'], $this->localizedSlugsForPageType('events'));
+        $this->assertSame(['en' => 'museum/collection', 'es' => 'museo/coleccion', 'fr' => 'musee/collection', 'pt' => 'museu/colecao'], $this->localizedSlugsForPageType('catalog_listing'));
+
+        $courseCollection = $this->db->table('cms_collections')
+            ->where('collection_key', 'cursos')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($courseCollection);
+        $this->assertSame(['en' => 'theaterschool', 'es' => 'teatroescuela', 'fr' => 'theatreecole', 'pt' => 'escola-de-teatro'], $this->localizedSlugsForCollection((int) $courseCollection['id']));
+        $courseTranslations = $this->db->table('cms_collection_translations')
+            ->select('name, listing_title, default_meta_title')
+            ->where('collection_id', (int) $courseCollection['id'])
+            ->get()->getResultArray();
+        $this->assertNotEmpty($courseTranslations);
+        foreach ($courseTranslations as $translation) {
+            $this->assertSame('TeatroEscuela', $translation['name']);
+            $this->assertSame('TeatroEscuela', $translation['listing_title']);
+            $this->assertSame('TeatroEscuela | TeatroMuseo', $translation['default_meta_title']);
+        }
+
+        $coursePage = $this->db->table('cms_pages')
+            ->where('page_type', 'collection_index')
+            ->where('collection_id', (int) $courseCollection['id'])
+            ->get()->getRowArray();
+        $this->assertNotNull($coursePage);
+        $coursePageTranslations = $this->db->table('cms_page_translations')
+            ->select('title, meta_title')
+            ->where('page_id', (int) $coursePage['id'])
+            ->get()->getResultArray();
+        $this->assertNotEmpty($coursePageTranslations);
+        foreach ($coursePageTranslations as $translation) {
+            $this->assertSame('TeatroEscuela', $translation['title']);
+            $this->assertSame('TeatroEscuela | TeatroMuseo', $translation['meta_title']);
+        }
+
         $mainMenu = $this->db->table('cms_menus')
             ->where('menu_key', 'main')
             ->get()
             ->getRowArray();
         $this->assertNotNull($mainMenu);
         $this->assertSame(
-            ['Inicio', 'Nosotros', 'Programación', 'Museo', 'Educación', 'Prensa y Medios', 'Contacto'],
+            ['Inicio', 'Nosotros', 'Programación', 'Museo', 'TeatroEscuela', 'Prensa y Medios', 'Contacto'],
             $this->menuLabels((int) $mainMenu['id'], 'es', null)
         );
 
@@ -173,7 +208,22 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
 
         $historyPage = $this->pageBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
         $this->assertNotNull($historyPage);
-        $this->assertSame(['page_header', 'rich_text', 'image', 'timeline', 'metrics_grid', 'cta'], $this->pageBlockKeys((int) $historyPage['id']));
+        $this->assertSame(['page_header', 'rich_text'], $this->pageBlockKeys((int) $historyPage['id']));
+
+        $historyText = $this->db->table('cms_block_instance_translations bit')
+            ->select('bit.block_data')
+            ->join('cms_block_instances bi', 'bi.id = bit.instance_id')
+            ->join('cms_content_blocks cb', 'cb.id = bi.block_id')
+            ->join('cms_languages l', 'l.id = bit.language_id')
+            ->where('bi.owner_type', 'page')
+            ->where('bi.owner_id', (int) $historyPage['id'])
+            ->where('cb.block_key', 'rich_text')
+            ->where('l.code', 'es')
+            ->get()
+            ->getRowArray();
+        $historyData = json_decode((string) ($historyText['block_data'] ?? ''), true);
+        $this->assertStringContainsString('25 de julio de 2007', (string) ($historyData['content'] ?? ''));
+        $this->assertStringContainsString('50.000 personas', (string) ($historyData['content'] ?? ''));
 
         $catalogTemplatePage = $this->pageBySlug(['__template_catalog_item']);
         $this->assertNotNull($catalogTemplatePage);
@@ -280,5 +330,44 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
         $rows = $builder->get()->getResultArray();
 
         return array_map(static fn (array $row): string => (string) ($row['label'] ?? ''), $rows);
+    }
+
+    /** @return array<string, string> */
+    private function localizedSlugsForPageType(string $pageType): array
+    {
+        $rows = $this->db->table('cms_page_translations pt')
+            ->select('l.code, pt.slug')
+            ->join('cms_pages p', 'p.id = pt.page_id')
+            ->join('cms_languages l', 'l.id = pt.language_id')
+            ->where('p.page_type', $pageType)
+            ->get()
+            ->getResultArray();
+
+        $slugs = [];
+        foreach ($rows as $row) {
+            $slugs[(string) $row['code']] = (string) $row['slug'];
+        }
+        ksort($slugs);
+
+        return $slugs;
+    }
+
+    /** @return array<string, string> */
+    private function localizedSlugsForCollection(int $collectionId): array
+    {
+        $rows = $this->db->table('cms_collection_translations ct')
+            ->select('l.code, ct.slug')
+            ->join('cms_languages l', 'l.id = ct.language_id')
+            ->where('ct.collection_id', $collectionId)
+            ->get()
+            ->getResultArray();
+
+        $slugs = [];
+        foreach ($rows as $row) {
+            $slugs[(string) $row['code']] = (string) $row['slug'];
+        }
+        ksort($slugs);
+
+        return $slugs;
     }
 }

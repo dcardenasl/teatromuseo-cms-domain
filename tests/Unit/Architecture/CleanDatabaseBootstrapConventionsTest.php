@@ -25,6 +25,43 @@ final class CleanDatabaseBootstrapConventionsTest extends CIUnitTestCase
             $source = file_get_contents($file);
 
             $this->assertIsString($source);
+
+            // CMS block schemas are JSON documents stored in a content table,
+            // so their forward-only normalization is a data migration rather
+            // than a database-schema migration. It is explicitly marked in
+            // the migration docblock and must remain idempotent and scoped to
+            // the CMS schema table.
+            if (str_contains($source, '@cms-schema-data-migration')) {
+                $this->assertMatchesRegularExpression(
+                    '/^\d{4}-\d{2}-\d{2}-\d{6}_Normalize[A-Za-z0-9]+\.php$/',
+                    $name,
+                    "CMS schema data migration {$name} must describe its normalization operation."
+                );
+                $this->assertStringContainsString("table('cms_content_blocks')", $source);
+                $this->assertStringContainsString('JSON_THROW_ON_ERROR', $source);
+                $this->assertDoesNotMatchRegularExpression('/\b(?:delete|truncate)\s*\(/i', $source);
+                continue;
+            }
+
+            // Public route slugs are structural CMS data. They have an
+            // explicit forward-only contract so existing installations can
+            // be upgraded without turning ordinary bootstrap seeders into
+            // destructive repair scripts.
+            if (str_contains($source, '@cms-public-route-data-migration')) {
+                $this->assertMatchesRegularExpression(
+                    '/^\d{4}-\d{2}-\d{2}-\d{6}_Normalize[A-Za-z0-9]+\.php$/',
+                    $name,
+                    "CMS public route data migration {$name} must describe its normalization operation."
+                );
+                $this->assertTrue(
+                    str_contains($source, 'cms_page_translations')
+                    || str_contains($source, 'cms_collection_translations'),
+                    "CMS public route data migration {$name} must target public translation data."
+                );
+                $this->assertDoesNotMatchRegularExpression('/\b(?:delete|truncate)\s*\(/i', $source);
+                continue;
+            }
+
             $this->assertMatchesRegularExpression(
                 '/^\d{4}-\d{2}-\d{2}-\d{6}_Create[A-Za-z0-9]+\.php$/',
                 $name,

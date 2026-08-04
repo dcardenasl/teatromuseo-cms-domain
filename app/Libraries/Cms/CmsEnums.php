@@ -8,7 +8,7 @@ final class CmsEnums
 {
     public const WORKFLOW_STATUS    = ['draft', 'in_review', 'approved', 'published', 'archived'];
     public const PAGE_STATUS        = ['draft', 'published', 'archived'];
-    public const PAGE_TYPE          = ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'catalog_listing', 'collection_index', 'template_catalog_item', 'template_event_item'];
+    public const PAGE_TYPE          = ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'catalog_listing', 'collection_index', 'template_catalog_item', 'template_event_item', 'press', 'publications', 'transparency'];
     /**
      * Singleton template pages: rendered only with a runtime context injected
      * by the public site (never resolvable by slug on their own), and the only

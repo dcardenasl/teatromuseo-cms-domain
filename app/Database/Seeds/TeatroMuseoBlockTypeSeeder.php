@@ -44,6 +44,7 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
                 'role' => ['type' => 'string', 'label' => 'Rol o disciplina', 'required' => false],
                 'bio' => ['type' => 'richtext', 'label' => 'Biografía', 'required' => false],
                 'website' => ['type' => 'url', 'label' => 'Sitio web', 'required' => false],
+                'hover_portrait' => ['type' => 'media_reference', 'label' => 'Retrato alternativo (hover)', 'required' => false, 'accept' => 'image'],
             ], [
                 'portrait' => ['type' => 'media_reference', 'label' => 'Retrato', 'required' => false, 'accept' => 'image'],
             ], false),
@@ -127,7 +128,7 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
             ], [
                 'cover' => ['type' => 'media_reference', 'label' => 'Imagen principal', 'required' => false, 'accept' => 'image'],
             ], false),
-            $this->block('curso_ficha', 'Ficha de curso', 'Course profile', 'Curso con modalidad, fechas, responsables e inscripción.', [
+            $this->block('curso_ficha', 'Ficha TeatroEscuela', 'TeatroEscuela profile', 'TeatroEscuela con modalidad, fechas, responsables e inscripción.', [
                 'category' => ['type' => 'string', 'label' => 'Categoría', 'required' => false],
                 'modality' => ['type' => 'select', 'label' => 'Modalidad', 'options' => ['presencial', 'online', 'hibrido'], 'required' => false],
                 'start_date' => ['type' => 'date', 'label' => 'Inicio', 'required' => false],
@@ -162,7 +163,7 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
                 'relation_type' => ['type' => 'select', 'label' => 'Tipo de relación', 'options' => ['related', 'recommended', 'prerequisite', 'sequel'], 'required' => true],
                 'entries' => [
                     'type' => 'entry_reference_list',
-                    'collection_keys' => ['companias', 'personas', 'obras', 'videos', 'festivales', 'exposiciones', 'cursos', 'publicaciones', 'noticias'],
+                    'collection_keys' => ['companias', 'personas', 'obras', 'videos', 'festivales', 'exposiciones', 'cursos', 'editoriales', 'prensa', 'transparencia', 'noticias'],
                     'label' => 'Entradas',
                     'required' => false,
                     'max_items' => 12,

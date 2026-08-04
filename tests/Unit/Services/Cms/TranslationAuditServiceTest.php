@@ -1015,7 +1015,6 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
             'schema_definition' => json_encode([
                 'fields' => [
                     'section_title' => ['type' => 'string', 'required' => false],
-                    'view_all_url' => ['type' => 'url', 'required' => false],
                 ],
             ]),
             'supports_pages' => 1,
@@ -1036,8 +1035,8 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $instanceId = $this->db->insertID();
 
         foreach ([
-            $this->langEsId => ['section_title' => 'Cartelera', 'view_all_url' => '/cartelera'],
-            $this->langEnId => ['section_title' => "What's on", 'view_all_url' => '/cartelera'],
+            $this->langEsId => ['section_title' => 'Cartelera'],
+            $this->langEnId => ['section_title' => "What's on"],
         ] as $languageId => $data) {
             $this->db->table('cms_block_instance_translations')->insert([
                 'instance_id' => $instanceId,

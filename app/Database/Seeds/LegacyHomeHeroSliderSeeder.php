@@ -36,7 +36,7 @@ final class LegacyHomeHeroSliderSeeder extends Seeder
         $languages = $this->languageIds();
         $slides = [
             [142, 'Visítanos con toda tu comunidad y conoce la magia de Teatromuseo', '/contacto'],
-            [143, 'Se abre la Escuela de Nuevos Comediantes 2026', '/cursos'],
+            [143, 'Se abre la Escuela de Nuevos Comediantes 2026', '/teatroescuela'],
             [144, 'Deja la risa volar en Teatromuseo', '/cartelera'],
             [145, 'Puentes escénicos entre Chile y México', '/'],
             [146, 'CELEBRANDO A LOS NIÑOS Y NIÑAS', '/contacto'],

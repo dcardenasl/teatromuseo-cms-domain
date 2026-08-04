@@ -354,7 +354,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     {
         $ownerType = (string) ($entity->owner_type ?? 'page');
 
-        return $ownerType === 'entry' ? ['entries'] : ['pages'];
+        return $ownerType === 'entry' ? ['entries'] : ['pages', 'collections'];
     }
 
     /**
