@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Course timeline listings** — public TeatroEscuela/course listings now order upcoming
+  activities first and expose their real `start_date` as `display_date`.
+- **Collection grid metadata and defaults** — collection listings now support source metadata,
+  configurable aspect ratios, and bootstrap normalization of per-collection defaults.
+- **CMS slug and translation tooling** — added slug repair, legacy translation backfill, and
+  untranslated-content audit commands, plus a home hero slider recovery command.
+- **Semantic block navigation** — block types can declare navigation metadata and public readers
+  can resolve typed destinations for slide blocks.
+- **Editorial content expansion** — added publication page types and collections, institutional
+  team content, press document galleries, and public listing video projections.
+- **TeatroEscuela contract** — introduced the canonical `teatroescuela` collection and
+  `teatroescuela_ficha` block, with compatibility aliases for legacy `cursos` requests.
+
 - **`POST /api/v1/cms/submissions/import`** — authenticated bulk-import endpoint for
   `cms_form_submissions` (`FormSubmissionImportRequestDTO` + `FormSubmissionService::import()`,
   gated by `cms.submissions.write`), for backfilling historical submissions with their real
@@ -41,8 +54,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Default public locale** — now Spanish (`es`), matching the primary audience.
+- **Bootstrap and route normalization** — seeders preserve existing editorial content, public
+  routes use localized canonical slugs, and editorial data migrations are classified explicitly.
 
 ### Fixed
+
+- **Public route and redirect consistency** — redirects survive slug changes and localized
+  homepage hero destinations are normalized to the currently published routes.
+- **TeatroEscuela public ordering and identifiers** — public entry, category, and tag readers,
+  slug repair, collection presets, and navigation now use the canonical TeatroEscuela contract.
 
 - **Detail page templates** — `catalog_item`/`event_item` template pages now consistently ship 4
   blocks (header, details, content, gallery); seeder contract tests were out of sync with the
