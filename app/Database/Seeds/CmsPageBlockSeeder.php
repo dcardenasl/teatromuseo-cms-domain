@@ -101,7 +101,7 @@ class CmsPageBlockSeeder extends Seeder
                 'block_key' => 'collection_grid',
                 'sort_order' => 3,
                 'config'    => [
-                    'collection_key'  => 'cursos',
+                    'collection_key'  => 'teatroescuela',
                     'items_limit'     => 3,
                     'order_by'        => 'published_at',
                     'order_direction' => 'desc',

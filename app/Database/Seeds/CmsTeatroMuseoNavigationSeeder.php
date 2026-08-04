@@ -219,7 +219,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ], $languages);
         $this->appendId($keepIds, $personasId);
 
-        $coursesId = $this->addCollectionItem($menuId, 'cursos', null, $sortOrder++, [
+        $coursesId = $this->addCollectionItem($menuId, 'teatroescuela', null, $sortOrder++, [
             'es' => 'TeatroEscuela',
             'en' => 'TeatroEscuela',
             'fr' => 'TeatroEscuela',
@@ -376,7 +376,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
             $this->appendId($keepIds, $historyId);
         }
 
-        $coursesId = $this->addCollectionItem($menuId, 'cursos', $institutionGroupId, $institutionChildSortOrder++, [
+        $coursesId = $this->addCollectionItem($menuId, 'teatroescuela', $institutionGroupId, $institutionChildSortOrder++, [
             'es' => 'TeatroEscuela',
             'en' => 'TeatroEscuela',
             'fr' => 'TeatroEscuela',

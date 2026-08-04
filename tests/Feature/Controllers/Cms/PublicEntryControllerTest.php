@@ -378,23 +378,23 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertSame(2, (int) $body['meta']['per_page']);
     }
 
-    public function testCursosCollectionOrdersUpcomingFirstThenMostRecentPast(): void
+    public function testTeatroEscuelaCollectionOrdersUpcomingFirstThenMostRecentPastAndSupportsLegacyAlias(): void
     {
-        // "Cursos" reads as a program calendar, not an article feed: the next upcoming
+        // TeatroEscuela reads as a program calendar, not an article feed: the next upcoming
         // course first, then the rest most-recent-first — the same reasoning already
         // applied to the public Cartelera listing (event-domain EVT-DOM-007). The date
-        // that drives this lives in the curso_ficha block's block_data, not a cms_entries
-        // column, so this exercises PublicEntryReader::sortCursosUpcomingFirst() end-to-end.
-        $cursos = $this->fixtures->collection([
+        // that drives this lives in the teatroescuela_ficha block's block_data, not a cms_entries
+        // column, so this exercises PublicEntryReader::sortTeatroEscuelaUpcomingFirst() end-to-end.
+        $teatroEscuela = $this->fixtures->collection([
             [
                 'language_id' => $this->langEsId,
-                'slug' => 'cursos',
-                'name' => 'Cursos',
+                'slug' => 'teatroescuela',
+                'name' => 'TeatroEscuela',
             ],
-        ], ['collection_key' => 'cursos']);
+        ], ['collection_key' => 'teatroescuela']);
 
         $this->db->table('cms_content_blocks')->insert([
-            'block_key' => 'curso_ficha',
+            'block_key' => 'teatroescuela_ficha',
             'name' => 'Ficha de curso',
             'schema_definition' => json_encode(['fields' => []], JSON_THROW_ON_ERROR),
         ]);
@@ -410,7 +410,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         ];
 
         foreach ($courses as $slug => $startDate) {
-            $entry = $this->fixtures->entry($cursos['id'], [
+            $entry = $this->fixtures->entry($teatroEscuela['id'], [
                 [
                     'language_id' => $this->langEsId,
                     'slug' => $slug,

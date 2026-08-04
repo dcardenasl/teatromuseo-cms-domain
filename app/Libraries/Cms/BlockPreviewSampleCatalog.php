@@ -185,7 +185,7 @@ final class BlockPreviewSampleCatalog
                 'venue' => 'Sala de exposiciones',
                 'description' => '<p>Descripción breve de la exposición.</p>',
             ],
-            'curso_ficha' => [
+            'teatroescuela_ficha' => [
                 'modality' => 'presencial',
                 'schedule' => 'Sábados, 10:00–13:00',
                 'venue' => 'Teatro Museo',

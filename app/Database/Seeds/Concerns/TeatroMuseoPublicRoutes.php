@@ -18,9 +18,9 @@ final class TeatroMuseoPublicRoutes
         return match ($pageType) {
             'events' => [
                 'es' => 'cartelera',
-                'en' => 'events',
-                'fr' => 'programme',
-                'pt' => 'eventos',
+                'en' => 'programming',
+                'fr' => 'programmation',
+                'pt' => 'programacao',
             ],
             'catalog_listing' => [
                 'es' => 'museo/coleccion',
@@ -36,7 +36,7 @@ final class TeatroMuseoPublicRoutes
     public static function collectionSlugs(string $collectionKey): array
     {
         return match ($collectionKey) {
-            'cursos' => [
+            'teatroescuela' => [
                 'es' => 'teatroescuela',
                 'en' => 'theaterschool',
                 'fr' => 'theatreecole',

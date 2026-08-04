@@ -82,7 +82,7 @@ final class CmsCollectionGridAspectRatioSeeder extends Seeder
     {
         return match ($collectionKey) {
             'cartelera', 'events', 'eventos', 'obras', 'works', 'noticias', 'news', 'editoriales', 'publicaciones', 'publications', 'prensa', 'press', 'transparencia', 'transparency', 'festivales', 'festivals', 'companias', 'companies' => '1/1',
-            'cursos', 'personas', 'people' => '3/4',
+            'teatroescuela', 'cursos', 'personas', 'people' => '3/4',
             'exposiciones', 'exhibitions' => '2/3',
             'videos', 'video', 'multimedia' => '16/9',
             default => null,

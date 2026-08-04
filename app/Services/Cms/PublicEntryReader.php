@@ -216,20 +216,20 @@ class PublicEntryReader
 
         $total = (int) $builder->countAllResults(false);
 
-        // Populated only for the 'cursos' branch below — carries each entry's real
+        // Populated only for the 'teatroescuela' branch below — carries each entry's real
         // start_date so it can be exposed as `display_date` on the response without a
         // second batch query (the sort below already resolves it for every entry).
-        $cursoStartDates = [];
+        $teatroEscuelaStartDates = [];
 
-        if ($dto->collection_key === 'cursos') {
-            // "Cursos" reads as a program calendar, not an article feed: upcoming courses
+        if ($dto->collection_key === 'teatroescuela') {
+            // TeatroEscuela reads as a program calendar, not an article feed: upcoming instances
             // first (soonest first), then past ones most-recent-first — the same reasoning
             // as the public Cartelera listing (event-domain EVT-DOM-007). start_date lives
-            // inside the curso_ficha block's translated block_data, not a cms_entries column,
+            // inside the teatroescuela_ficha block's translated block_data, not a cms_entries column,
             // so a single ORDER BY can't express it — walk every matching row (bounded by
             // this collection's real size, a single institution's course catalog), resolve
             // each entry's start_date in one batched query, sort in PHP, then paginate.
-            $entries = $this->sortCursosUpcomingFirst($builder, $langId, $defaultLangId, $dto->page, $dto->per_page, $cursoStartDates);
+            $entries = $this->sortTeatroEscuelaUpcomingFirst($builder, $langId, $defaultLangId, $dto->page, $dto->per_page, $teatroEscuelaStartDates);
         } else {
             $orderColumn = match ($dto->order_by) {
                 'published_at' => 'cms_entries.published_at',
@@ -286,10 +286,10 @@ class PublicEntryReader
             unset($item['entry_title_order']);
             // Normalize featured/OG images into canonical nested objects.
             $item = $this->normalizeEntryMedia($item);
-            if ($dto->collection_key === 'cursos') {
-                // The course's real start_date, not published_at — the public listing
+            if ($dto->collection_key === 'teatroescuela') {
+                // TeatroEscuela's real start_date, not published_at — the public listing
                 // template prefers this for the card's date badge and already sorts by it.
-                $item['display_date'] = $cursoStartDates[$entryId] ?? null;
+                $item['display_date'] = $teatroEscuelaStartDates[$entryId] ?? null;
             }
             $data[] = $item;
         }
@@ -321,7 +321,7 @@ class PublicEntryReader
      *      caller can expose the same resolved dates as `display_date` without re-querying.
      * @return list<EntryEntity>
      */
-    private function sortCursosUpcomingFirst(\App\Models\EntryModel $builder, int $langId, int $defaultLangId, int $page, int $perPage, array &$startDatesOut): array
+    private function sortTeatroEscuelaUpcomingFirst(\App\Models\EntryModel $builder, int $langId, int $defaultLangId, int $page, int $perPage, array &$startDatesOut): array
     {
         $allEntries = array_values(array_filter(
             $builder->findAll(),
@@ -333,7 +333,7 @@ class PublicEntryReader
             $entryIds[] = (int) $entry->id;
         }
 
-        $startDates    = $this->batchResolveCursoStartDates($entryIds, $langId, $defaultLangId);
+        $startDates    = $this->batchResolveTeatroEscuelaStartDates($entryIds, $langId, $defaultLangId);
         $startDatesOut = $startDates;
         $today         = date('Y-m-d');
 
@@ -346,7 +346,7 @@ class PublicEntryReader
             if ($aFuture !== $bFuture) {
                 return $aFuture ? -1 : 1;
             }
-            // A course with no start_date at all can't be placed on the timeline — push it
+            // A TeatroEscuela entry with no start_date can't be placed on the timeline — push it
             // to the very end rather than letting empty-string comparisons sort it first.
             if ($aDate === '' || $bDate === '') {
                 return match (true) {
@@ -363,7 +363,7 @@ class PublicEntryReader
     }
 
     /**
-     * Batch-resolves the `curso_ficha` block's `start_date` for a set of entries in one
+     * Batch-resolves the `teatroescuela_ficha` block's `start_date` for a set of entries in one
      * query (N+1-safe, matching the batch-resolve pattern used elsewhere in this reader) —
      * the date lives in `cms_block_instance_translations.block_data`, not a queryable
      * `cms_entries` column.
@@ -371,7 +371,7 @@ class PublicEntryReader
      * @param list<int> $entryIds
      * @return array<int, string> entry_id => start_date (Y-m-d), only entries that have one
      */
-    private function batchResolveCursoStartDates(array $entryIds, int $langId, int $defaultLangId): array
+    private function batchResolveTeatroEscuelaStartDates(array $entryIds, int $langId, int $defaultLangId): array
     {
         if ($entryIds === []) {
             return [];
@@ -392,7 +392,7 @@ class PublicEntryReader
             ->join('cms_block_instances', 'cms_block_instances.id = cms_block_instance_translations.instance_id')
             ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
             ->where('cms_block_instances.owner_type', 'entry')
-            ->where('cms_content_blocks.block_key', 'curso_ficha')
+            ->whereIn('cms_content_blocks.block_key', ['teatroescuela_ficha', 'curso_ficha'])
             ->whereIn('cms_block_instance_translations.language_id', $languageIds)
             ->whereIn('cms_block_instances.owner_id', $entryIds)
             ->findAll();

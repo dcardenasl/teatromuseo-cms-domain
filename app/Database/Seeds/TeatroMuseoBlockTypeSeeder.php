@@ -128,7 +128,8 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
             ], [
                 'cover' => ['type' => 'media_reference', 'label' => 'Imagen principal', 'required' => false, 'accept' => 'image'],
             ], false),
-            $this->block('curso_ficha', 'Ficha TeatroEscuela', 'TeatroEscuela profile', 'TeatroEscuela con modalidad, fechas, responsables e inscripción.', [
+            $this->block('teatroescuela_ficha', 'Ficha TeatroEscuela', 'TeatroEscuela profile', 'TeatroEscuela con modalidad, fechas, responsables e inscripción.', [
+                'activity_type' => ['type' => 'select', 'label' => 'Tipo de actividad', 'options' => ['course', 'workshop', 'residency', 'program', 'seminar', 'other'], 'required' => false],
                 'category' => ['type' => 'string', 'label' => 'Categoría', 'required' => false],
                 'modality' => ['type' => 'select', 'label' => 'Modalidad', 'options' => ['presencial', 'online', 'hibrido'], 'required' => false],
                 'start_date' => ['type' => 'date', 'label' => 'Inicio', 'required' => false],
@@ -163,7 +164,7 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
                 'relation_type' => ['type' => 'select', 'label' => 'Tipo de relación', 'options' => ['related', 'recommended', 'prerequisite', 'sequel'], 'required' => true],
                 'entries' => [
                     'type' => 'entry_reference_list',
-                    'collection_keys' => ['companias', 'personas', 'obras', 'videos', 'festivales', 'exposiciones', 'cursos', 'editoriales', 'prensa', 'transparencia', 'noticias'],
+                    'collection_keys' => ['companias', 'personas', 'obras', 'videos', 'festivales', 'exposiciones', 'teatroescuela', 'editoriales', 'prensa', 'transparencia', 'noticias'],
                     'label' => 'Entradas',
                     'required' => false,
                     'max_items' => 12,

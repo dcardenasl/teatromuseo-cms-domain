@@ -40,7 +40,7 @@ final class RepairSlugsCommandTest extends CIUnitTestCase
         $this->fixtures = new CmsFixtureFactory($this->db, self::class);
 
         $language = $this->fixtures->languages(1)[0];
-        $collection = $this->fixtures->collection([], ['collection_key' => 'cursos']);
+        $collection = $this->fixtures->collection([], ['collection_key' => 'teatroescuela']);
 
         $this->languageId = (int) $language['id'];
         $this->collectionId = (int) $collection['id'];
@@ -61,7 +61,7 @@ final class RepairSlugsCommandTest extends CIUnitTestCase
     public function testRepairSlugsRewritesCourseEntrySlugsFromTitle(): void
     {
         $this->db->table('cms_content_blocks')->insert([
-            'block_key' => 'curso_ficha',
+            'block_key' => 'teatroescuela_ficha',
             'name' => 'Ficha de curso',
             'schema_definition' => json_encode(['fields' => []], JSON_THROW_ON_ERROR),
         ]);

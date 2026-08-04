@@ -79,7 +79,7 @@ final class CmsTeatroMuseoCollectionSeeder extends Seeder
             $this->definition('videos', 'videos', 'Videos', 'Videos', 'Vidéos', 'Vídeos', 'Videos audiovisuales y registros.', 'Audiovisual videos and recordings.', 'Vidéos audiovisuelles et enregistrements.', 'Vídeos audiovisuais e registros.', 50, '0.6', 'monthly', false),
             $this->definition('festivales', 'festivales', 'Festivales', 'Festivals', 'Festivals', 'Festivais', 'Festivales y sus ediciones o programas.', 'Festivals and their editions or programs.', 'Festivals et leurs éditions ou programmes.', 'Festivais e suas edições ou programações.', 60, '0.8', 'monthly', false),
             $this->definition('exposiciones', 'exposiciones', 'Exposiciones', 'Exhibitions', 'Expositions', 'Exposições', 'Exposiciones vigentes e históricas.', 'Current and historical exhibitions.', 'Expositions actuelles et historiques.', 'Exposições atuais e históricas.', 70, '0.8', 'monthly', false),
-            $this->definition('cursos', 'cursos', 'TeatroEscuela', 'TeatroEscuela', 'TeatroEscuela', 'TeatroEscuela', 'TeatroEscuela, talleres y actividades formativas.', 'TeatroEscuela, workshops, and learning activities.', 'TeatroEscuela, ateliers et activités de formation.', 'TeatroEscuela, oficinas e atividades formativas.', 80, '0.7', 'weekly', false),
+            $this->definition('teatroescuela', 'teatroescuela', 'TeatroEscuela', 'TeatroEscuela', 'TeatroEscuela', 'TeatroEscuela', 'TeatroEscuela, talleres y actividades formativas.', 'TeatroEscuela, workshops, and learning activities.', 'TeatroEscuela, ateliers et activités de formation.', 'TeatroEscuela, oficinas e atividades formativas.', 80, '0.7', 'weekly', false),
             $this->definition('editoriales', 'publicaciones', 'Publicaciones', 'Publications', 'Publications', 'Publicações', 'Publicaciones editoriales del TeatroMuseo.', 'TeatroMuseo editorial publications.', 'Publications éditoriales de TeatroMuseo.', 'Publicações editoriais do TeatroMuseo.', 90, '0.6', 'monthly', false),
             $this->definition('prensa', 'prensa', 'Prensa', 'Press', 'Presse', 'Imprensa', 'Comunicados y documentos para medios.', 'Press releases and media documents.', 'Communiqués et documents pour les médias.', 'Comunicados e documentos para a imprensa.', 91, '0.6', 'monthly', false),
             $this->definition('transparencia', 'transparencia', 'Transparencia', 'Transparency', 'Transparence', 'Transparência', 'Información institucional y documentos públicos.', 'Institutional information and public documents.', 'Informations institutionnelles et documents publics.', 'Informações institucionais e documentos públicos.', 92, '0.6', 'yearly', false),
@@ -164,7 +164,7 @@ final class CmsTeatroMuseoCollectionSeeder extends Seeder
             'videos' => ['es' => 'videos', 'en' => 'videos', 'fr' => 'videos', 'pt' => 'videos'],
             'festivales' => ['es' => 'festivales', 'en' => 'festivals', 'fr' => 'festivals', 'pt' => 'festivais'],
             'exposiciones' => ['es' => 'exposiciones', 'en' => 'exhibitions', 'fr' => 'expositions', 'pt' => 'exposicoes'],
-            'cursos' => TeatroMuseoPublicRoutes::collectionSlugs('cursos'),
+            'teatroescuela' => TeatroMuseoPublicRoutes::collectionSlugs('teatroescuela'),
             'publicaciones' => ['es' => 'publicaciones', 'en' => 'publications', 'fr' => 'publications', 'pt' => 'publicacoes'],
             default => TeatroMuseoPublicRoutes::collectionSlugs($key),
         };

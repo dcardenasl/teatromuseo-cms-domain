@@ -122,15 +122,15 @@ final class RepairSlugs extends BaseCommand
 
         $rows = $query === false ? [] : $query->getResultArray();
 
-        $courseYears = $this->loadCourseStartYears($db);
+        $teatroEscuelaYears = $this->loadTeatroEscuelaStartYears($db);
 
         foreach ($rows as &$row) {
             $title = trim((string) ($row['title'] ?? ''));
             $collectionKey = (string) ($row['collection_key'] ?? '');
             $entryId = (int) ($row['entry_id'] ?? 0);
 
-            if ($collectionKey === 'cursos') {
-                $year = $courseYears[$entryId] ?? '';
+            if ($collectionKey === 'teatroescuela') {
+                $year = $teatroEscuelaYears[$entryId] ?? '';
                 $row['source_value'] = $this->courseSourceValue($title, $year, $generator);
                 continue;
             }
@@ -164,14 +164,14 @@ final class RepairSlugs extends BaseCommand
      * @return array<int, string>
      * @param BaseConnection<object, object> $db
      */
-    private function loadCourseStartYears(BaseConnection $db): array
+    private function loadTeatroEscuelaStartYears(BaseConnection $db): array
     {
         $query = $db->table('cms_block_instance_translations bt')
             ->select('bi.owner_id AS entry_id, bt.block_data')
             ->join('cms_block_instances bi', 'bi.id = bt.instance_id')
             ->join('cms_content_blocks cb', 'cb.id = bi.block_id')
             ->where('bi.owner_type', 'entry')
-            ->where('cb.block_key', 'curso_ficha')
+            ->whereIn('cb.block_key', ['teatroescuela_ficha', 'curso_ficha'])
             ->orderBy('bi.owner_id', 'ASC')
             ->orderBy('bt.language_id', 'ASC')
             ->orderBy('bt.id', 'ASC')

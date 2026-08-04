@@ -71,13 +71,14 @@ final class TeatroMuseoCollectionPresets
     }
 
     /** @return array{block_template: array<string, mixed>, wizard_config: array<string, mixed>} */
-    public static function cursos(): array
+    public static function teatroescuela(): array
     {
-        return self::domainPreset('cursos', 'curso_ficha', 'TeatroEscuela', 'TeatroEscuela', 'Ficha de TeatroEscuela con modalidad, fechas, responsables e inscripción.', [
+        return self::domainPreset('teatroescuela', 'teatroescuela_ficha', 'TeatroEscuela', 'TeatroEscuela', 'Ficha de TeatroEscuela con modalidad, fechas, responsables e inscripción.', [
             self::optionalBlock('rich_text', 'Contenido de TeatroEscuela', 'Descripción extendida, objetivos y requisitos.', 2),
             self::optionalBlock('gallery', 'Galería de TeatroEscuela', 'Imágenes y registros de TeatroEscuela.', 3),
-            self::optionalBlock('document_gallery', 'Documentos de TeatroEscuela', 'Programas, fichas y materiales descargables.', 4),
-            self::optionalBlock('external_links', 'Enlaces de TeatroEscuela', 'Formularios y recursos externos relacionados.', 5),
+            self::optionalBlock('video_gallery', 'Videos de TeatroEscuela', 'Registros audiovisuales relacionados.', 4),
+            self::optionalBlock('document_gallery', 'Documentos de TeatroEscuela', 'Programas, fichas y materiales descargables.', 5),
+            self::optionalBlock('external_links', 'Enlaces de TeatroEscuela', 'Recursos externos relacionados.', 6),
         ]);
     }
 
@@ -203,7 +204,7 @@ final class TeatroMuseoCollectionPresets
             'videos' => self::videos(),
             'festivales' => self::festivales(),
             'exposiciones' => self::exposiciones(),
-            'cursos' => self::cursos(),
+            'teatroescuela' => self::teatroescuela(),
             'editoriales' => self::editoriales(),
             'prensa' => self::prensa(),
             'transparencia' => self::transparencia(),

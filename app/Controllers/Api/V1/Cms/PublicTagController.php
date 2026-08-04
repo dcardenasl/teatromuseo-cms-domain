@@ -28,6 +28,7 @@ class PublicTagController extends ApiController
      */
     public function index(string $lang, string $collectionKey): ResponseInterface
     {
+        $collectionKey = strtolower(trim($collectionKey)) === 'cursos' ? 'teatroescuela' : $collectionKey;
         return $this->handleRequest(
             function (PublicTagIndexRequestDTO $dto, SecurityContext $context): mixed {
                 return $this->tagService->listPublic($dto->lang, $dto->collection_key);

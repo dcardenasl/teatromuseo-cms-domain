@@ -29,6 +29,7 @@ class PublicCategoryController extends ApiController
      */
     public function index(string $lang, string $collectionKey): ResponseInterface
     {
+        $collectionKey = strtolower(trim($collectionKey)) === 'cursos' ? 'teatroescuela' : $collectionKey;
         return $this->handleRequest(
             function (PublicCategoryIndexRequestDTO $dto, SecurityContext $context): mixed {
                 return $this->categoryService->listPublic($dto->lang, $dto->collection_key);

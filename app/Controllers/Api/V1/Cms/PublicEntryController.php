@@ -25,6 +25,8 @@ class PublicEntryController extends ApiController
 
     public function index(string $lang, string $collectionKey): ResponseInterface
     {
+        $collectionKey = $this->canonicalCollectionKey($collectionKey);
+
         return $this->handleRequest(
             function (PublicEntryIndexRequestDTO $dto, SecurityContext $context): mixed {
                 return $this->entryService->listPublic($dto);
@@ -36,6 +38,8 @@ class PublicEntryController extends ApiController
 
     public function show(string $lang, string $collectionKey, string $slug): ResponseInterface
     {
+        $collectionKey = $this->canonicalCollectionKey($collectionKey);
+
         return $this->handleRequest(
             function (PublicEntryShowRequestDTO $dto, SecurityContext $context): mixed {
                 return $this->entryService->showPublic($dto);
@@ -43,5 +47,10 @@ class PublicEntryController extends ApiController
             PublicEntryShowRequestDTO::class,
             ['lang' => $lang, 'collection_key' => $collectionKey, 'slug' => $slug]
         );
+    }
+
+    private function canonicalCollectionKey(string $collectionKey): string
+    {
+        return strtolower(trim($collectionKey)) === 'cursos' ? 'teatroescuela' : $collectionKey;
     }
 }
