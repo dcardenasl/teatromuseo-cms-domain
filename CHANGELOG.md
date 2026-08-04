@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Declarative public listing projections** — public entries now expose schema-declared fields,
+  date metadata, ordering, filtering, and projection values for configurable collection cards.
+- **Editorial route canonicalization** — Editorial now owns the canonical collection index and
+  localized routes, with legacy publication URLs redirected and obsolete navigation targets retired.
 - **Editable institutional team roster** — About-page team members are now persisted as
   editable `team_member` children with profession, roles, email, primary media, and hover media.
 - **Cache invalidation source tracking** — automatic CMS invalidations now identify their source
@@ -62,6 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Institutional bootstrap preservation** — seeders now retain editorially managed blocks,
+  consolidate duplicate team roots, restore historical hero slides, and normalize additional roles.
 - **Translation audit scope and pagination** — audit reports now distinguish actionable issues
   from review-only warnings, ignore operational block values, exclude the base language from
   outdated checks, and return paginated metadata.
@@ -72,6 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Operational translation regression fixture** — seed integration coverage now matches the
+  normalized operational translation data used by the CMS bootstrap.
 - **Publication type rollback** — rolling back publication page types now reclassifies affected
   pages as generic instead of aborting or deleting editorial records.
 
