@@ -172,6 +172,33 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertIsArray($body['data']['blocks']);
     }
 
+    public function testNewsPublicEntryProjectsFeaturedImageIntoVirtualGallery(): void
+    {
+        $this->db->table('cms_collections')
+            ->where('id', $this->collectionId)
+            ->update(['collection_key' => 'noticias']);
+        $this->collection['key'] = 'noticias';
+
+        $entry = $this->fixtures->entry($this->collectionId, [[
+            'language_id' => $this->langEsId,
+            'slug' => 'noticia-con-portada',
+            'title' => 'Noticia con portada',
+            'featured_image_url' => 'https://example.com/news-cover.jpg',
+        ]]);
+
+        $result = $this->get($this->entryPath('/noticia-con-portada'));
+        $result->assertStatus(200);
+
+        $body = json_decode($result->getJSON(), true);
+        $blocks = $body['data']['blocks'];
+
+        $this->assertSame(['gallery'], array_column($blocks, 'block_key'));
+        $this->assertTrue($blocks[0]['is_virtual']);
+        $this->assertSame('gallery_item', $blocks[0]['children'][0]['block_key']);
+        $this->assertSame('https://example.com/news-cover.jpg', $blocks[0]['children'][0]['block_config']['image']['url']);
+        $this->assertNotEmpty($entry['id']);
+    }
+
     public function testPublicEntriesFallbackToAnotherLocaleWhenCurrentSlugIsEmpty(): void
     {
         $this->db->table('cms_entries')->insert([

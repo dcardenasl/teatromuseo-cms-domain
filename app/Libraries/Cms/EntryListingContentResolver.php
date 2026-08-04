@@ -18,7 +18,7 @@ final class EntryListingContentResolver
 
     /**
      * @param list<array<string, mixed>> $entries
-     * @return array<int, array{rich_text: string, image: array{url: string, alt: string}|null, secondary_action: array{label: string, url: string}|null}>
+     * @return array<int, array{rich_text: string, image: array{url: string, alt: string}|null, hover_image: array{url: string, alt: string}|null, secondary_action: array{label: string, url: string}|null, documents: list<array{url: string, title: string, description: string, file_id: int|null}>, publication_date: string}>
      */
     public function resolveBatch(array $entries, string $langCode): array
     {
@@ -47,8 +47,12 @@ final class EntryListingContentResolver
                     ?: $this->richTextFromBlock($blocks),
                 'image' => $this->imageFromSchema($schemaListing['image'] ?? null)
                     ?? $this->imageFromBlock($blocks),
+                'hover_image' => $this->hoverImageFromBlock($blocks),
                 'secondary_action' => $this->actionFromSchema($schemaListing['secondary_action'] ?? null)
                     ?? $this->actionFromBlock($blocks),
+                'documents' => $this->documentsFromBlocks($blocks),
+                'publication_date' => $this->publicationDateFromBlocks($blocks)
+                    ?: $this->publicationYearFromEntry($entry),
             ];
         }
 
@@ -107,6 +111,27 @@ final class EntryListingContentResolver
 
     /**
      * @param list<array<string, mixed>> $blocks
+     * @return array{url: string, alt: string}|null
+     */
+    private function hoverImageFromBlock(array $blocks): ?array
+    {
+        foreach ($blocks as $block) {
+            if (($block['block_key'] ?? null) !== 'persona_ficha') {
+                continue;
+            }
+
+            $data = is_array($block['block_data'] ?? null) ? $block['block_data'] : [];
+            $image = $this->imageFromSchema($data['hover_portrait'] ?? null);
+            if ($image !== null) {
+                return $image;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $blocks
      * @return array{label: string, url: string}|null
      */
     private function actionFromBlock(array $blocks): ?array
@@ -117,6 +142,145 @@ final class EntryListingContentResolver
             'label' => $data['label'] ?? null,
             'url' => $data['url'] ?? null,
         ]);
+    }
+
+    /**
+     * Resolve every document block, not only the first one. The current data
+     * uses repeated document_download instances for some publications, while
+     * document_gallery stores several files inside one repeater. Keeping both
+     * shapes behind this projection preserves backwards compatibility and
+     * gives public listings one stable multi-document contract.
+     *
+     * @param list<array<string, mixed>> $blocks
+     * @return list<array{url: string, title: string, description: string, file_id: int|null}>
+     */
+    private function documentsFromBlocks(array $blocks): array
+    {
+        $documents = [];
+        foreach ($blocks as $block) {
+            $key = (string) ($block['block_key'] ?? '');
+            $data = is_array($block['block_data'] ?? null) ? $block['block_data'] : [];
+            $config = is_array($block['block_config'] ?? null) ? $block['block_config'] : [];
+
+            if ($key === 'document_download') {
+                $document = $this->documentFromReference(
+                    $config['document'] ?? null,
+                    $this->stringValue($data['title'] ?? null),
+                    $this->stringValue($data['description'] ?? null),
+                );
+                if ($document !== null) {
+                    $documents[] = $document;
+                }
+            }
+
+            if ($key === 'document_gallery') {
+                $items = is_array($data['documents'] ?? null) ? $data['documents'] : [];
+                foreach ($items as $item) {
+                    if (! is_array($item)) {
+                        continue;
+                    }
+                    $document = $this->documentFromReference(
+                        $item['file'] ?? null,
+                        $this->stringValue($item['title'] ?? null),
+                        $this->stringValue($item['description'] ?? null),
+                    );
+                    if ($document !== null) {
+                        $documents[] = $document;
+                    }
+                }
+            }
+
+            if ($key === 'publicacion_metadata') {
+                $document = $this->documentFromReference(
+                    $data['document_link'] ?? null,
+                    '',
+                    '',
+                );
+                if ($document !== null) {
+                    $documents[] = $document;
+                }
+            }
+        }
+
+        $unique = [];
+        foreach ($documents as $document) {
+            $identity = $document['file_id'] !== null
+                ? 'file:' . $document['file_id']
+                : 'url:' . $document['url'];
+            if (! isset($unique[$identity])) {
+                $unique[$identity] = $document;
+            }
+        }
+
+        return array_values($unique);
+    }
+
+    /** @param list<array<string, mixed>> $blocks */
+    private function publicationDateFromBlocks(array $blocks): string
+    {
+        foreach ($blocks as $block) {
+            if (($block['block_key'] ?? null) !== 'publicacion_metadata') {
+                continue;
+            }
+            $data = is_array($block['block_data'] ?? null) ? $block['block_data'] : [];
+            $date = $this->stringValue($data['publication_date'] ?? null);
+            if ($date !== '') {
+                return $date;
+            }
+        }
+
+        return '';
+    }
+
+    /** @param array<string, mixed> $entry */
+    private function publicationYearFromEntry(array $entry): string
+    {
+        $title = $this->stringValue($entry['title'] ?? null);
+        if ($title === '') {
+            return '';
+        }
+
+        preg_match_all('/\b(?:19|20)\d{2}\b/', $title, $matches);
+        $years = array_values(array_unique($matches[0]));
+        if ($years === []) {
+            return '';
+        }
+
+        return count($years) === 1
+            ? $years[0]
+            : $years[0] . '–' . $years[count($years) - 1];
+    }
+
+    /** @return array{url: string, title: string, description: string, file_id: int|null}|null */
+    private function documentFromReference(mixed $value, string $title, string $description): ?array
+    {
+        if (is_string($value)) {
+            $value = ['url' => $value];
+        }
+        if (is_object($value)) {
+            $value = (array) $value;
+        }
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $fileId = is_numeric($value['file_id'] ?? null) && (int) $value['file_id'] > 0
+            ? (int) $value['file_id']
+            : null;
+        $url = $this->stringValue($value['url'] ?? null);
+        if ($url === '' && $fileId !== null) {
+            $url = '/files/' . $fileId . '/view';
+        }
+        if ($url === '' || ($fileId === null && ! str_starts_with($url, 'http') && ! str_starts_with($url, '/'))) {
+            return null;
+        }
+
+        return [
+            'url' => $url,
+            'title' => $title,
+            'description' => $description,
+            'file_id' => $fileId,
+        ];
     }
 
     /**

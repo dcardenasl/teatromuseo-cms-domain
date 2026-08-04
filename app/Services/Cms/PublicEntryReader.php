@@ -147,7 +147,10 @@ class PublicEntryReader
         $entryModel->builder()->resetQuery();
         $entryModel->select('cms_entries.*');
 
-        if ($dto->category !== null) {
+        if ($dto->category_id !== null) {
+            $entryModel->join('cms_entry_categories', 'cms_entry_categories.entry_id = cms_entries.id')
+                ->where('cms_entry_categories.category_id', $dto->category_id);
+        } elseif ($dto->category !== null) {
             $catTrans = $this->categoryTranslationModel()->where('slug', $dto->category)->first();
             if (!$catTrans instanceof \App\Entities\CategoryTranslationEntity) {
                 return PaginatedResponseDTO::fromArray([
@@ -498,15 +501,20 @@ class PublicEntryReader
         $categoriesMap = $this->taxonomyPivotResolver->resolveLocalizedCategories([$entryId], $langId, $defaultLangId);
         $tagsMap       = $this->taxonomyPivotResolver->resolveLocalizedTags([$entryId], $langId, $defaultLangId);
 
-        $blocks = $this->blockInstanceSerializer->forContent('entry', $entryId, $dto->lang);
-
         $data               = array_merge($entry->toArray(), $entryTransMap[$entryId] ?? []);
         $data['categories'] = $categoriesMap[$entryId] ?? [];
         $data['tags']       = $tagsMap[$entryId] ?? [];
-        $data['blocks']     = $blocks;
 
         // Normalize featured/OG images into canonical nested objects.
         $data = $this->normalizeEntryMedia($data);
+
+        $blocks = $this->blockInstanceSerializer->forContent('entry', $entryId, $dto->lang);
+        $data['blocks'] = $this->composeNewsGallery(
+            $dto->collection_key,
+            $blocks,
+            is_array($data['featured_image'] ?? null) ? $data['featured_image'] : [],
+            (string) ($data['title'] ?? '')
+        );
 
         // Get all translations of this entry to construct localized slugs
         /** @var list<\App\Entities\EntryTranslationEntity> $allTranslations */
@@ -728,5 +736,185 @@ class PublicEntryReader
         );
 
         return $item;
+    }
+
+    /**
+     * The public contract for Noticias exposes the entry cover in its gallery.
+     * The cover remains owned by the entry translation; the gallery item is a
+     * virtual projection so changing the cover can never leave a duplicated,
+     * stale media reference in CMS storage.
+     *
+     * @param array<int, array<string, mixed>> $blocks
+     * @param array<string, mixed> $featuredImage
+     * @return array<int, array<string, mixed>>
+     */
+    private function composeNewsGallery(string $collectionKey, array $blocks, array $featuredImage, string $title): array
+    {
+        if (strtolower(trim($collectionKey)) !== 'noticias' || ! $this->mediaReferenceIsUsable($featuredImage)) {
+            return $blocks;
+        }
+
+        $hasGallery = false;
+        $normalizedBlocks = [];
+        foreach ($blocks as $block) {
+            if (! is_array($block)) {
+                continue;
+            }
+
+            // The old Noticias template created an optional image block with
+            // no configured image. It is not editorial content and must not be
+            // exposed as a public placeholder.
+            if (($block['block_key'] ?? '') === 'image' && ! $this->blockConfigHasImage($block)) {
+                continue;
+            }
+
+            $children = is_array($block['children'] ?? null)
+                ? array_values(array_filter($block['children'], static fn (mixed $child): bool => is_array($child)))
+                : [];
+            $block['children'] = $this->composeNewsGalleryChildren($children, $featuredImage, $title, $hasGallery);
+
+            if (($block['block_key'] ?? '') === 'gallery') {
+                $hasGallery = true;
+                if (! $this->galleryContainsImage($block['children'], $featuredImage)) {
+                    array_unshift($block['children'], $this->virtualGalleryItem($featuredImage, $title));
+                }
+            }
+
+            $normalizedBlocks[] = $block;
+        }
+
+        if (! $hasGallery) {
+            $normalizedBlocks[] = $this->virtualGallery($featuredImage, $title);
+        }
+
+        return $normalizedBlocks;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $children
+     * @param array<string, mixed> $featuredImage
+     * @param-out bool $hasGallery
+     * @return list<array<string, mixed>>
+     */
+    private function composeNewsGalleryChildren(array $children, array $featuredImage, string $title, bool &$hasGallery): array
+    {
+        $normalizedChildren = [];
+        foreach ($children as $child) {
+            if (! is_array($child)) {
+                continue;
+            }
+            if (($child['block_key'] ?? '') === 'image' && ! $this->blockConfigHasImage($child)) {
+                continue;
+            }
+
+            $nested = is_array($child['children'] ?? null)
+                ? array_values(array_filter($child['children'], static fn (mixed $nestedChild): bool => is_array($nestedChild)))
+                : [];
+            $child['children'] = $this->composeNewsGalleryChildren($nested, $featuredImage, $title, $hasGallery);
+            if (($child['block_key'] ?? '') === 'gallery') {
+                $hasGallery = true;
+                if (! $this->galleryContainsImage($child['children'], $featuredImage)) {
+                    array_unshift($child['children'], $this->virtualGalleryItem($featuredImage, $title));
+                }
+            }
+            $normalizedChildren[] = $child;
+        }
+
+        return $normalizedChildren;
+    }
+
+    /**
+     * @param array<string, mixed> $block
+     */
+    private function blockConfigHasImage(array $block): bool
+    {
+        $image = is_array($block['block_config']['image'] ?? null) ? $block['block_config']['image'] : [];
+
+        return $this->mediaReferenceIsUsable($image);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $children
+     * @param array<string, mixed> $featuredImage
+     */
+    private function galleryContainsImage(array $children, array $featuredImage): bool
+    {
+        foreach ($children as $child) {
+            if (! is_array($child) || ($child['block_key'] ?? '') !== 'gallery_item') {
+                continue;
+            }
+            $image = is_array($child['block_config']['image'] ?? null) ? $child['block_config']['image'] : [];
+            if ($this->mediaReferencesMatch($image, $featuredImage)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $left
+     * @param array<string, mixed> $right
+     */
+    private function mediaReferencesMatch(array $left, array $right): bool
+    {
+        $leftFileId = (int) ($left['file_id'] ?? 0);
+        $rightFileId = (int) ($right['file_id'] ?? 0);
+        if ($leftFileId > 0 && $rightFileId > 0) {
+            return $leftFileId === $rightFileId;
+        }
+
+        $leftUrl = trim((string) ($left['url'] ?? ''));
+        $rightUrl = trim((string) ($right['url'] ?? ''));
+
+        return $leftUrl !== '' && $leftUrl === $rightUrl;
+    }
+
+    /**
+     * @param array<string, mixed> $image
+     */
+    private function mediaReferenceIsUsable(array $image): bool
+    {
+        return (int) ($image['file_id'] ?? 0) > 0 || trim((string) ($image['url'] ?? '')) !== '';
+    }
+
+    /**
+     * @param array<string, mixed> $image
+     * @return array<string, mixed>
+     */
+    private function virtualGalleryItem(array $image, string $title): array
+    {
+        return [
+            'id' => null,
+            'block_key' => 'gallery_item',
+            'sort_order' => 0,
+            'column_index' => null,
+            'parent_instance_id' => null,
+            'block_config' => ['image' => $image],
+            'block_data' => ['alt' => $title, 'caption' => ''],
+            'is_fallback' => false,
+            'is_virtual' => true,
+            'children' => [],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $image
+     * @return array<string, mixed>
+     */
+    private function virtualGallery(array $image, string $title): array
+    {
+        return [
+            'id' => null,
+            'block_key' => 'gallery',
+            'sort_order' => PHP_INT_MAX,
+            'column_index' => null,
+            'parent_instance_id' => null,
+            'block_config' => [],
+            'block_data' => [],
+            'is_fallback' => false,
+            'is_virtual' => true,
+            'children' => [$this->virtualGalleryItem($image, $title)],
+        ];
     }
 }

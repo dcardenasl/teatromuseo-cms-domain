@@ -13,6 +13,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
     public int $page;
     public int $per_page;
     public ?string $category;
+    public ?int $category_id;
     public ?string $tag;
     public ?string $q;
     public string $order_by;
@@ -29,6 +30,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'per_page'       => 'permit_empty|is_natural_no_zero|less_than[101]',
             'limit'          => 'permit_empty|is_natural_no_zero|less_than[101]',
             'category'       => 'permit_empty|string|max_length[150]',
+            'category_id'    => 'permit_empty|is_natural_no_zero',
             'tag'            => 'permit_empty|string|max_length[100]',
             'q'              => 'permit_empty|string|max_length[255]',
             'order_by'       => 'permit_empty|in_list[published_at,sort_order,created_at,title]',
@@ -46,6 +48,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
         $perPage              = $data['per_page'] ?? ($data['limit'] ?? 20);
         $this->per_page       = $perPage !== '' ? (int) $perPage : 20;
         $this->category       = isset($data['category']) && $data['category'] !== '' ? (string) $data['category'] : null;
+        $this->category_id    = isset($data['category_id']) && $data['category_id'] !== '' ? (int) $data['category_id'] : null;
         $this->tag            = isset($data['tag']) && $data['tag'] !== '' ? (string) $data['tag'] : null;
         $this->q              = isset($data['q']) && $data['q'] !== '' ? (string) $data['q'] : null;
         $this->order_by       = (string) ($data['order_by'] ?? 'sort_order');
@@ -63,6 +66,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'page'           => $this->page,
             'per_page'       => $this->per_page,
             'category'       => $this->category,
+            'category_id'    => $this->category_id,
             'tag'            => $this->tag,
             'q'              => $this->q,
             'order_by'       => $this->order_by,
