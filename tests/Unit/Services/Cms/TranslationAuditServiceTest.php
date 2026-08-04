@@ -271,6 +271,29 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->assertEquals('complete', $audit['en']['status']);
     }
 
+    public function testDefaultLanguageIsNotMarkedOutdatedAgainstItsOwnSourceResource(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+            'updated_at' => '2026-07-20 12:00:00',
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => $this->langEsId,
+            'slug' => 'inicio',
+            'title' => 'Inicio',
+            'updated_at' => '2026-07-19 08:00:00',
+        ]);
+
+        $audit = Services::translationAuditService(false)->auditResource('page', $pageId);
+
+        $this->assertSame('complete', $audit['es']['status']);
+    }
+
     public function testGetMissingTranslationsReportCoversCmsContent(): void
     {
         $this->db->table('cms_pages')->insert([
@@ -999,6 +1022,56 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->assertSame('incomplete', $ownerAudit['blocks'][$instanceId]['en']['status']);
     }
 
+    public function testAFieldThatMatchesTheSourceDoesNotMakeAPartiallyTranslatedBlockPending(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_content_blocks')->insert([
+            'block_key' => 'test_partial_translation',
+            'name' => 'Test partial translation',
+            'category' => 'content',
+            'schema_definition' => json_encode(['fields' => [
+                'venue' => ['type' => 'string', 'required' => false],
+                'description' => ['type' => 'richtext', 'required' => false],
+            ]]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+        $blockTypeId = $this->db->insertID();
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => $pageId,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $instanceId = $this->db->insertID();
+
+        foreach ([
+            $this->langEsId => ['venue' => 'Teatro Museo', 'description' => 'Descripción en español'],
+            $this->langEnId => ['venue' => 'Teatro Museo', 'description' => 'Description in English'],
+        ] as $languageId => $data) {
+            $this->db->table('cms_block_instance_translations')->insert([
+                'instance_id' => $instanceId,
+                'language_id' => $languageId,
+                'block_data' => json_encode($data),
+                'is_published' => 1,
+            ]);
+        }
+
+        $audit = Services::translationAuditService(false)->auditResource('block_instance', $instanceId);
+
+        $this->assertSame('complete', $audit['en']['status']);
+    }
+
     public function testIdenticalBlockUrlAcrossLanguagesIsNotFlaggedAsUntranslated(): void
     {
         $this->db->table('cms_pages')->insert([
@@ -1049,6 +1122,98 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $audit = Services::translationAuditService(false)->auditResource('block_instance', $instanceId);
 
         $this->assertSame('complete', $audit['en']['status']);
+    }
+
+    public function testSharedBlockIdentifiersAndOperationalStringsAreNotAuditedAsTranslations(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+        $this->db->table('cms_content_blocks')->insert([
+            'block_key' => 'test_operational_values',
+            'name' => 'Test operational values',
+            'category' => 'content',
+            'schema_definition' => json_encode(['fields' => [
+                'video_id' => ['type' => 'string', 'required' => false],
+                'duration' => ['type' => 'string', 'required' => false],
+                'title' => ['type' => 'string', 'required' => false],
+            ]]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+        $blockTypeId = $this->db->insertID();
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => $pageId,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $instanceId = $this->db->insertID();
+
+        foreach ([
+            $this->langEsId => ['video_id' => 'abc123', 'duration' => '90 min', 'title' => 'Título'],
+            $this->langEnId => ['video_id' => 'abc123', 'duration' => '90 min', 'title' => 'Título'],
+        ] as $languageId => $data) {
+            $this->db->table('cms_block_instance_translations')->insert([
+                'instance_id' => $instanceId,
+                'language_id' => $languageId,
+                'block_data' => json_encode($data),
+                'is_published' => 1,
+            ]);
+        }
+
+        $audit = Services::translationAuditService(false)->auditResource('block_instance', $instanceId);
+
+        $this->assertSame('complete', $audit['en']['status']);
+    }
+
+    public function testEmptyOptionalBlockContainerDoesNotRequireTranslationRows(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+        $this->db->table('cms_content_blocks')->insert([
+            'block_key' => 'test_optional_container',
+            'name' => 'Test optional container',
+            'category' => 'layout',
+            'schema_definition' => json_encode(['fields' => [
+                'title' => ['type' => 'string', 'required' => false],
+                'description' => ['type' => 'textarea', 'required' => false],
+            ]]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 1,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+        $blockTypeId = $this->db->insertID();
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => $pageId,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $instanceId = $this->db->insertID();
+
+        $audit = Services::translationAuditService(false)->auditResource('block_instance', $instanceId);
+
+        $this->assertSame('complete', $audit['es']['status']);
+        $this->assertSame('complete', $audit['en']['status']);
+        $this->assertSame([], array_values(array_filter(
+            Services::translationAuditService(false)->getMissingTranslationsReport(),
+            static fn (array $row): bool => (int) ($row['resource_id'] ?? 0) === $instanceId
+        )));
     }
 
     public function testOverallCompletenessIncludesExpandedCmsResources(): void

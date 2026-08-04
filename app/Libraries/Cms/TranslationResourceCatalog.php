@@ -147,11 +147,44 @@ final class TranslationResourceCatalog
      * Block schema fields considered part of translation content.
      */
     private const AUDITABLE_BLOCK_FIELD_TYPES = [
-        'string',
         'text',
         'textarea',
         'richtext',
-        'url',
+    ];
+
+    /**
+     * String fields that are clearly editorial UI/content labels. Other
+     * strings in block schemas are deliberately not compared: identifiers,
+     * prices, dates, venues, names and media metadata can be identical in
+     * every language without indicating a missing translation.
+     *
+     * @var list<string>
+     */
+    private const AUDITABLE_BLOCK_STRING_FIELDS = [
+        'alt',
+        'caption',
+        'link_label',
+        'label',
+        'heading',
+        'subheading',
+        'breadcrumb_label',
+        'title',
+        'subtitle',
+        'summary',
+        'bio',
+        'button_label',
+        'cta_label',
+        'section_title',
+        'section_subtitle',
+        'section_label',
+        'intro_title',
+        'item_label',
+        'count_label',
+        'empty_message',
+        'featured_item_label',
+        'document_label',
+        'fallback_title',
+        'message',
     ];
 
     /**
@@ -191,9 +224,17 @@ final class TranslationResourceCatalog
     /**
      * @param array<string, mixed> $fieldDefinition
      */
-    public static function isAuditableBlockField(array $fieldDefinition): bool
+    public static function isAuditableBlockField(array $fieldDefinition, ?string $fieldKey = null): bool
     {
-        if (array_key_exists('translatable', $fieldDefinition) && $fieldDefinition['translatable'] === false) {
+        if (array_key_exists('translatable', $fieldDefinition)) {
+            return $fieldDefinition['translatable'] === true;
+        }
+
+        if ($fieldKey !== null && in_array($fieldKey, self::AUDITABLE_BLOCK_STRING_FIELDS, true)) {
+            return true;
+        }
+
+        if ($fieldKey !== null && strtolower((string) ($fieldDefinition['type'] ?? 'string')) === 'string') {
             return false;
         }
 

@@ -37,6 +37,9 @@ use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
  */
 class TranslationAuditService implements TranslationAuditServiceInterface
 {
+    /** @var list<string> States that need review but do not prove missing translation work. */
+    private const REVIEW_ONLY_STATUSES = ['untranslated', 'outdated'];
+
     /**
      * @var list<array{
      *   type: string,
@@ -116,7 +119,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
 
         $totalElements = $this->countAuditableResources();
         $missingCounts = [];
-        foreach ($this->getMissingTranslationsReport() as $issue) {
+        foreach ($this->getMissingTranslationsReport(['scope' => 'actionable']) as $issue) {
             $languageId = (int) ($issue['language_id'] ?? 0);
             if ($languageId > 0) {
                 $missingCounts[$languageId] = ($missingCounts[$languageId] ?? 0) + 1;
@@ -165,12 +168,19 @@ class TranslationAuditService implements TranslationAuditServiceInterface
         return array_values(array_filter($issues, function (array $issue) use ($filters): bool {
             $resource = (string) ($filters['resource'] ?? '');
             $status = (string) ($filters['status'] ?? '');
+            $scope = (string) ($filters['scope'] ?? '');
             $search = mb_strtolower((string) ($filters['search'] ?? ''));
 
             if ($resource !== '' && (string) ($issue['resource'] ?? '') !== $resource) {
                 return false;
             }
             if ($status !== '' && (string) ($issue['status'] ?? '') !== $status) {
+                return false;
+            }
+            if ($status === '' && $scope === 'actionable' && in_array((string) ($issue['status'] ?? ''), self::REVIEW_ONLY_STATUSES, true)) {
+                return false;
+            }
+            if ($status === '' && $scope === 'warnings' && ! in_array((string) ($issue['status'] ?? ''), self::REVIEW_ONLY_STATUSES, true)) {
                 return false;
             }
             if ($search !== '') {
@@ -252,16 +262,21 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             } else {
                 $translation = $translations[$langId] ?? null;
             }
-            $isSettingDefaultLanguage = $resourceType === 'setting' && $defaultLanguageId === $langId;
-            [$status, $detail] = $this->support->evaluateTranslationState(
-                $translation,
-                $translations,
-                $fieldDefinitions,
-                $langId,
-                $valueResolver,
-                $isSettingDefaultLanguage ? null : (isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null),
-                $resourceType === 'setting' ? null : $defaultLanguageId
-            );
+            [$status, $detail] = $resourceType === 'block_instance'
+                && $translation === null
+                && ! $this->blockAuditor->shouldReportMissing($translations, $fieldDefinitions, $valueResolver)
+                ? ['complete', '']
+                : $this->support->evaluateTranslationState(
+                    $translation,
+                    $translations,
+                    $fieldDefinitions,
+                    $langId,
+                    $valueResolver,
+                    $langId === $defaultLanguageId
+                        ? null
+                        : (isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null),
+                    $resourceType === 'setting' ? null : $defaultLanguageId
+                );
 
             // The admin's block-editor tab dots consume this same endpoint
             // (auditResource('block_instance', $id)) and use the same
@@ -529,7 +544,9 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                     $fieldDefinitions,
                     $langId,
                     $valueResolver,
-                    isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null,
+                    $langId === $defaultLanguageId
+                        ? null
+                        : (isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null),
                     $defaultLanguageId
                 );
                 if ($status === 'complete') {

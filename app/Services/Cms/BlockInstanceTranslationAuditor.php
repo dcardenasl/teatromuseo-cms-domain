@@ -56,17 +56,23 @@ class BlockInstanceTranslationAuditor
                 }
 
                 $translation = $translations[$langId] ?? null;
-                [$status, $detail] = $this->support->evaluateTranslationState(
-                    $translation,
-                    $translations,
-                    $translatableFields,
-                    $langId,
-                    function (array $row, string $fieldKey, array $fieldDefinition): mixed {
-                        return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
-                    },
-                    isset($instance['updated_at']) ? (string) $instance['updated_at'] : null,
-                    $defaultLanguageId
-                );
+                $valueResolver = function (array $row, string $fieldKey, array $fieldDefinition): mixed {
+                    return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
+                };
+                [$status, $detail] = $translation === null
+                    && ! $this->shouldReportMissing($translations, $translatableFields, $valueResolver)
+                    ? ['complete', '']
+                    : $this->support->evaluateTranslationState(
+                        $translation,
+                        $translations,
+                        $translatableFields,
+                        $langId,
+                        $valueResolver,
+                        $langId === $defaultLanguageId
+                            ? null
+                            : (isset($instance['updated_at']) ? (string) $instance['updated_at'] : null),
+                        $defaultLanguageId
+                    );
                 if ($status === 'complete') {
                     continue;
                 }
@@ -116,6 +122,34 @@ class BlockInstanceTranslationAuditor
         };
 
         return [$instance, $fieldDefinitions, $translations, $valueResolver];
+    }
+
+    /**
+     * Empty optional containers (for example a gallery whose content lives in
+     * child instances) do not need translation rows. A block with required
+     * fields, or with content in any existing language, still requires a row
+     * for every active language.
+     *
+     * @param array<int, array<string, mixed>> $translations
+     * @param array<string, array<string, mixed>> $fieldDefinitions
+     */
+    public function shouldReportMissing(array $translations, array $fieldDefinitions, callable $valueResolver): bool
+    {
+        foreach ($fieldDefinitions as $fieldDefinition) {
+            if ((bool) ($fieldDefinition['required'] ?? false)) {
+                return true;
+            }
+        }
+
+        foreach ($translations as $translation) {
+            foreach ($fieldDefinitions as $fieldKey => $fieldDefinition) {
+                if (! $this->support->isBlank($valueResolver($translation, (string) $fieldKey, $fieldDefinition))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -178,17 +212,23 @@ class BlockInstanceTranslationAuditor
                 $langCode = (string) $lang->code;
 
                 $translation = $translations[$langId] ?? null;
-                [$status, $detail] = $this->support->evaluateTranslationState(
-                    $translation,
-                    $translations,
-                    $translatableFields,
-                    $langId,
-                    function (array $row, string $fieldKey, array $fieldDefinition): mixed {
-                        return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
-                    },
-                    isset($instance['updated_at']) ? (string) $instance['updated_at'] : null,
-                    $defaultLanguageId
-                );
+                $valueResolver = function (array $row, string $fieldKey, array $fieldDefinition): mixed {
+                    return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
+                };
+                [$status, $detail] = $translation === null
+                    && ! $this->shouldReportMissing($translations, $translatableFields, $valueResolver)
+                    ? ['complete', '']
+                    : $this->support->evaluateTranslationState(
+                        $translation,
+                        $translations,
+                        $translatableFields,
+                        $langId,
+                        $valueResolver,
+                        $langId === $defaultLanguageId
+                            ? null
+                            : (isset($instance['updated_at']) ? (string) $instance['updated_at'] : null),
+                        $defaultLanguageId
+                    );
 
                 $status = $this->support->collapseForBlockBadge($status);
 
@@ -306,7 +346,7 @@ class BlockInstanceTranslationAuditor
                 continue;
             }
 
-            if (!TranslationResourceCatalog::isAuditableBlockField($fieldDef)) {
+            if (! TranslationResourceCatalog::isAuditableBlockField($fieldDef, (string) $fieldKey)) {
                 continue;
             }
 

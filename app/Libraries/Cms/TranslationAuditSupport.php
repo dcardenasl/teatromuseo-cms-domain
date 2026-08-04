@@ -143,7 +143,8 @@ class TranslationAuditSupport
         $row = $this->toArray($translation);
         $missingRequired = [];
         $mismatchedOptional = [];
-        $untranslated = [];
+        $identicalToSource = [];
+        $hasTranslatedContent = false;
 
         $sourceRow = null;
         if ($defaultLanguageId !== null && $defaultLanguageId !== $languageId) {
@@ -183,7 +184,13 @@ class TranslationAuditSupport
             if ($sourceRow !== null && (bool) ($fieldDefinition['compareToSource'] ?? false)) {
                 $sourceValue = $valueResolver($sourceRow, $fieldKey, $fieldDefinition);
                 if (! $this->isBlank($sourceValue) && $this->valuesAreIdentical($currentValue, $sourceValue)) {
-                    $untranslated[] = $fieldKey;
+                    $identicalToSource[] = $fieldKey;
+                } else {
+                    // A translation may legitimately keep one field identical
+                    // to the source (proper names, brands, venues, etc.). It
+                    // is only an untranslated copy when every comparable
+                    // content value remains identical.
+                    $hasTranslatedContent = true;
                 }
             }
         }
@@ -193,9 +200,9 @@ class TranslationAuditSupport
             return ['incomplete', 'Missing required fields: ' . implode(', ', $missingRequired)];
         }
 
-        $untranslated = array_values(array_unique($untranslated));
-        if ($untranslated !== []) {
-            return ['untranslated', 'Same text as the default language: ' . implode(', ', $untranslated)];
+        $identicalToSource = array_values(array_unique($identicalToSource));
+        if ($identicalToSource !== [] && ! $hasTranslatedContent) {
+            return ['untranslated', 'Same text as the default language: ' . implode(', ', $identicalToSource)];
         }
 
         $mismatchedOptional = array_values(array_unique($mismatchedOptional));
