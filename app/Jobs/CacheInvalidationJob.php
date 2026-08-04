@@ -21,6 +21,13 @@ final class CacheInvalidationJob extends Job
             static fn (string $scope): bool => $scope !== '',
         ));
 
-        (new CacheInvalidationClient(dispatch: false))->invalidateNow($normalizedScopes);
+        $source = is_string($this->data['source'] ?? null)
+            ? trim((string) $this->data['source'])
+            : 'cms_automatic';
+
+        (new CacheInvalidationClient(dispatch: false))->invalidateNow(
+            $normalizedScopes,
+            $source !== '' ? $source : 'cms_automatic',
+        );
     }
 }

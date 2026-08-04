@@ -17,7 +17,7 @@ final class CacheInvalidationClientTest extends TestCase
         $queue = $this->createMock(QueueManagerInterface::class);
         $queue->expects($this->once())
             ->method('push')
-            ->with(CacheInvalidationJob::class, ['scopes' => ['menus']], 'default')
+            ->with(CacheInvalidationJob::class, ['scopes' => ['menus'], 'source' => 'cms_automatic'], 'default')
             ->willReturn(42);
 
         (new CacheInvalidationClient(queueManager: $queue))->invalidate(['menus']);

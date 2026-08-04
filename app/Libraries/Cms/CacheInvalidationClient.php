@@ -48,7 +48,7 @@ class CacheInvalidationClient
             try {
                 $this->queueManager->push(
                     \App\Jobs\CacheInvalidationJob::class,
-                    ['scopes' => $scopes],
+                    ['scopes' => $scopes, 'source' => 'cms_automatic'],
                     $this->queueName,
                 );
             } catch (\Throwable $exception) {
@@ -63,7 +63,7 @@ class CacheInvalidationClient
 
     /** Execute the HTTP invalidation, normally from the queue worker. */
     /** @param list<string> $scopes */
-    public function invalidateNow(array $scopes): void
+    public function invalidateNow(array $scopes, string $source = 'cms_automatic'): void
     {
         if ($this->webUrl === '' || $this->invalidateKey === '' || empty($scopes)) {
             return;
@@ -91,6 +91,7 @@ class CacheInvalidationClient
             CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/json',
                 'X-Invalidate-Key: ' . $this->invalidateKey,
+                'X-Cache-Invalidation-Source: ' . $source,
             ],
         ]);
 
