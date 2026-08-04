@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Keeps the gallery block editor aligned with its public rendering contract. */
+/**
+ * Keeps the gallery block editor aligned with its public rendering contract.
+ *
+ * @cms-content-data-migration
+ */
 final class EnhanceGalleryBlockFields extends Migration
 {
     public function up(): void

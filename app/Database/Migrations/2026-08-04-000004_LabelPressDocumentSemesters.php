@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Stores the editorial semester on each press document block. */
+/**
+ * Stores the editorial semester on each press document block.
+ *
+ * @cms-content-data-migration
+ */
 final class LabelPressDocumentSemesters extends Migration
 {
     public function up(): void

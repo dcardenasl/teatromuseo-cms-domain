@@ -9,6 +9,8 @@ use CodeIgniter\Database\Migration;
 /**
  * Separates the editorial, press and transparency domains without deleting
  * the original collection, entries, categories or file references.
+ *
+ * @cms-content-data-migration
  */
 final class SplitPublicationCollections extends Migration
 {

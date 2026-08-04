@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Ensures the three public pages use collection ownership, not old filters. */
+/**
+ * Ensures the three public pages use collection ownership, not old filters.
+ *
+ * @cms-content-data-migration
+ */
 final class NormalizePublicationPageBindings extends Migration
 {
     public function up(): void

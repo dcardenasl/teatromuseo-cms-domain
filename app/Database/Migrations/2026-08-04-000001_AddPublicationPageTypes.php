@@ -9,6 +9,8 @@ use CodeIgniter\Database\Migration;
 /**
  * Gives canonical editorial listing pages stable semantic types instead of
  * relying on localized slugs or the generic page type.
+ *
+ * @cms-content-data-migration
  */
 final class AddPublicationPageTypes extends Migration
 {

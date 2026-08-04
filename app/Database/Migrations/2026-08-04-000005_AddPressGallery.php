@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Adds the local legacy press gallery to the canonical Prensa page. */
+/**
+ * Adds the local legacy press gallery to the canonical Prensa page.
+ *
+ * @cms-content-data-migration
+ */
 final class AddPressGallery extends Migration
 {
     public function up(): void

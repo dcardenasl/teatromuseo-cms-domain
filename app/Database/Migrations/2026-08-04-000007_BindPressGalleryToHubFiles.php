@@ -9,6 +9,8 @@ use CodeIgniter\Database\Migration;
 /**
  * Binds the press gallery to Hub originals so the public serializer can expose
  * the generated responsive variants (thumb, sm, md and lg).
+ *
+ * @cms-content-data-migration
  */
 final class BindPressGalleryToHubFiles extends Migration
 {

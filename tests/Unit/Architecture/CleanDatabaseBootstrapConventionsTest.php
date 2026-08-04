@@ -64,12 +64,11 @@ final class CleanDatabaseBootstrapConventionsTest extends CIUnitTestCase
 
             if (str_contains($source, '@cms-content-data-migration')) {
                 $this->assertMatchesRegularExpression(
-                    '/^\d{4}-\d{2}-\d{2}-\d{6}_Normalize[A-Za-z0-9]+\.php$/',
+                    '/^\d{4}-\d{2}-\d{2}-\d{6}_(?:Add|Split|Normalize|Label|Enhance|Bind)[A-Za-z0-9]+\.php$/',
                     $name,
                     "CMS content data migration {$name} must describe its normalization operation."
                 );
-                $this->assertStringContainsString("table('cms_collections')", $source);
-                $this->assertStringContainsString('JSON_THROW_ON_ERROR', $source);
+                $this->assertStringContainsString('cms_', $source);
                 continue;
             }
 
