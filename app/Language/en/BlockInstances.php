@@ -8,6 +8,10 @@ return [
     'delete_success'      => 'BlockInstance deleted successfully.',
     'not_found'           => 'BlockInstance not found.',
     'locked_by_template'  => 'This block is locked by the collection template and cannot be deleted.',
+    'invalid_slide_navigation_mode' => 'The slide destination is invalid.',
+    'invalid_slide_internal_target' => 'Select a valid internal destination for the slide.',
+    'invalid_slide_external_url' => 'The external URL must start with http:// or https://.',
+    'external_url_without_external_mode' => 'An external URL can only be used with the external destination mode.',
     'fields'         => [
         'block_id' => 'Block',
         'block_id_placeholder' => 'Select Block',

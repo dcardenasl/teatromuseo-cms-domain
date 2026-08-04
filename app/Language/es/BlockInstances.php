@@ -8,6 +8,10 @@ return [
     'delete_success'      => 'BlockInstance eliminado(a) exitosamente.',
     'not_found'           => 'BlockInstance no encontrado(a).',
     'locked_by_template'  => 'Este bloque está bloqueado por la plantilla de la colección y no puede eliminarse.',
+    'invalid_slide_navigation_mode' => 'El destino del slide no es válido.',
+    'invalid_slide_internal_target' => 'Selecciona un destino interno válido para el slide.',
+    'invalid_slide_external_url' => 'La URL externa debe comenzar por http:// o https://.',
+    'external_url_without_external_mode' => 'La URL externa solo puede usarse cuando el destino es URL externa.',
     'fields'         => [
         'block_id' => 'Block',
         'block_id_placeholder' => 'Selecciona Block',

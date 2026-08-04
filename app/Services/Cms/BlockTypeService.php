@@ -23,7 +23,7 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
 
     private const ALLOWED_NAVIGATION_SOURCES = ['block_config', 'owner'];
 
-    private const ALLOWED_NAVIGATION_TARGETS = ['collection_index', 'listing_page', 'parent_page'];
+    private const ALLOWED_NAVIGATION_TARGETS = ['collection_index', 'listing_page', 'parent_page', 'slide_destination'];
 
     /** @var BaseConnection<mixed, mixed> */
     private BaseConnection $db;

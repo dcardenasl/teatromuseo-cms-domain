@@ -64,11 +64,43 @@ final class BlockNavigationResolver
             return $this->resolveOwnerParent($ownerType, $ownerId, $lang, $navigationDefinition);
         }
 
+        if (($navigationDefinition['target'] ?? '') === 'slide_destination') {
+            return $this->resolveSlideDestination($blockConfig, $lang);
+        }
+
         return match ($sourceType) {
             'cms_collection', 'collection' => $this->resolveCmsCollection($blockConfig, $lang, $navigationDefinition),
             'event_items' => $this->resolvePageType((string) ($navigationDefinition['event_page_type'] ?? 'events'), $lang),
             'catalog_items' => $this->resolvePageType((string) ($navigationDefinition['catalog_page_type'] ?? 'catalog_listing'), $lang),
             default => $this->unresolved('unsupported_source'),
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     * @return array{status: string, target_type: string|null, target_id: int|null, route_key: string|null, url: string|null}
+     */
+    private function resolveSlideDestination(array $config, string $lang): array
+    {
+        $mode = strtolower(trim((string) ($config['navigation_mode'] ?? 'none')));
+        if ($mode === 'none') {
+            return $this->unresolved('not_linked');
+        }
+
+        if ($mode !== 'internal') {
+            return $this->unresolved('external_url');
+        }
+
+        return match (strtolower(trim((string) ($config['navigation_target_type'] ?? '')))) {
+            'page' => $this->resolvePage((int) ($config['page_id'] ?? 0), 'page', $lang),
+            'event_listing' => $this->resolvePageType('events', $lang),
+            'catalog_listing' => $this->resolvePageType('catalog_listing', $lang),
+            'collection_index' => $this->resolveCmsCollection(
+                ['collection_id' => (int) ($config['collection_id'] ?? 0)],
+                $lang,
+                ['target' => 'collection_index'],
+            ),
+            default => $this->unresolved('unsupported_slide_target'),
         };
     }
 

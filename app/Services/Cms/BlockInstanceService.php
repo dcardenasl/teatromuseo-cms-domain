@@ -70,6 +70,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     protected function beforeStore(array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeStore($data, $context);
+        $this->validateSlideNavigation($data);
         $data = $this->normalizeBlockConfig($data);
         $data = $this->normalizeEntryReferencesFromPayload($data);
 
@@ -87,6 +88,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeUpdate($id, $data, $context);
+        $this->validateSlideNavigation($data, $id);
         $data = $this->normalizeBlockConfig($data);
         $data = $this->normalizeEntryReferencesFromPayload($data, $id);
 
@@ -345,6 +347,54 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         }
 
         return $data;
+    }
+
+    /** @param array<string, mixed> $data */
+    private function validateSlideNavigation(array $data, ?int $instanceId = null): void
+    {
+        $blockId = (int) ($data['block_id'] ?? 0);
+        if ($blockId <= 0 && $instanceId !== null) {
+            $instance = $this->repository->find($instanceId);
+            $blockId = (int) ($instance->block_id ?? 0);
+        }
+        $type = $this->blockTypeById($blockId);
+        if ($type === null || (string) $type->block_key !== 'slide_banner') {
+            return;
+        }
+
+        $config = $data['block_config'] ?? [];
+        if (is_string($config)) {
+            $config = json_decode($config, true);
+        }
+        $config = is_array($config) ? $config : [];
+        $mode = strtolower(trim((string) ($config['navigation_mode'] ?? 'none')));
+        if (! in_array($mode, ['none', 'internal', 'external'], true)) {
+            throw new \InvalidArgumentException(lang('BlockInstances.invalid_slide_navigation_mode'));
+        }
+        if ($mode === 'internal' && ! in_array((string) ($config['navigation_target_type'] ?? ''), ['page', 'event_listing', 'catalog_listing', 'collection_index'], true)) {
+            throw new \InvalidArgumentException(lang('BlockInstances.invalid_slide_internal_target'));
+        }
+        $targetType = (string) ($config['navigation_target_type'] ?? '');
+        if ($mode === 'internal' && $targetType === 'page' && (int) ($config['page_id'] ?? 0) <= 0) {
+            throw new \InvalidArgumentException(lang('BlockInstances.invalid_slide_internal_target'));
+        }
+        if ($mode === 'internal' && $targetType === 'collection_index' && (int) ($config['collection_id'] ?? 0) <= 0) {
+            throw new \InvalidArgumentException(lang('BlockInstances.invalid_slide_internal_target'));
+        }
+
+        foreach ((array) ($data['translations'] ?? []) as $translation) {
+            if (! is_array($translation)) {
+                continue;
+            }
+            $blockData = is_array($translation['block_data'] ?? null) ? $translation['block_data'] : [];
+            $externalUrl = trim((string) ($blockData['external_url'] ?? ''));
+            if ($mode === 'external' && $externalUrl !== '' && ! preg_match('#^https?://[^\s]+$#i', $externalUrl)) {
+                throw new \InvalidArgumentException(lang('BlockInstances.invalid_slide_external_url'));
+            }
+            if ($mode !== 'external' && $externalUrl !== '') {
+                throw new \InvalidArgumentException(lang('BlockInstances.external_url_without_external_mode'));
+            }
+        }
     }
 
     /**
