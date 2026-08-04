@@ -49,17 +49,30 @@ class TranslationAuditController extends ApiController
                     /** @var int $langId */
                     $filters['language_id'] = (int) $langId;
                 }
-                foreach (['resource', 'status', 'search'] as $filter) {
+                foreach (['resource', 'status', 'search', 'scope'] as $filter) {
                     $value = $this->request->getGet($filter);
                     if (is_string($value) && trim($value) !== '') {
                         $filters[$filter] = trim($value);
                     }
                 }
 
+                $page = max(1, (int) ($this->request->getGet('page') ?? 1));
+                $limit = min(100, max(10, (int) ($this->request->getGet('limit') ?? 25)));
                 $report = $this->auditService->getMissingTranslationsReport($filters);
+                $total = count($report);
+                $lastPage = $total > 0 ? (int) ceil($total / $limit) : 1;
+                $page = min($page, $lastPage);
+                $offset = ($page - 1) * $limit;
+
                 return $this->response->setJSON([
                     'status' => 'success',
-                    'data'   => $report,
+                    'data'   => array_slice($report, $offset, $limit),
+                    'meta'   => [
+                        'current_page' => $page,
+                        'last_page' => $lastPage,
+                        'per_page' => $limit,
+                        'total_items' => $total,
+                    ],
                 ])->setStatusCode(200);
             }
         );
