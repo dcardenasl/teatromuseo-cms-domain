@@ -1139,7 +1139,6 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
             'schema_definition' => json_encode(['fields' => [
                 'video_id' => ['type' => 'string', 'required' => false],
                 'duration' => ['type' => 'string', 'required' => false],
-                'title' => ['type' => 'string', 'required' => false],
             ]]),
             'supports_pages' => 1,
             'supports_entries' => 1,
@@ -1158,8 +1157,8 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $instanceId = $this->db->insertID();
 
         foreach ([
-            $this->langEsId => ['video_id' => 'abc123', 'duration' => '90 min', 'title' => 'Título'],
-            $this->langEnId => ['video_id' => 'abc123', 'duration' => '90 min', 'title' => 'Título'],
+            $this->langEsId => ['video_id' => 'abc123', 'duration' => '90 min'],
+            $this->langEnId => ['video_id' => 'abc123', 'duration' => '90 min'],
         ] as $languageId => $data) {
             $this->db->table('cms_block_instance_translations')->insert([
                 'instance_id' => $instanceId,
