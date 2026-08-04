@@ -46,9 +46,44 @@ final class NormalizeTeatroEscuelaIdentifiers extends Migration
         }
         $newRow = $this->db->table($table)->where($column, $new)->get()->getRowArray();
         if ($newRow !== null && (int) ($newRow['id'] ?? 0) !== (int) ($oldRow['id'] ?? 0)) {
+            if ($table === 'cms_collections' && $column === 'collection_key') {
+                $this->mergeCollections((int) $oldRow['id'], (int) $newRow['id']);
+                return;
+            }
+
             throw new \RuntimeException(sprintf('Cannot rename %s.%s: both %s and %s exist.', $table, $column, $old, $new));
         }
         $this->db->table($table)->where('id', (int) $oldRow['id'])->update([$column => $new]);
+    }
+
+    private function mergeCollections(int $legacyId, int $canonicalId): void
+    {
+        $this->db->table('cms_entries')->where('collection_id', $legacyId)->update(['collection_id' => $canonicalId]);
+
+        foreach ($this->db->table('cms_pages')->where('collection_id', $legacyId)->get()->getResultArray() as $page) {
+            if (($page['deleted_at'] ?? null) !== null) {
+                $this->db->table('cms_pages')->where('id', (int) $page['id'])->delete();
+                continue;
+            }
+
+            $this->db->table('cms_pages')->where('id', (int) $page['id'])->update(['collection_id' => $canonicalId]);
+        }
+
+        foreach ($this->db->table('cms_collection_translations')->where('collection_id', $legacyId)->get()->getResultArray() as $translation) {
+            $exists = $this->db->table('cms_collection_translations')
+                ->where('collection_id', $canonicalId)
+                ->where('language_id', (int) $translation['language_id'])
+                ->get()
+                ->getRowArray();
+            if ($exists === null) {
+                $this->db->table('cms_collection_translations')->where('id', (int) $translation['id'])->update(['collection_id' => $canonicalId]);
+                continue;
+            }
+
+            $this->db->table('cms_collection_translations')->where('id', (int) $translation['id'])->delete();
+        }
+
+        $this->db->table('cms_collections')->where('id', $legacyId)->delete();
     }
 
     /** @param list<string> $columns */
