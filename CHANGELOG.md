@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Editable institutional team roster** — About-page team members are now persisted as
+  editable `team_member` children with profession, roles, email, primary media, and hover media.
+- **Cache invalidation source tracking** — automatic CMS invalidations now identify their source
+  when reporting status to the public website.
+
 - **Course timeline listings** — public TeatroEscuela/course listings now order upcoming
   activities first and expose their real `start_date` as `display_date`.
 - **Collection grid metadata and defaults** — collection listings now support source metadata,
@@ -21,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   team content, press document galleries, and public listing video projections.
 - **TeatroEscuela contract** — introduced the canonical `teatroescuela` collection and
   `teatroescuela_ficha` block, with compatibility aliases for legacy `cursos` requests.
+
+- **Institutional About-page content migration** — normalized About-page blocks and locales,
+  persisted approved institutional copy, and migrated the selected legacy team roster into CMS
+  content migrations.
 
 - **`POST /api/v1/cms/submissions/import`** — authenticated bulk-import endpoint for
   `cms_form_submissions` (`FormSubmissionImportRequestDTO` + `FormSubmissionService::import()`,
@@ -53,11 +62,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Translation audit scope and pagination** — audit reports now distinguish actionable issues
+  from review-only warnings, ignore operational block values, exclude the base language from
+  outdated checks, and return paginated metadata.
+
 - **Default public locale** — now Spanish (`es`), matching the primary audience.
 - **Bootstrap and route normalization** — seeders preserve existing editorial content, public
   routes use localized canonical slugs, and editorial data migrations are classified explicitly.
 
 ### Fixed
+
+- **Duplicate TeatroEscuela collections** — identifier normalization now merges legacy and
+  canonical collections, reassigns their content and translations, and removes the obsolete
+  duplicate safely.
 
 - **Public route and redirect consistency** — redirects survive slug changes and localized
   homepage hero destinations are normalized to the currently published routes.
