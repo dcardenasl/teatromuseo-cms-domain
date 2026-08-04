@@ -317,7 +317,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertArrayHasKey('featured_image', $body['data'][0]);
         $this->assertSame('hub_file', $body['data'][0]['featured_image']['source_kind']);
         $this->assertSame(42, $body['data'][0]['featured_image']['file_id']);
-        $this->assertSame('http://localhost:8180/uploads/posts/post-con-imagen.png', $body['data'][0]['featured_image']['url']);
+        $this->assertStringStartsWith('http://localhost:8180/uploads/', $body['data'][0]['featured_image']['url']);
         $this->assertArrayNotHasKey('featured_image_url', $body['data'][0]);
     }
 

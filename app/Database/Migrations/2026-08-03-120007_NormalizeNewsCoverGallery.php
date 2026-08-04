@@ -14,6 +14,8 @@ use CodeIgniter\Database\Migration;
  * is already stored canonically on cms_entry_translations, so the public
  * reader projects it into the gallery instead of duplicating the file
  * reference in cms_block_instances.
+ *
+ * @cms-content-data-migration
  */
 final class NormalizeNewsCoverGallery extends Migration
 {
