@@ -26,6 +26,8 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
 
     private \App\Libraries\Cms\SlugRouter $slugRouter;
 
+    private \App\Libraries\Cms\PublicNavigationResolver $publicNavigationResolver;
+
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
     /**
@@ -37,13 +39,15 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
         \App\Libraries\Cms\TranslationResolver $translationResolver,
         \App\Libraries\Cms\SlugRouter $slugRouter,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?\App\Libraries\Cms\PublicNavigationResolver $publicNavigationResolver = null
     ) {
         parent::__construct($menuItemRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->translationResolver = $translationResolver;
         $this->slugRouter = $slugRouter;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->publicNavigationResolver = $publicNavigationResolver ?? new \App\Libraries\Cms\PublicNavigationResolver();
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -271,6 +275,18 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
         }
 
         return $customUrl;
+    }
+
+    /**
+     * Return semantic routing metadata for destinations owned by another
+     * domain. The public site owns localized URL segments; CMS page slugs are
+     * intentionally not used for these routes.
+     *
+     * @return array{route_key: string|null, target_type: string|null, target_id: int|null}
+     */
+    public function resolvePublicNavigation(MenuItemEntity $item, string $lang): array
+    {
+        return $this->publicNavigationResolver->resolve($item);
     }
 
     /**

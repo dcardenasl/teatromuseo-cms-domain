@@ -47,8 +47,13 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         $contactPageId = $this->pageIdByType('contact');
         $aboutPageId = $this->pageIdBySlug(['nosotros', 'about', 'a-propos', 'sobre-nos']);
         $historyPageId = $this->pageIdBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
-        $eventsPageId = $this->pageIdByType('events') ?? $this->pageIdBySlug(['cartelera']);
-        $catalogListingPageId = $this->pageIdByType('catalog_listing') ?? $this->pageIdBySlug(['museo/coleccion']);
+        // Domain pages are resolved by their stable semantic type. A slug
+        // fallback would reintroduce locale-specific historical URLs.
+        $eventsPageId = $this->pageIdByType('events');
+        $catalogListingPageId = $this->pageIdByType('catalog_listing');
+        $pressPageId = $this->pageIdByType('press');
+        $publicationsPageId = $this->pageIdByType('publications');
+        $transparencyPageId = $this->pageIdByType('transparency');
 
         if ($homePageId === null || $contactPageId === null) {
             echo "CmsTeatroMuseoNavigationSeeder: missing home or contact page; skipping.\n";
@@ -56,8 +61,24 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
             return;
         }
 
-        $this->seedMainMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId, $eventsPageId, $catalogListingPageId);
-        $this->seedFooterMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId, $eventsPageId, $catalogListingPageId);
+        $this->seedMainMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId, $eventsPageId, $catalogListingPageId, $pressPageId, $publicationsPageId);
+        $this->seedFooterMenu($languages, $homePageId, $contactPageId, $aboutPageId, $historyPageId, $eventsPageId, $catalogListingPageId, $publicationsPageId);
+        $this->seedTransparencyInLegalMenu($languages, $transparencyPageId);
+    }
+
+    /** @param array<string, int> $languages */
+    private function seedTransparencyInLegalMenu(array $languages, ?int $pageId): void
+    {
+        if ($pageId === null) {
+            return;
+        }
+
+        $menuId = $this->upsertMenu('legal', 'footer_secondary', [
+            'es' => 'Legal', 'en' => 'Legal', 'fr' => 'Légal', 'pt' => 'Legal',
+        ], $languages);
+        $this->addPageItem($menuId, $pageId, null, 6, [
+            'es' => 'Transparencia', 'en' => 'Transparency', 'fr' => 'Transparence', 'pt' => 'Transparência',
+        ], $languages);
     }
 
     /** @param array<string, int> $languages */
@@ -68,7 +89,9 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ?int $aboutPageId,
         ?int $historyPageId,
         ?int $eventsPageId,
-        ?int $catalogListingPageId
+        ?int $catalogListingPageId,
+        ?int $pressPageId,
+        ?int $publicationsPageId
     ): void {
         $menuId = $this->upsertMenu('main', 'header', [
             'es' => 'Navegación principal',
@@ -76,6 +99,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
             'fr' => 'Navigation principale',
             'pt' => 'Navegação principal',
         ], $languages);
+        $this->removeLegacyCollectionMenuItems($menuId, 'publicaciones');
         $keepIds = [];
         $sortOrder = 1;
 
@@ -108,6 +132,14 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
                 'en' => 'History',
                 'fr' => 'Histoire',
                 'pt' => 'História',
+            ],
+            [
+                'page_id' => $pressPageId,
+                'sort_order' => 3,
+                'es' => 'Prensa',
+                'en' => 'Press',
+                'fr' => 'Presse',
+                'pt' => 'Imprensa',
             ],
         ], $languages));
 
@@ -188,10 +220,10 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         $this->appendId($keepIds, $personasId);
 
         $coursesId = $this->addCollectionItem($menuId, 'cursos', null, $sortOrder++, [
-            'es' => 'Educación',
-            'en' => 'Education',
-            'fr' => 'Éducation',
-            'pt' => 'Educação',
+            'es' => 'TeatroEscuela',
+            'en' => 'TeatroEscuela',
+            'fr' => 'TeatroEscuela',
+            'pt' => 'TeatroEscuela',
         ], $languages);
         $this->appendId($keepIds, $coursesId);
 
@@ -221,13 +253,15 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ], $languages);
         $this->appendId($keepIds, $videosId);
 
-        $publicationsId = $this->addCollectionItem($menuId, 'publicaciones', $pressGroupId, $pressChildSortOrder, [
-            'es' => 'Prensa',
-            'en' => 'Press',
-            'fr' => 'Presse',
-            'pt' => 'Imprensa',
-        ], $languages);
-        $this->appendId($keepIds, $publicationsId);
+        if ($publicationsPageId !== null) {
+            $publicationsId = $this->addPageItem($menuId, $publicationsPageId, $pressGroupId, $pressChildSortOrder, [
+                'es' => 'Publicaciones',
+                'en' => 'Publications',
+                'fr' => 'Publications',
+                'pt' => 'Publicações',
+            ], $languages);
+            $this->appendId($keepIds, $publicationsId);
+        }
 
         $contactId = $this->addPageItem($menuId, $contactPageId, null, $sortOrder, [
             'es' => 'Contacto',
@@ -248,7 +282,8 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ?int $aboutPageId,
         ?int $historyPageId,
         ?int $eventsPageId,
-        ?int $catalogListingPageId
+        ?int $catalogListingPageId,
+        ?int $publicationsPageId
     ): void {
         $menuId = $this->upsertMenu('footer', 'footer', [
             'es' => 'Pie de página',
@@ -256,6 +291,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
             'fr' => 'Navigation de pied de page',
             'pt' => 'Navegação de rodapé',
         ], $languages);
+        $this->removeLegacyCollectionMenuItems($menuId, 'publicaciones');
         $keepIds = [];
         $sortOrder = 1;
 
@@ -310,7 +346,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
             $this->appendId($keepIds, $coleccionId);
         }
 
-        // "Institución" column — Quiénes Somos, Historia, Educación, Contacto
+        // "Institución" column — Quiénes Somos, Historia, TeatroEscuela, Contacto
         $institutionGroupId = $this->upsertMenuItemNoLink($menuId, null, $sortOrder++, [
             'es' => 'Institución',
             'en' => 'Institution',
@@ -341,10 +377,10 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         }
 
         $coursesId = $this->addCollectionItem($menuId, 'cursos', $institutionGroupId, $institutionChildSortOrder++, [
-            'es' => 'Educación',
-            'en' => 'Education',
-            'fr' => 'Éducation',
-            'pt' => 'Educação',
+            'es' => 'TeatroEscuela',
+            'en' => 'TeatroEscuela',
+            'fr' => 'TeatroEscuela',
+            'pt' => 'TeatroEscuela',
         ], $languages);
         $this->appendId($keepIds, $coursesId);
 
@@ -356,7 +392,7 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         ], $languages);
         $this->appendId($keepIds, $contactId);
 
-        // "Prensa y Medios" column — Noticias, Multimedia, Prensa
+        // "Prensa y Medios" column — Noticias, Multimedia, Publicaciones
         $pressGroupId = $this->upsertMenuItemNoLink($menuId, null, $sortOrder, [
             'es' => 'Prensa y Medios',
             'en' => 'Press & Media',
@@ -369,7 +405,6 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
         foreach ([
             ['collection_key' => 'noticias', 'es' => 'Noticias', 'en' => 'News', 'fr' => 'Actualités', 'pt' => 'Notícias'],
             ['collection_key' => 'videos', 'es' => 'Multimedia', 'en' => 'Media', 'fr' => 'Médias', 'pt' => 'Mídia'],
-            ['collection_key' => 'publicaciones', 'es' => 'Prensa', 'en' => 'Press', 'fr' => 'Presse', 'pt' => 'Imprensa'],
         ] as $definition) {
             $itemId = $this->addCollectionItem(
                 $menuId,
@@ -385,6 +420,13 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
                 $languages
             );
             $this->appendId($keepIds, $itemId);
+            $pressChildSortOrder++;
+        }
+        if ($publicationsPageId !== null) {
+            $publicationsId = $this->addPageItem($menuId, $publicationsPageId, $pressGroupId, $pressChildSortOrder, [
+                'es' => 'Publicaciones', 'en' => 'Publications', 'fr' => 'Publications', 'pt' => 'Publicações',
+            ], $languages);
+            $this->appendId($keepIds, $publicationsId);
             $pressChildSortOrder++;
         }
 
@@ -701,6 +743,28 @@ final class CmsTeatroMuseoNavigationSeeder extends Seeder
             ->getRowArray();
 
         return $row !== null ? (int) $row['id'] : null;
+    }
+
+    private function removeLegacyCollectionMenuItems(int $menuId, string $collectionKey): void
+    {
+        $collectionId = $this->collectionIdByKey($collectionKey);
+        if ($collectionId === null) {
+            return;
+        }
+
+        $items = $this->db->table('cms_menu_items')
+            ->select('id')
+            ->where('menu_id', $menuId)
+            ->where('link_type', 'collection_listing')
+            ->where('collection_id', $collectionId)
+            ->get()
+            ->getResultArray();
+
+        foreach ($items as $item) {
+            $itemId = (int) $item['id'];
+            $this->db->table('cms_menu_item_translations')->where('menu_item_id', $itemId)->delete();
+            $this->db->table('cms_menu_items')->where('id', $itemId)->delete();
+        }
     }
 
     /** @param list<int> $ids */

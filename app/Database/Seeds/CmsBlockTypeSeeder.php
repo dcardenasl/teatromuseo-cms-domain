@@ -202,15 +202,20 @@ class CmsBlockTypeSeeder extends Seeder
                         'label'       => 'Colección',
                         'description' => 'Bloque que consume entradas publicadas de una colección.',
                     ],
+                    'navigation' => [
+                        'source' => 'block_config',
+                        'target' => 'collection_index',
+                        'required' => false,
+                    ],
                     'fields' => [
                         'section_title'    => ['type' => 'string', 'label' => 'Título de sección',               'required' => false],
                         'section_subtitle' => ['type' => 'string', 'label' => 'Subtítulo de sección',            'required' => false],
                         'view_all_label'   => ['type' => 'string', 'label' => 'Texto del enlace "Ver todos"',    'required' => false],
-                        'view_all_url'     => ['type' => 'url',    'label' => 'URL del enlace "Ver todos"',      'required' => false],
                         'empty_message'    => ['type' => 'string', 'label' => 'Mensaje cuando no hay contenido', 'required' => false],
                     ],
                     'config_fields' => [
-                        'collection_key'  => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => true,  'default' => 'noticias'],
+                        'collection_key'  => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => false, 'default' => ''],
+                        'category_id'     => ['type' => 'select', 'label' => 'Categoría específica', 'description' => 'Limita el bloque a una categoría de la colección seleccionada.', 'required' => false, 'options' => [], 'default' => ''],
                         'source_type'     => ['type' => 'select', 'label' => 'Origen de contenido', 'description' => 'Usa CMS, catálogo del museo o programación sin cambiar el bloque visual.', 'required' => false, 'options' => ['auto', 'cms_collection', 'catalog_items', 'event_items'], 'default' => 'auto'],
                         'items_limit'     => ['type' => 'number', 'label' => 'Máx. elementos',           'required' => false, 'default' => 3],
                         'order_by'        => ['type' => 'select', 'label' => 'Ordenar por',              'required' => false, 'options' => ['published_at', 'sort_order', 'created_at', 'title'], 'default' => 'published_at'],
@@ -240,6 +245,11 @@ class CmsBlockTypeSeeder extends Seeder
                         'label'       => 'Colección',
                         'description' => 'Listado público de entradas publicadas desde una colección o una fuente externa del dominio.',
                     ],
+                    'navigation' => [
+                        'source' => 'block_config',
+                        'target' => 'listing_page',
+                        'required' => false,
+                    ],
                     'fields' => [
                         'intro_title'      => ['type' => 'string', 'label' => 'Título introductorio',              'required' => false],
                         'intro_text'       => ['type' => 'richtext', 'label' => 'Texto introductorio',            'required' => false],
@@ -252,8 +262,8 @@ class CmsBlockTypeSeeder extends Seeder
                     ],
                     'config_fields' => [
                         'source_type'      => ['type' => 'select', 'label' => 'Origen del listado', 'required' => true, 'options' => ['cms_collection', 'catalog_items', 'event_items'], 'default' => 'cms_collection'],
-                        'source_path'      => ['type' => 'string', 'label' => 'Ruta pública', 'required' => false, 'default' => ''],
                         'collection_id'    => ['type' => 'select', 'label' => 'Colección CMS', 'required' => false, 'options' => [], 'default' => ''],
+                        'category_id'     => ['type' => 'select', 'label' => 'Categoría específica', 'description' => 'Limita el bloque a una categoría de la colección seleccionada.', 'required' => false, 'options' => [], 'default' => ''],
                         'per_page'         => ['type' => 'number', 'label' => 'Elementos por página',      'required' => false, 'default' => 12],
                         'order_by'         => ['type' => 'select', 'label' => 'Ordenar por',               'required' => false, 'options' => ['published_at', 'sort_order', 'created_at', 'title'], 'default' => 'published_at'],
                         'order_direction'  => ['type' => 'select', 'label' => 'Dirección',                 'required' => false, 'options' => ['asc', 'desc'], 'default' => 'desc'],
@@ -278,6 +288,42 @@ class CmsBlockTypeSeeder extends Seeder
                 'is_container'     => 0,
                 'is_active'        => 1,
                 'sort_order'       => 16,
+            ],
+
+            // ── collection_timeline ────────────────────────────────────────────
+            [
+                'block_key'         => 'collection_timeline',
+                'name'              => 'Línea de tiempo de colección',
+                'description'       => 'Presenta entradas publicadas de una colección como una línea de tiempo dinámica, opcionalmente limitada a una categoría.',
+                'category'          => 'content',
+                'icon'              => 'git-commit-horizontal',
+                'schema_definition' => json_encode([
+                    'content_source' => ['type' => 'collection', 'label' => 'Colección CMS'],
+                    'fields' => [
+                        'section_title' => ['type' => 'string', 'label' => 'Título de sección', 'required' => false],
+                        'description' => ['type' => 'textarea', 'label' => 'Descripción', 'required' => false],
+                        'empty_message' => ['type' => 'string', 'label' => 'Mensaje sin resultados', 'required' => false],
+                        'document_label' => ['type' => 'string', 'label' => 'Texto del enlace de documento', 'required' => false],
+                        'entry_label' => ['type' => 'string', 'label' => 'Texto del enlace de ficha', 'required' => false],
+                    ],
+                    'config_fields' => [
+                        'collection_key' => ['type' => 'select', 'label' => 'Colección CMS', 'required' => true, 'options' => [], 'default' => ''],
+                        'category_id' => ['type' => 'select', 'label' => 'Categoría específica', 'description' => 'Opcional. Usa una categoría de la colección seleccionada.', 'required' => false, 'options' => [], 'default' => ''],
+                        'items_limit' => ['type' => 'number', 'label' => 'Máx. elementos', 'required' => false, 'default' => 100],
+                        'order_direction' => ['type' => 'select', 'label' => 'Orden cronológico', 'options' => ['asc', 'desc'], 'required' => false, 'default' => 'desc'],
+                        'layout' => ['type' => 'select', 'label' => 'Distribución', 'options' => ['alternating', 'left_aligned'], 'required' => false, 'default' => 'alternating'],
+                        'show_excerpt' => ['type' => 'boolean', 'label' => 'Mostrar extracto', 'required' => false, 'default' => true],
+                        'show_documents' => ['type' => 'boolean', 'label' => 'Mostrar documentos', 'required' => false, 'default' => true],
+                        'show_entry_link' => ['type' => 'boolean', 'label' => 'Mostrar enlace a la ficha', 'required' => false, 'default' => false],
+                        'open_in_new_tab' => ['type' => 'boolean', 'label' => 'Abrir documentos en nueva pestaña', 'required' => false, 'default' => true],
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS adicional', 'required' => false, 'default' => ''],
+                    ],
+                ]),
+                'supports_pages' => 1,
+                'supports_entries' => 0,
+                'is_container' => 0,
+                'is_active' => 1,
+                'sort_order' => 155,
             ],
 
             // ── cta ──────────────────────────────────────────────────────────────
@@ -348,11 +394,15 @@ class CmsBlockTypeSeeder extends Seeder
                 'category'          => 'navigation',
                 'icon'              => 'heading',
                 'schema_definition' => json_encode([
+                    'navigation' => [
+                        'source' => 'owner',
+                        'target' => 'parent_page',
+                        'required' => false,
+                    ],
                     'fields' => [
                         'heading'          => ['type' => 'string', 'label' => 'Título',              'required' => true],
                         'subheading'       => ['type' => 'string', 'label' => 'Subtítulo',           'required' => false],
                         'breadcrumb_label' => ['type' => 'string', 'label' => 'Etiqueta breadcrumb', 'required' => false],
-                        'breadcrumb_url'   => ['type' => 'string', 'label' => 'URL breadcrumb',      'required' => false],
                     ],
                     'config_fields' => [
                         'bg_color'  => ['type' => 'string', 'label' => 'Color de fondo (Tailwind)', 'required' => false, 'default' => 'bg-gray-100'],
@@ -509,7 +559,10 @@ class CmsBlockTypeSeeder extends Seeder
                 'category'          => 'content',
                 'icon'              => 'list',
                 'schema_definition' => json_encode([
-                    'fields' => [],
+                    'fields' => [
+                        'title' => ['type' => 'string', 'label' => 'Título', 'required' => false],
+                        'description' => ['type' => 'textarea', 'label' => 'Descripción', 'required' => false],
+                    ],
                     'config_fields' => [
                         'css_class' => ['type' => 'string', 'label' => 'Clase CSS', 'required' => false, 'default' => ''],
                     ],
@@ -919,7 +972,10 @@ class CmsBlockTypeSeeder extends Seeder
                 'category'          => 'media',
                 'icon'              => 'images',
                 'schema_definition' => json_encode([
-                    'fields' => [],
+                    'fields' => [
+                        'title' => ['type' => 'string', 'label' => 'Título', 'required' => false],
+                        'description' => ['type' => 'textarea', 'label' => 'Descripción', 'required' => false],
+                    ],
                     'config_fields' => [
                         'presentation_mode' => [
                             'type'     => 'select',
@@ -1396,6 +1452,9 @@ class CmsBlockTypeSeeder extends Seeder
                         'description' => ['type' => 'textarea', 'label' => 'Descripción',       'required' => false],
                     ],
                     'config_fields' => [
+                        'source_collection' => ['type' => 'string', 'label' => 'Colección de origen', 'required' => false],
+                        'items_limit' => ['type' => 'number', 'label' => 'Cantidad de integrantes', 'required' => false],
+                        'filter_names' => ['type' => 'textarea', 'label' => 'Filtrar nombres (separados por coma)', 'required' => false],
                         'columns' => [
                             'type'     => 'select',
                             'label'    => 'Miembros por Fila',

@@ -10,10 +10,16 @@ class BlockInstanceSerializer
 
     private ?EntryReferenceResolver $entryReferenceResolver;
 
-    public function __construct(FileUrlResolver $fileUrlResolver, ?EntryReferenceResolver $entryReferenceResolver = null)
-    {
+    private ?BlockNavigationResolver $blockNavigationResolver;
+
+    public function __construct(
+        FileUrlResolver $fileUrlResolver,
+        ?EntryReferenceResolver $entryReferenceResolver = null,
+        ?BlockNavigationResolver $blockNavigationResolver = null
+    ) {
         $this->fileUrlResolver = $fileUrlResolver;
         $this->entryReferenceResolver = $entryReferenceResolver;
+        $this->blockNavigationResolver = $blockNavigationResolver;
     }
 
     /**
@@ -91,6 +97,49 @@ class BlockInstanceSerializer
             $referenceMap = $this->entryReferenceResolver->resolve($references, $langCode);
         }
 
+        $navigationMap = [];
+        if ($this->blockNavigationResolver !== null) {
+            $navigationConfigs = [];
+            $navigationDefinitions = [];
+            $navigationInstanceIds = [];
+            $navigationOwnerIds = [];
+            foreach ($instances as $instance) {
+                $schemaDefinition = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
+                $navigationDefinition = is_array($schemaDefinition['navigation'] ?? null)
+                    ? $schemaDefinition['navigation']
+                    : [];
+                if ($navigationDefinition === []) {
+                    continue;
+                }
+
+                $rawConfig = $instance['block_config'] ?? [];
+                $config = is_string($rawConfig)
+                    ? (json_decode($rawConfig, true) ?? [])
+                    : (array) $rawConfig;
+                $navigationInstanceIds[] = (int) $instance['id'];
+                $navigationConfigs[] = $config;
+                $navigationDefinitions[] = $navigationDefinition;
+                $navigationOwnerIds[] = (int) ($instance['owner_id'] ?? 0);
+            }
+
+            $resolvedNavigation = $this->blockNavigationResolver->resolveMany(
+                $navigationConfigs,
+                $langCode,
+                $navigationDefinitions,
+                $ownerType,
+                $navigationOwnerIds,
+            );
+            foreach ($navigationInstanceIds as $index => $instanceId) {
+                $navigationMap[$instanceId] = $resolvedNavigation[$index] ?? [
+                    'status' => 'unresolved',
+                    'target_type' => null,
+                    'target_id' => null,
+                    'route_key' => null,
+                    'url' => null,
+                ];
+            }
+        }
+
         // Collect all file IDs in a single pre-pass via schema field declarations
         $allFileIds = [];
         foreach ($instances as $instance) {
@@ -141,6 +190,13 @@ class BlockInstanceSerializer
             $schemaFields = (array) ($schemaDefinition['fields'] ?? []);
             $schemaConfigFields = (array) ($schemaDefinition['config_fields'] ?? []);
 
+            $navigation = $navigationMap[$instanceId] ?? null;
+
+            if ($navigation !== null) {
+                $label = $blockData['view_all_label'] ?? null;
+                $navigation['label'] = is_scalar($label) ? trim((string) $label) : '';
+            }
+
             $blockConfig = SchemaDefaults::applyConfigDefaults($schemaDefinition, $blockConfig);
             $blockData = SchemaDefaults::apply($blockData, $schemaFields);
 
@@ -162,6 +218,10 @@ class BlockInstanceSerializer
                 'is_fallback'        => $translation['is_fallback'] ?? true,
                 'children'           => [],
             ];
+
+            if ($navigation !== null) {
+                $blockPayload['navigation'] = $navigation;
+            }
 
             // Resolve media fields and expand file IDs inside nested structures.
             $blockPayload['block_data'] = $this->mergeFileMetadata(

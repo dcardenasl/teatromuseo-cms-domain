@@ -75,10 +75,10 @@ final class CmsTeatroMuseoNavigationSeederTest extends CIUnitTestCase
         // Grouped 2026-07-31: 10 flat top-level entries -> 7 entries behind
         // 4 dropdowns (Nosotros, Programación, Museo, Prensa y Medios).
         $expectedMainLabels = [
-            'es' => ['Inicio', 'Nosotros', 'Programación', 'Museo', 'Educación', 'Prensa y Medios', 'Contacto'],
-            'en' => ['Home', 'About', 'Programming', 'Museum', 'Education', 'Press & Media', 'Contact'],
-            'fr' => ['Accueil', 'À propos', 'Programmation', 'Musée', 'Éducation', 'Presse et Médias', 'Contact'],
-            'pt' => ['Início', 'Sobre', 'Programação', 'Museu', 'Educação', 'Imprensa e Mídia', 'Contato'],
+            'es' => ['Inicio', 'Nosotros', 'Programación', 'Museo', 'TeatroEscuela', 'Prensa y Medios', 'Contacto'],
+            'en' => ['Home', 'About', 'Programming', 'Museum', 'TeatroEscuela', 'Press & Media', 'Contact'],
+            'fr' => ['Accueil', 'À propos', 'Programmation', 'Musée', 'TeatroEscuela', 'Presse et Médias', 'Contact'],
+            'pt' => ['Início', 'Sobre', 'Programação', 'Museu', 'TeatroEscuela', 'Imprensa e Mídia', 'Contato'],
         ];
 
         foreach ($expectedMainLabels as $langCode => $expectedLabels) {
@@ -127,7 +127,7 @@ final class CmsTeatroMuseoNavigationSeederTest extends CIUnitTestCase
 
         $institucionId = $this->menuItemId((int) $footerMenu['id'], 'Institución');
         $this->assertNotNull($institucionId);
-        $this->assertSame(['Quiénes Somos', 'Historia', 'Educación', 'Contacto'], $this->menuLabels((int) $footerMenu['id'], 'es', $institucionId));
+        $this->assertSame(['Quiénes Somos', 'Historia', 'TeatroEscuela', 'Contacto'], $this->menuLabels((int) $footerMenu['id'], 'es', $institucionId));
 
         $footerPrensaId = $this->menuItemId((int) $footerMenu['id'], 'Prensa y Medios');
         $this->assertNotNull($footerPrensaId);

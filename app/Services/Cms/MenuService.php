@@ -77,6 +77,7 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
             if ($item instanceof MenuItemEntity) {
                 $resolved = $this->translationResolver->resolve('menu_item', (int) $item->id, $lang);
                 $customUrl = $this->menuItemService->resolveLink($item, $lang);
+                $navigation = $this->menuItemService->resolvePublicNavigation($item, $lang);
 
                 if ($customUrl === null && $item->link_type === 'custom_url') {
                     $customUrl = $resolved['custom_url'] ?? null;
@@ -85,6 +86,7 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
                 $flatList[] = array_merge($item->toArray(), [
                     'label'       => $resolved['label'] ?? '',
                     'custom_url'  => $customUrl,
+                    'navigation'  => $navigation,
                     'is_fallback' => $resolved['is_fallback'] ?? false,
                 ]);
             }

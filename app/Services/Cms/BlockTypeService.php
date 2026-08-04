@@ -21,6 +21,10 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
 {
     private const ALLOWED_CONTENT_SOURCES = ['manual', 'page', 'collection', 'entry', 'container'];
 
+    private const ALLOWED_NAVIGATION_SOURCES = ['block_config', 'owner'];
+
+    private const ALLOWED_NAVIGATION_TARGETS = ['collection_index', 'listing_page', 'parent_page'];
+
     /** @var BaseConnection<mixed, mixed> */
     private BaseConnection $db;
 
@@ -234,6 +238,18 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
                 throw new ValidationException(
                     lang('Api.validationFailed'),
                     ['schema_definition' => lang('BlockTypes.invalid_content_source')]
+                );
+            }
+        }
+
+        $navigation = $schemaDefinition['navigation'] ?? null;
+        if ($navigation !== null) {
+            if (! is_array($navigation)
+                || ! in_array((string) ($navigation['source'] ?? ''), self::ALLOWED_NAVIGATION_SOURCES, true)
+                || ! in_array((string) ($navigation['target'] ?? ''), self::ALLOWED_NAVIGATION_TARGETS, true)) {
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    ['schema_definition' => lang('BlockTypes.invalid_navigation')]
                 );
             }
         }

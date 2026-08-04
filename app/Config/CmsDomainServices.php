@@ -146,7 +146,8 @@ trait CmsDomainServices
 
         return new \App\Libraries\Cms\BlockInstanceSerializer(
             static::fileUrlResolver(),
-            static::entryReferenceResolver()
+            static::entryReferenceResolver(),
+            new \App\Libraries\Cms\BlockNavigationResolver(static::slugRouter())
         );
     }
 
@@ -263,7 +264,7 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('menuItemService');
         }
-        return new \App\Services\Cms\MenuItemService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuItemModel::class)), static::menuItemResponseMapper(), static::cacheInvalidationClient(), static::translationResolver(), static::slugRouter(), static::translationSynchronizer());
+        return new \App\Services\Cms\MenuItemService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuItemModel::class)), static::menuItemResponseMapper(), static::cacheInvalidationClient(), static::translationResolver(), static::slugRouter(), static::translationSynchronizer(), new \App\Libraries\Cms\PublicNavigationResolver());
     }
     public static function blockTypeResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {

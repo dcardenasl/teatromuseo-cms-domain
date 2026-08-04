@@ -7,9 +7,8 @@ namespace App\Database\Seeds;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Adds the shared source selector to collection_grid without replacing an
- * existing block schema. This is intentionally additive so rerunning the
- * bootstrap cannot erase editor-defined block metadata.
+ * Normalizes collection_grid's source and navigation metadata. Editorial
+ * content is never touched; only the block type contract is made repeatable.
  */
 class CmsCollectionGridSourceSeeder extends Seeder
 {
@@ -33,10 +32,6 @@ class CmsCollectionGridSourceSeeder extends Seeder
         $configFields = is_array($schema['config_fields'] ?? null)
             ? $schema['config_fields']
             : [];
-        if (array_key_exists('source_type', $configFields)) {
-            return;
-        }
-
         $configFields['source_type'] = [
             'type' => 'select',
             'label' => 'Origen de contenido',
@@ -46,6 +41,15 @@ class CmsCollectionGridSourceSeeder extends Seeder
             'default' => 'auto',
         ];
         $schema['config_fields'] = $configFields;
+        $schema['navigation'] = [
+            'source' => 'block_config',
+            'target' => 'collection_index',
+            'required' => false,
+        ];
+
+        $fields = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
+        unset($fields['view_all_url']);
+        $schema['fields'] = $fields;
 
         $db->table('cms_content_blocks')
             ->where('id', (int) $row['id'])
