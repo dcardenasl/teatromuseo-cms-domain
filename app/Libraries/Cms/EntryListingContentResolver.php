@@ -18,7 +18,7 @@ final class EntryListingContentResolver
 
     /**
      * @param list<array<string, mixed>> $entries
-     * @return array<int, array{rich_text: string, image: array{url: string, alt: string}|null, hover_image: array{url: string, alt: string}|null, secondary_action: array{label: string, url: string}|null, documents: list<array{url: string, title: string, description: string, file_id: int|null}>, publication_date: string}>
+     * @return array<int, array{rich_text: string, image: array{url: string, alt: string}|null, hover_image: array{url: string, alt: string}|null, secondary_action: array{label: string, url: string}|null, documents: list<array{url: string, title: string, description: string, file_id: int|null}>, publication_date: string, video: array{provider: string, id: string, url: string}|null}>
      */
     public function resolveBatch(array $entries, string $langCode): array
     {
@@ -53,6 +53,7 @@ final class EntryListingContentResolver
                 'documents' => $this->documentsFromBlocks($blocks),
                 'publication_date' => $this->publicationDateFromBlocks($blocks)
                     ?: $this->publicationYearFromEntry($entry),
+                'video' => $this->videoFromBlocks($blocks),
             ];
         }
 
@@ -249,6 +250,44 @@ final class EntryListingContentResolver
         return count($years) === 1
             ? $years[0]
             : $years[0] . '–' . $years[count($years) - 1];
+    }
+
+    /**
+     * Expose only the small provider identity needed by public listing cards.
+     * Keeping this projection here avoids loading/rendering the full block tree
+     * for every card and keeps the listing N+1-safe.
+     *
+     * @param list<array<string, mixed>> $blocks
+     * @return array{provider: string, id: string, url: string}|null
+     */
+    private function videoFromBlocks(array $blocks): ?array
+    {
+        foreach ($blocks as $block) {
+            if (($block['block_key'] ?? null) !== 'video_ficha') {
+                continue;
+            }
+
+            $data = is_array($block['block_data'] ?? null) ? $block['block_data'] : [];
+            $provider = strtolower($this->stringValue($data['provider'] ?? null));
+            $videoId = $this->stringValue($data['video_id'] ?? null);
+            $videoUrl = $this->stringValue($data['video_url'] ?? null);
+
+            if (! in_array($provider, ['youtube', 'vimeo'], true) || $videoId === '') {
+                return null;
+            }
+
+            if ($videoUrl !== '' && ! preg_match('#^https?://#i', $videoUrl)) {
+                $videoUrl = '';
+            }
+
+            return [
+                'provider' => $provider,
+                'id' => $videoId,
+                'url' => $videoUrl,
+            ];
+        }
+
+        return null;
     }
 
     /** @return array{url: string, title: string, description: string, file_id: int|null}|null */

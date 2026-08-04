@@ -31,6 +31,7 @@ final class EntryListingContentResolverTest extends CIUnitTestCase
                             'block_data' => ['alt' => 'Bloque imagen'],
                         ],
                         ['block_key' => 'cta', 'block_data' => ['label' => 'Bloque CTA', 'url' => '/bloque']],
+                        ['block_key' => 'video_ficha', 'block_data' => ['provider' => 'youtube', 'video_id' => 'abc123', 'video_url' => 'https://www.youtube.com/watch?v=abc123']],
                     ],
                     11 => [
                         ['block_key' => 'rich_text', 'block_data' => ['content' => '<p>Fallback</p>']],
@@ -63,8 +64,10 @@ final class EntryListingContentResolverTest extends CIUnitTestCase
         $this->assertSame('<p>Schema</p>', $content[10]['rich_text']);
         $this->assertSame('/schema.jpg', $content[10]['image']['url']);
         $this->assertSame('Schema CTA', $content[10]['secondary_action']['label']);
+        $this->assertSame(['provider' => 'youtube', 'id' => 'abc123', 'url' => 'https://www.youtube.com/watch?v=abc123'], $content[10]['video']);
         $this->assertSame('<p>Fallback</p>', $content[11]['rich_text']);
         $this->assertSame('/fallback.jpg', $content[11]['image']['url']);
         $this->assertSame('Fallback CTA', $content[11]['secondary_action']['label']);
+        $this->assertNull($content[11]['video']);
     }
 }
