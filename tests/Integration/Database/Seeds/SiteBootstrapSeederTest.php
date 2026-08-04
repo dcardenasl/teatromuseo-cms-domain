@@ -209,7 +209,31 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $aboutPage = $this->pageBySlug(['nosotros', 'about', 'a-propos', 'sobre-nos']);
         $this->assertNotNull($aboutPage);
         $this->assertSame(['nosotros', 'about', 'a-propos', 'sobre-nos'], $this->pageTranslationSlugs((int) $aboutPage['id']));
-        $this->assertSame(['page_header', 'hero_banner', 'rich_text', 'cards_grid', 'cards_slider', 'asset_showcase', 'accordion', 'cta'], $this->pageBlockKeys((int) $aboutPage['id']));
+        $this->assertSame(['page_header', 'hero_slider', 'rich_text', 'cards_grid', 'team_grid', 'cta'], $this->pageBlockKeys((int) $aboutPage['id']));
+
+        $aboutId = (int) $aboutPage['id'];
+        $richTextType = $this->db->table('cms_content_blocks')->where('block_key', 'rich_text')->get()->getRowArray();
+        $this->assertNotNull($richTextType);
+        $richText = $this->db->table('cms_block_instances')
+            ->where('owner_type', 'page')
+            ->where('owner_id', $aboutId)
+            ->where('block_id', (int) $richTextType['id'])
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($richText);
+
+        $expectedHeadings = ['es' => 'Sobre Nosotros', 'en' => 'About Us', 'fr' => 'À propos de nous', 'pt' => 'Sobre Nós'];
+        foreach ($expectedHeadings as $language => $heading) {
+            $translation = $this->db->table('cms_block_instance_translations t')
+                ->select('t.block_data')
+                ->join('cms_languages l', 'l.id = t.language_id')
+                ->where('t.instance_id', (int) $richText['id'])
+                ->where('l.code', $language)
+                ->get()
+                ->getRowArray();
+            $data = json_decode((string) ($translation['block_data'] ?? '{}'), true);
+            $this->assertStringContainsString($heading, (string) ($data['content'] ?? ''));
+        }
 
         $historyPage = $this->pageBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
         $this->assertNotNull($historyPage);

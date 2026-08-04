@@ -16,7 +16,8 @@ final class CmsTeatroMuseoInstitutionalPagesSeeder extends Seeder
         $languages = $this->languageIds();
         $blockIds = $this->blockIds([
             'page_header',
-            'hero_banner',
+            'hero_slider',
+            'slide_banner',
             'rich_text',
             'cards_grid',
             'card_item',
@@ -25,12 +26,6 @@ final class CmsTeatroMuseoInstitutionalPagesSeeder extends Seeder
             'image',
             'metrics_grid',
             'metric_item',
-            'cards_slider',
-            'slide_card',
-            'asset_showcase',
-            'asset_item',
-            'accordion',
-            'accordion_item',
             'cta',
             'team_grid',
         ]);
@@ -41,7 +36,7 @@ final class CmsTeatroMuseoInstitutionalPagesSeeder extends Seeder
             return;
         }
 
-        if (! isset($blockIds['page_header'], $blockIds['hero_banner'], $blockIds['rich_text'], $blockIds['cards_grid'], $blockIds['card_item'], $blockIds['timeline'], $blockIds['timeline_item'], $blockIds['image'], $blockIds['metrics_grid'], $blockIds['metric_item'], $blockIds['cards_slider'], $blockIds['slide_card'], $blockIds['asset_showcase'], $blockIds['asset_item'], $blockIds['accordion'], $blockIds['accordion_item'], $blockIds['cta'], $blockIds['team_grid'])) {
+        if (! isset($blockIds['page_header'], $blockIds['hero_slider'], $blockIds['slide_banner'], $blockIds['rich_text'], $blockIds['cards_grid'], $blockIds['card_item'], $blockIds['timeline'], $blockIds['timeline_item'], $blockIds['image'], $blockIds['metrics_grid'], $blockIds['metric_item'], $blockIds['cta'], $blockIds['team_grid'])) {
             echo "CmsTeatroMuseoInstitutionalPagesSeeder: missing block types; skipping.\n";
 
             return;
@@ -116,74 +111,69 @@ final class CmsTeatroMuseoInstitutionalPagesSeeder extends Seeder
             ],
         ], $languages);
 
-        $this->upsertBlock($pageId, $blockIds, 'hero_banner', 2, [
-            'image' => $this->mediaReference('https://picsum.photos/id/1041/1920/1080'),
+        $heroSliderId = $this->upsertBlock($pageId, $blockIds, 'hero_slider', 2, [
+            'autoplay' => true,
+            'interval' => 5000,
+            'transition' => 'fade',
+            'overlay_opacity' => '20',
+            'caption_position' => 'below',
+            'controls_position' => 'below',
             'css_class' => '',
-            'text_color' => '#ffffff',
-            'overlay_color' => 'rgba(15, 23, 42, 0.4)',
         ], [
-            'es' => [
-                'alt' => 'Archivo y equipo de TeatroMuseo trabajando en la colección',
-                'heading' => 'Un archivo vivo para la memoria escénica',
-                'subheading' => 'Programación, mediación y colecciones al servicio de artistas, investigadores y públicos.',
-                'cta_label' => 'Conoce nuestra historia',
-                'cta_url' => '/historia',
-            ],
-            'en' => [
-                'alt' => 'TeatroMuseo team working on the archive collection',
-                'heading' => 'A living archive for scenic memory',
-                'subheading' => 'Programming, mediation, and collections in service of artists, researchers, and audiences.',
-                'cta_label' => 'Learn our history',
-                'cta_url' => '/history',
-            ],
-            'fr' => [
-                'alt' => 'Équipe de TeatroMuseo travaillant sur la collection d’archives',
-                'heading' => 'Une archive vivante pour la mémoire scénique',
-                'subheading' => 'Programmation, médiation et collections au service des artistes, chercheurs et publics.',
-                'cta_label' => 'Découvrir notre histoire',
-                'cta_url' => '/histoire',
-            ],
-            'pt' => [
-                'alt' => 'Equipe do TeatroMuseo trabalhando no acervo do arquivo',
-                'heading' => 'Um arquivo vivo para a memória cênica',
-                'subheading' => 'Programação, mediação e coleções a serviço de artistas, pesquisadores e públicos.',
-                'cta_label' => 'Conheça nossa história',
-                'cta_url' => '/nossa-historia',
-            ],
+            'es' => [],
+            'en' => [],
+            'fr' => [],
+            'pt' => [],
         ], $languages);
+
+        $this->seedChildBlocks($pageId, $heroSliderId, 'slide_banner', [
+            [
+                'sort_order' => 1,
+                'config' => [
+                    'image' => $this->mediaReference('https://picsum.photos/id/1041/1920/1080'),
+                    'navigation_mode' => 'none',
+                    'text_color' => '#0f172a',
+                    'overlay_color' => 'rgba(255, 255, 255, 0.0)',
+                ],
+                'es' => ['heading' => 'Museo', 'subtitle' => '', 'cta_label' => 'Ver más', 'external_url' => ''],
+                'en' => ['heading' => 'Museum', 'subtitle' => '', 'cta_label' => 'Learn more', 'external_url' => ''],
+                'fr' => ['heading' => 'Musée', 'subtitle' => '', 'cta_label' => 'Voir plus', 'external_url' => ''],
+                'pt' => ['heading' => 'Museu', 'subtitle' => '', 'cta_label' => 'Ver mais', 'external_url' => ''],
+            ],
+        ], $blockIds, $languages);
 
         $this->upsertBlock($pageId, $blockIds, 'rich_text', 3, [
             'css_class' => '',
         ], [
             'es' => [
                 'content' => <<<'HTML'
-<p>Desde el año 2007, la Fundación Teatromuseo del títere y el payaso se ha dedicado a promover, difundir y profesionalizar estas artes de la representación en nuestro país. A través de una escuela de formación nacional e internacional, un museo especializado y una sala de teatro con cartelera familiar permanente.</p>
+<h2>Sobre Nosotros</h2><p>Desde el año 2007, la Fundación Teatromuseo del títere y el payaso se ha dedicado a promover, difundir y profesionalizar estas artes de la representación en nuestro país. A través de una escuela de formación nacional e internacional, un museo especializado y una sala de teatro con cartelera familiar permanente.</p>
 <p>Somos un equipo de artistas y profesionales de la gestión cultural que creemos en la vida y la risa como herramientas de desarrollo humano.</p>
 HTML,
             ],
             'en' => [
                 'content' => <<<'HTML'
-<p>TeatroMuseo brings memory, programming, and mediation into a single editorial space. The goal is simple: let the public site show the project's living archive and offer clear, navigable, always-up-to-date content.</p>
-<p>The platform connects collections, institutional pages, news, and audiovisual resources so the site does more than inform. It brings artists, teams, and audiences together around a shared cultural experience.</p>
+<h2>About Us</h2><p>Since 2007, the Teatromuseo Puppet and Clown Foundation has promoted, disseminated, and professionalized these performing arts in Chile through a national and international training school, a specialized museum, and a theatre with a permanent family programme.</p>
+<p>We are a team of artists and cultural-management professionals who believe in life and laughter as tools for human development.</p>
 HTML,
             ],
             'fr' => [
                 'content' => <<<'HTML'
-<p>TeatroMuseo rassemble mémoire, programmation et médiation dans un même espace éditorial. L’objectif est simple : faire du site public l’archive vivante du projet et proposer des contenus clairs, navigables et toujours à jour.</p>
-<p>La plateforme relie collections, pages institutionnelles, actualités et ressources audiovisuelles afin que le site ne se limite pas à informer. Il rapproche artistes, équipes et publics autour d’une expérience culturelle commune.</p>
+<h2>À propos de nous</h2><p>Depuis 2007, la Fondation Teatromuseo de la marionnette et du clown promeut, diffuse et professionnalise ces arts de la scène au Chili grâce à une école de formation nationale et internationale, un musée spécialisé et une salle de théâtre proposant une programmation familiale permanente.</p>
+<p>Nous sommes une équipe d’artistes et de professionnels de la gestion culturelle qui croyons en la vie et au rire comme outils de développement humain.</p>
 HTML,
             ],
             'pt' => [
                 'content' => <<<'HTML'
-<p>TeatroMuseo reúne memória, programação e mediação em um único espaço editorial. O objetivo é simples: fazer o site público mostrar o arquivo vivo do projeto e oferecer conteúdos claros, navegáveis e sempre atualizados.</p>
-<p>A plataforma conecta coleções, páginas institucionais, notícias e recursos audiovisuais para que o site não apenas informe. Ele aproxima artistas, equipes e públicos em torno de uma mesma experiência cultural.</p>
+<h2>Sobre Nós</h2><p>Desde 2007, a Fundação Teatromuseo do teatro de bonecos e do palhaço promove, difunde e profissionaliza essas artes da representação no Chile por meio de uma escola de formação nacional e internacional, um museu especializado e uma sala de teatro com programação familiar permanente.</p>
+<p>Somos uma equipe de artistas e profissionais da gestão cultural que acredita na vida e no riso como ferramentas de desenvolvimento humano.</p>
 HTML,
             ],
         ], $languages);
 
         $cardsGridId = $this->upsertBlock($pageId, $blockIds, 'cards_grid', 4, [
-            'columns_desktop' => '3',
-            'variant' => 'bordered',
+            'columns_desktop' => '2',
+            'variant' => 'institutional',
             'css_class' => '',
         ], [
             'es' => [],
@@ -204,19 +194,19 @@ HTML,
                 ],
                 'en' => [
                     'title' => 'Mission',
-                    'description' => 'Build a careful, accessible, and easy-to-maintain digital presence for TeatroMuseo.',
+                    'description' => 'Strengthen, disseminate, and develop puppet and clown arts, enriching Chile’s cultural heritage and training new exponents through networks, schools, encounters, publications, and theatres.',
                     'link_label' => '',
                     'link_url' => '',
                 ],
                 'fr' => [
                     'title' => 'Mission',
-                    'description' => 'Construire une présence numérique soignée, accessible et facile à maintenir pour TeatroMuseo.',
+                    'description' => 'Renforcer, diffuser et développer les arts de la marionnette et du clown, en enrichissant le patrimoine culturel du Chili et en formant de nouveaux artistes par des réseaux, écoles, rencontres, publications et salles de théâtre.',
                     'link_label' => '',
                     'link_url' => '',
                 ],
                 'pt' => [
                     'title' => 'Missão',
-                    'description' => 'Construir uma presença digital cuidadosa, acessível e fácil de manter para o TeatroMuseo.',
+                    'description' => 'Fortalecer, difundir e desenvolver a arte do teatro de bonecos e do palhaço, enriquecendo o patrimônio cultural do Chile e formando novos artistas por meio de redes, escolas, encontros, publicações e salas de teatro.',
                     'link_label' => '',
                     'link_url' => '',
                 ],
@@ -232,150 +222,22 @@ HTML,
                 ],
                 'en' => [
                     'title' => 'Vision',
-                    'description' => 'Be a living, multilingual, and trusted archive for the community around TeatroMuseo.',
+                    'description' => 'Establish the Teatromuseo Foundation as a space for research and development in these arts, so Valparaíso is recognized nationally and internationally as the cultural capital of puppetry and clowning.',
                     'link_label' => '',
                     'link_url' => '',
                 ],
                 'fr' => [
                     'title' => 'Vision',
-                    'description' => 'Être une archive vivante, multilingue et fiable pour la communauté qui suit TeatroMuseo.',
+                    'description' => 'Consolider la Fondation Teatromuseo comme un espace de recherche et de développement de ces arts, afin que Valparaíso soit reconnue nationalement et internationalement comme la capitale culturelle de la marionnette et du clown.',
                     'link_label' => '',
                     'link_url' => '',
                 ],
                 'pt' => [
                     'title' => 'Visão',
-                    'description' => 'Ser um arquivo vivo, multilíngue e confiável para a comunidade que acompanha o TeatroMuseo.',
+                    'description' => 'Consolidar a Fundação Teatromuseo como um espaço de pesquisa e desenvolvimento dessas artes, fazendo com que Valparaíso seja reconhecida nacional e internacionalmente como a capital cultural do teatro de bonecos e do palhaço.',
                     'link_label' => '',
                     'link_url' => '',
                 ],
-            ],
-            [
-                'sort_order' => 3,
-                'config' => [],
-                'es' => [
-                    'title' => 'Comunidad',
-                    'description' => 'Poner colecciones, noticias y documentos al servicio de artistas, investigadores y visitantes.',
-                    'link_label' => '',
-                    'link_url' => '',
-                ],
-                'en' => [
-                    'title' => 'Community',
-                    'description' => 'Put collections, news, and documents at the service of artists, researchers, and visitors.',
-                    'link_label' => '',
-                    'link_url' => '',
-                ],
-                'fr' => [
-                    'title' => 'Communauté',
-                    'description' => 'Mettre collections, actualités et documents au service des artistes, chercheurs et visiteurs.',
-                    'link_label' => '',
-                    'link_url' => '',
-                ],
-                'pt' => [
-                    'title' => 'Comunidade',
-                    'description' => 'Colocar coleções, notícias e documentos a serviço de artistas, pesquisadores e visitantes.',
-                    'link_label' => '',
-                    'link_url' => '',
-                ],
-            ],
-        ], $blockIds, $languages);
-
-        $testimonialsSliderId = $this->upsertBlock($pageId, $blockIds, 'cards_slider', 5, [
-            'layout' => 'slider',
-            'autoplay' => true,
-            'interval' => 5000,
-            'visible_count' => '1',
-            'card_variant' => 'testimonial',
-            'css_class' => '',
-        ], [
-            'es' => [],
-            'en' => [],
-            'fr' => [],
-            'pt' => [],
-        ], $languages);
-
-        $this->seedChildBlocks($pageId, $testimonialsSliderId, 'slide_card', [
-            [
-                'sort_order' => 1,
-                'config' => [],
-                'es' => ['eyebrow' => 'Testimonio', 'body' => 'El archivo de TeatroMuseo me permitió reconstruir la historia de una compañía que ya no existe. Es un recurso invaluable para la investigación escénica.', 'meta_title' => 'Investigadora, Universidad de Chile', 'meta_description' => 'Usuaria del archivo', 'rating' => '5'],
-                'en' => ['eyebrow' => 'Testimonial', 'body' => 'The TeatroMuseo archive let me reconstruct the history of a company that no longer exists. It is an invaluable resource for performing arts research.', 'meta_title' => 'Researcher, Universidad de Chile', 'meta_description' => 'Archive user', 'rating' => '5'],
-                'fr' => ['eyebrow' => 'Témoignage', 'body' => 'Les archives de TeatroMuseo m’ont permis de reconstituer l’histoire d’une compagnie qui n’existe plus. C’est une ressource inestimable pour la recherche sur les arts de la scène.', 'meta_title' => 'Chercheuse, Universidad de Chile', 'meta_description' => 'Utilisatrice des archives', 'rating' => '5'],
-                'pt' => ['eyebrow' => 'Depoimento', 'body' => 'O arquivo do TeatroMuseo me permitiu reconstruir a história de uma companhia que não existe mais. É um recurso valioso para a pesquisa cênica.', 'meta_title' => 'Pesquisadora, Universidad de Chile', 'meta_description' => 'Usuária do arquivo', 'rating' => '5'],
-            ],
-            [
-                'sort_order' => 2,
-                'config' => [],
-                'es' => ['eyebrow' => 'Testimonio', 'body' => 'Colaborar con TeatroMuseo para digitalizar nuestro archivo institucional fue una experiencia impecable, con criterios claros de catalogación y mediación.', 'meta_title' => 'Compañía de Teatro Popular', 'meta_description' => 'Aliada institucional', 'rating' => '5'],
-                'en' => ['eyebrow' => 'Testimonial', 'body' => 'Partnering with TeatroMuseo to digitize our institutional archive was a seamless experience, with clear cataloging and mediation criteria.', 'meta_title' => 'Compañía de Teatro Popular', 'meta_description' => 'Institutional partner', 'rating' => '5'],
-                'fr' => ['eyebrow' => 'Témoignage', 'body' => 'Collaborer avec TeatroMuseo pour numériser nos archives institutionnelles a été une expérience sans faille, avec des critères clairs de catalogage et de médiation.', 'meta_title' => 'Compañía de Teatro Popular', 'meta_description' => 'Partenaire institutionnel', 'rating' => '5'],
-                'pt' => ['eyebrow' => 'Depoimento', 'body' => 'Colaborar com o TeatroMuseo para digitalizar nosso arquivo institucional foi uma experiência impecável, com critérios claros de catalogação e mediação.', 'meta_title' => 'Compañía de Teatro Popular', 'meta_description' => 'Parceira institucional', 'rating' => '5'],
-            ],
-        ], $blockIds, $languages);
-
-        $logoShowcaseId = $this->upsertBlock($pageId, $blockIds, 'asset_showcase', 6, [
-            'layout' => 'marquee',
-            'speed' => 'normal',
-            'grayscale' => true,
-            'css_class' => '',
-        ], [
-            'es' => [],
-            'en' => [],
-            'fr' => [],
-            'pt' => [],
-        ], $languages);
-
-        $this->seedChildBlocks($pageId, $logoShowcaseId, 'asset_item', [
-            [
-                'sort_order' => 1,
-                'config' => [],
-                'es' => ['name' => 'Ministerio de las Culturas', 'link_url' => ''],
-                'en' => ['name' => 'Ministerio de las Culturas', 'link_url' => ''],
-                'fr' => ['name' => 'Ministerio de las Culturas', 'link_url' => ''],
-                'pt' => ['name' => 'Ministerio de las Culturas', 'link_url' => ''],
-            ],
-            [
-                'sort_order' => 2,
-                'config' => [],
-                'es' => ['name' => 'Consejo de la Cultura', 'link_url' => ''],
-                'en' => ['name' => 'Consejo de la Cultura', 'link_url' => ''],
-                'fr' => ['name' => 'Consejo de la Cultura', 'link_url' => ''],
-                'pt' => ['name' => 'Consejo de la Cultura', 'link_url' => ''],
-            ],
-            [
-                'sort_order' => 3,
-                'config' => [],
-                'es' => ['name' => 'Red de Archivos Escénicos', 'link_url' => ''],
-                'en' => ['name' => 'Red de Archivos Escénicos', 'link_url' => ''],
-                'fr' => ['name' => 'Red de Archivos Escénicos', 'link_url' => ''],
-                'pt' => ['name' => 'Red de Archivos Escénicos', 'link_url' => ''],
-            ],
-        ], $blockIds, $languages);
-
-        $faqId = $this->upsertBlock($pageId, $blockIds, 'accordion', 7, [
-            'css_class' => '',
-        ], [
-            'es' => [],
-            'en' => [],
-            'fr' => [],
-            'pt' => [],
-        ], $languages);
-
-        $this->seedChildBlocks($pageId, $faqId, 'accordion_item', [
-            [
-                'sort_order' => 1,
-                'config' => ['is_open' => true],
-                'es' => ['title' => '¿Cómo puedo consultar el archivo de TeatroMuseo?', 'content' => '<p>El catálogo público está disponible en el sitio, y el equipo de mediación puede orientarte para consultas de investigación más específicas a través del formulario de contacto.</p>'],
-                'en' => ['title' => 'How can I consult the TeatroMuseo archive?', 'content' => '<p>The public catalog is available on the site, and the mediation team can guide you for more specific research inquiries through the contact form.</p>'],
-                'fr' => ['title' => 'Comment puis-je consulter les archives de TeatroMuseo ?', 'content' => '<p>Le catalogue public est disponible sur le site, et l’équipe de médiation peut vous orienter pour des demandes de recherche plus spécifiques via le formulaire de contact.</p>'],
-                'pt' => ['title' => 'Como posso consultar o arquivo do TeatroMuseo?', 'content' => '<p>O catálogo público está disponível no site, e a equipe de mediação pode orientá-lo para consultas de pesquisa mais específicas através do formulário de contato.</p>'],
-            ],
-            [
-                'sort_order' => 2,
-                'config' => ['is_open' => false],
-                'es' => ['title' => '¿TeatroMuseo recibe donaciones de material de archivo?', 'content' => '<p>Sí. Escríbenos a través de contacto describiendo el material y nuestro equipo evaluará su incorporación siguiendo los criterios de catalogación vigentes.</p>'],
-                'en' => ['title' => 'Does TeatroMuseo accept archival material donations?', 'content' => '<p>Yes. Write to us through the contact page describing the material and our team will evaluate its inclusion following current cataloging criteria.</p>'],
-                'fr' => ['title' => 'TeatroMuseo accepte-t-il des dons de matériel d’archives ?', 'content' => '<p>Oui. Écrivez-nous via la page de contact en décrivant le matériel, et notre équipe évaluera son intégration selon les critères de catalogage en vigueur.</p>'],
-                'pt' => ['title' => 'O TeatroMuseo recebe doações de material de arquivo?', 'content' => '<p>Sim. Escreva para nós através do contato descrevendo o material, e nossa equipe avaliará sua incorporação seguindo os critérios de catalogação vigentes.</p>'],
             ],
         ], $blockIds, $languages);
 

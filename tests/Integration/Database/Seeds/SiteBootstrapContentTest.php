@@ -204,7 +204,7 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
 
         $aboutPage = $this->pageBySlug(['nosotros', 'about', 'a-propos', 'sobre-nos']);
         $this->assertNotNull($aboutPage);
-        $this->assertSame(['page_header', 'hero_banner', 'rich_text', 'cards_grid', 'cards_slider', 'asset_showcase', 'accordion', 'cta'], $this->pageBlockKeys((int) $aboutPage['id']));
+        $this->assertSame(['page_header', 'hero_slider', 'rich_text', 'cards_grid', 'team_grid', 'cta'], $this->pageBlockKeys((int) $aboutPage['id']));
 
         $historyPage = $this->pageBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
         $this->assertNotNull($historyPage);
