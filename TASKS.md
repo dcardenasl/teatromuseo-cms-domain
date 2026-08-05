@@ -21,13 +21,6 @@
 
 ### Fase 1 — Seguridad
 
-- [ ] **SEC-01 — `GET cms/public/languages` es anónimo y sin rate-limit.**
-  `app/Config/Routes/v1/cms.php:7` declara la ruta **fuera** del grupo con filtros (que abre en la
-  l.10) y sin `webappkey` ni `throttle`. Todos los demás endpoints públicos del archivo sí los
-  llevan — la l.153 incluso enuncia la regla — y los grupos públicos de catalog y event usan
-  `['webappkey','throttle']`. Mover la ruta dentro de un grupo con esos filtros.
-  Añadir a `tests/Feature/Controllers/Cms/PublicLanguageControllerTest.php` un caso que exija 401
-  sin `X-App-Key` (hoy solo cubre el camino feliz, por eso nada lo detectó).
 - [ ] **SEC-02 — Alinear `PermissionFilter` con la versión de event-domain.**
   `app/Filters/PermissionFilter.php:46` no concede paso a `iam.superadmin-access`; la copia de
   event (l.46-52) sí, con su justificación en comentario. Hoy un superadmin de plataforma pasa en
@@ -131,6 +124,12 @@
   `CLAUDE.md`, más el puerto 8080 (debe ser 8180 para el hub / 8190 para esta app).
 
 ## ✅ Completadas
+
+- **SEC-01 — Proteger `GET cms/public/languages` (2026-08-05):** la ruta quedó dentro del grupo
+  `webappkey + throttle`; se corrigió además el `declare` de la ruta y se añadió regresión de 401 sin
+  clave. Verificado: `composer test:feature -- --filter=PublicLanguageControllerTest` ✅ (2 tests).
+  Estilo, PHPStan y Swagger ✅; `composer quality` queda bloqueado por el fallo arquitectónico
+  preexistente del nombre `2026-08-04-000012_UnifyAboutPageLocales.php`, perteneciente a MIG-01.
 
 - **BLOCK-002 — Campo `image_aspect_ratio` configurable en `collection_listing` (2026-08-02):**
   David pidió poder definir, por bloque, la proporción de las imágenes de portada en el listado

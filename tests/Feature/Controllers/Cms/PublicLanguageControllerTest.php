@@ -8,6 +8,7 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
 use Tests\Support\Fixtures\CmsFixtureFactory;
+use Tests\Support\Traits\WithWebAppKeyTrait;
 
 /**
  * Regression coverage for `PublicLanguageController::index()` after wrapping
@@ -21,6 +22,7 @@ final class PublicLanguageControllerTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
     use FeatureTestTrait;
+    use WithWebAppKeyTrait;
 
     protected $migrate     = true;
     protected $migrateOnce = true;
@@ -34,12 +36,27 @@ final class PublicLanguageControllerTest extends CIUnitTestCase
     {
         parent::setUp();
 
+        $this->configureWebAppKey();
+
         $this->db->query("DELETE FROM `cms_languages`");
 
         $this->languages = (new CmsFixtureFactory($this->db, self::class))->languages(3);
         $this->db->table('cms_languages')
             ->where('id', $this->languages[2]['id'])
             ->update(['is_active' => 0]);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreWebAppKey();
+        parent::tearDown();
+    }
+
+    public function testRejectsRequestsWithoutWebAppKey(): void
+    {
+        $result = $this->withHeaders([])->get('api/v1/cms/public/languages');
+
+        $result->assertStatus(401);
     }
 
     public function testListsOnlyActiveLanguagesOrderedBySortOrder(): void
