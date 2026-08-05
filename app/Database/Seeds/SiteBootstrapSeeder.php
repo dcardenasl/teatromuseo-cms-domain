@@ -26,7 +26,6 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(CmsLanguageSeeder::class);
         $this->call(CmsFormSeeder::class);
         $this->call(SiteIdentitySeeder::class);
-        $this->call(SiteContactDefaultsSeeder::class);
         $this->call(SiteIntegrationSettingsSeeder::class);
         $this->call(AnalyticsSeeder::class);
         $this->call(SiteSocialLinksSeeder::class);

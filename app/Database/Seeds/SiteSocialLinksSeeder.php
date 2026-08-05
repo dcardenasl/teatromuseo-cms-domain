@@ -16,7 +16,7 @@ use CodeIgniter\Database\Seeder;
  * 3. Database: Edit cms_settings table directly
  *
  * All URLs support validation — empty/placeholder values are hidden from footer.
- * Current networks: Facebook, Instagram, Twitter, LinkedIn, YouTube, TikTok, Pinterest, GitHub.
+ * Current networks: Facebook, Instagram, and YouTube.
  */
 class SiteSocialLinksSeeder extends Seeder
 {
@@ -50,30 +50,6 @@ class SiteSocialLinksSeeder extends Seeder
                 'description'     => 'URL del perfil de Instagram',
             ],
             [
-                'setting_key'     => 'social_twitter',
-                'setting_value'   => 'https://x.com/',
-                'setting_type'    => 'string',
-                'input_type'      => 'url',
-                'setting_group'   => 'social',
-                'is_translatable' => 0,
-                'is_public'       => 1,
-                'is_active'       => 1,
-                'sort_order'      => 30,
-                'description'     => 'URL del perfil de Twitter / X',
-            ],
-            [
-                'setting_key'     => 'social_linkedin',
-                'setting_value'   => 'https://www.linkedin.com/',
-                'setting_type'    => 'string',
-                'input_type'      => 'url',
-                'setting_group'   => 'social',
-                'is_translatable' => 0,
-                'is_public'       => 1,
-                'is_active'       => 1,
-                'sort_order'      => 40,
-                'description'     => 'URL del perfil de LinkedIn',
-            ],
-            [
                 'setting_key'     => 'social_youtube',
                 'setting_value'   => 'https://www.youtube.com/user/Teatromuseo1',
                 'setting_type'    => 'string',
@@ -82,44 +58,8 @@ class SiteSocialLinksSeeder extends Seeder
                 'is_translatable' => 0,
                 'is_public'       => 1,
                 'is_active'       => 1,
-                'sort_order'      => 50,
+                'sort_order'      => 30,
                 'description'     => 'URL del canal de YouTube',
-            ],
-            [
-                'setting_key'     => 'social_tiktok',
-                'setting_value'   => 'https://www.tiktok.com/',
-                'setting_type'    => 'string',
-                'input_type'      => 'url',
-                'setting_group'   => 'social',
-                'is_translatable' => 0,
-                'is_public'       => 1,
-                'is_active'       => 1,
-                'sort_order'      => 60,
-                'description'     => 'URL del perfil de TikTok',
-            ],
-            [
-                'setting_key'     => 'social_pinterest',
-                'setting_value'   => 'https://www.pinterest.com/',
-                'setting_type'    => 'string',
-                'input_type'      => 'url',
-                'setting_group'   => 'social',
-                'is_translatable' => 0,
-                'is_public'       => 1,
-                'is_active'       => 1,
-                'sort_order'      => 70,
-                'description'     => 'URL del perfil de Pinterest',
-            ],
-            [
-                'setting_key'     => 'social_github',
-                'setting_value'   => 'https://github.com/',
-                'setting_type'    => 'string',
-                'input_type'      => 'url',
-                'setting_group'   => 'social',
-                'is_translatable' => 0,
-                'is_public'       => 1,
-                'is_active'       => 1,
-                'sort_order'      => 80,
-                'description'     => 'URL del perfil de GitHub',
             ],
         ];
 

@@ -21,7 +21,7 @@ readonly class SettingResponseDTO implements DataTransferObjectInterface
     public function __construct(
         #[OA\Property(description: 'Unique identifier', example: 1)]
         public int $id,
-        #[OA\Property(description: 'Setting key', example: 'site_title')]
+        #[OA\Property(description: 'Setting key', example: 'site_name')]
         public string $settingKey,
         #[OA\Property(description: 'Setting value', example: 'My Web Site', nullable: true)]
         public ?string $settingValue,
