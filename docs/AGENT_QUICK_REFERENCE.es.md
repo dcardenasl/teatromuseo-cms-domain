@@ -1,44 +1,36 @@
-# ⚡ Guía de Referencia Rápida para Desarrolladores e IAs
+# Referencia rápida para agentes — `teatromuseo-cms-domain`
 
-Esta "Hoja de Trucos" está diseñada para un onboarding rápido y un desarrollo de alta velocidad.
+Lee `CLAUDE.md` y `TASKS.md` antes de editar. Este dominio usa el puerto
+`8190`, posee el contenido CMS y delega autenticación e IAM al Hub en `8180`.
 
-## 🚀 Comandos Core
+```bash
+php spark serve --port 8190
+php spark migrate
+php spark domain:sync-permissions
 
-| Comando | Propósito | ¿Cuándo usarlo? |
-|---------|-----------|-----------------|
-| `bash bin/make-crud.sh <Res> <Dom> '<fields>'` | **Scaffold Module (recomendado)** | Al empezar un nuevo recurso CRUD — shell-safe, funciona en no-TTY. |
-| `php spark make:crud {Nombre}` | **Scaffold Module (interactivo)** | Cuando quieras ser consultado por cada campo. |
-| `php spark module:check {Nombre} --domain {Dom}` | **Validar wiring** | Justo después del scaffold. |
-| `php spark migrate` | **Aplicar cambios DB** | Después del scaffold, revisa la migración y aplícala. |
-| `pkill -f 'spark serve'; php spark serve &` | **Reiniciar servidor** | Obligatorio tras el scaffold — los archivos de ruta nuevos no se cargan en caliente. |
-| `php spark swagger:generate` | **Actualizar OpenAPI** | Al añadir endpoints o DTOs. |
-| `composer quality` | **Check de Salud Total**| Antes de hacer push de cualquier código. |
-| `composer cs-fix` | **Corregir Estilo** | Para auto-formatear tu código. |
+bash vendor/bin/make-crud.sh ResourceName Cms 'field:type:rules,...' yes [route]
+php spark module:check ResourceName --domain Cms
+php spark swagger:generate
 
-## 🏗️ Sintaxis de Scaffolding
+composer test:unit
+composer test:integration
+composer test:feature
+composer quality
+composer cs-fix
+```
 
-Firma: `bash bin/make-crud.sh <Resource> <Domain> '<Fields>' [SoftDelete=yes] [Route]`
+La sincronización normal usa el `X-App-Key` de este dominio y es idempotente.
+`--admin-token` solo se necesita para espejado o asignación opcionales. Reinicia
+el servidor después de agregar rutas.
 
-**Tipos Disponibles:** `string`, `text`, `int`, `bool`, `decimal`, `email`, `date`, `datetime`, `fk`, `json`.
-**Opciones Comunes:** `required`, `nullable`, `searchable`, `filterable`, `fk:tableName`.
+## Reglas
 
-*Ejemplo:*
-`bash bin/make-crud.sh Producto Catalogo 'nombre:string:required|searchable,categoria_id:fk:categorias:required' yes`
-
-## ✅ Lista de Estándares de Calidad
-
-1.  **Inmutabilidad:** Usa siempre `readonly class` para los DTOs.
-2.  **DTO-First:** Sin mapeo directo en Controladores; usa `RequestDataCollector`.
-3.  **Auditoría:** Usa el trait `Auditable` para cualquier modelo con datos sensibles.
-4.  **Tests:** Los nuevos servicios deben incluir tests unitarios; los controladores, tests de feature.
-5.  **Docs:** Asegúrate de que los tags y resúmenes de OpenAPI sean claros y agrupados por Dominio.
-
-## 📁 Mapa de Estructura de Archivos (API por Capas)
-
-- `app/Controllers/Api/V1/{Dominio}/` -> Punto de entrada.
-- `app/DTO/Request/{Dominio}/` -> Validación de entrada.
-- `app/DTO/Response/{Dominio}/` -> Transformación de salida.
-- `app/Interfaces/{Dominio}/` -> Contratos de servicio.
-- `app/Services/{Dominio}/` -> Lógica de negocio.
-- `app/Models/` -> Orquestación de base de datos.
-- `app/Documentation/{Dominio}/` -> Definiciones de OpenAPI.
+- `DomainAuthFilter`/`domainauth` y `HubClient` gestionan las rutas protegidas;
+  nunca emitas JWT ni llames al Hub directamente desde controladores.
+- Las rutas públicas `/api/v1/public/*` usan `webappkey`, no JWT de usuario.
+- Mantén ciclo de vida de páginas/bloques, entradas, taxonomía, traducciones,
+  formularios y templates dinámicos dentro de servicios.
+- Usa DTOs, servicios/repositorios, constantes de permisos y tests en cada
+  cambio. Los permisos usan `.` y no `:`.
+- No hagas commit de `.env`, tokens, credenciales ni lógica de negocio en
+  vistas.
