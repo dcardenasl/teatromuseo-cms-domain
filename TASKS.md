@@ -1,4 +1,4 @@
-# TASKS — ci4-website-builder-domain
+# TASKS — teatromuseo-cms-domain
 
 > Fuente de verdad para trabajo abierto en este repositorio.
 > Los entregables cerrados están en [`TASKS_ARCHIVE.md`](TASKS_ARCHIVE.md).
@@ -11,8 +11,124 @@
 
 ## 🟡 Próximo
 
-*(vacío — las fases Controller→Model y la auditoría de bloques owner-scoped quedaron cerradas;
-las decisiones de producto pendientes se mantienen en el tracker global.)*
+> Saneamiento arquitectónico — auditoría del 2026-08-05.
+> **Contexto, evidencia y rutas exactas:** [`../docs/plan/2026-08-05-saneamiento-arquitectonico.md`](../docs/plan/2026-08-05-saneamiento-arquitectonico.md)
+> Orden y dependencias cross-repo: [`../TASKS.md`](../TASKS.md)
+>
+> ⚠️ **Este repo está 2 commits por delante de `origin/dev`** (`a20b3eb`, `af50ae6`): son la mitad
+> *proveedora* de un cambio del admin ya publicado. Origin tiene hoy el consumidor sin su proveedor.
+> **Publicar antes de empezar cualquier otra cosa.**
+
+### Fase 1 — Seguridad
+
+- [ ] **SEC-01 — `GET cms/public/languages` es anónimo y sin rate-limit.**
+  `app/Config/Routes/v1/cms.php:7` declara la ruta **fuera** del grupo con filtros (que abre en la
+  l.10) y sin `webappkey` ni `throttle`. Todos los demás endpoints públicos del archivo sí los
+  llevan — la l.153 incluso enuncia la regla — y los grupos públicos de catalog y event usan
+  `['webappkey','throttle']`. Mover la ruta dentro de un grupo con esos filtros.
+  Añadir a `tests/Feature/Controllers/Cms/PublicLanguageControllerTest.php` un caso que exija 401
+  sin `X-App-Key` (hoy solo cubre el camino feliz, por eso nada lo detectó).
+- [ ] **SEC-02 — Alinear `PermissionFilter` con la versión de event-domain.**
+  `app/Filters/PermissionFilter.php:46` no concede paso a `iam.superadmin-access`; la copia de
+  event (l.46-52) sí, con su justificación en comentario. Hoy un superadmin de plataforma pasa en
+  event y recibe **403** aquí y en catalog. La lógica de event es la correcta.
+
+### Fase 2 — Configuración y CI
+
+- [ ] **CFG-01 — Puertos incorrectos.** `.env.example`: `app.baseURL` en 8090 (debe ser **8190**) y
+  `hub.url` en 8080 (debe ser **8180**). `phpunit.xml` también en 8080.
+- [ ] **CFG-02 — 28 variables leídas y no documentadas**, entre ellas `HUB_INTERNAL_SECRET` /
+  `hub.internalSecret` (secreto compartido con el hub y los otros 2 dominios, documentado en cero),
+  `hub.adminToken`, `WEB_API_KEY`, `HUB_URL`/`HUB_API_KEY`/`HUB_APP_CODE`, `QUEUE_REDIS_*`,
+  `cms.eventListingPath`. Nota: este repo lee **tres convenciones de configuración en paralelo**
+  (`hub.url`-style, `HUB_*` y `DB_*`/`MYSQL_*` de la ruta Docker). Unificar.
+- [ ] **CFG-03 — El gate de swagger es inerte.** `public/swagger.json` está en `.gitignore` y
+  `swagger-validate` hace `git diff --exit-code` sobre él: un diff sobre un archivo ignorado y no
+  rastreado **nunca puede fallar**. Dejar de ignorarlo, commitear el generado, y verificar que el
+  gate detecta drift (así funciona en `teatromuseo-api`, que no lo ignora).
+- [ ] **CFG-05 — Umbral de cobertura en 35,05 %**, el más bajo de la flota sobre la base de código
+  más grande. Alinear con la política única.
+- [ ] **CFG-08 — Único repo en CI4 v4.7.4** (los otros 7 en v4.7.3) y único con un requisito
+  explícito de `guzzlehttp/psr7` (`^2.12.1`, resuelto en 2.12.4 vs 2.13.0 del resto).
+
+### Fase 3 — Extracción a `ci4-api-core`
+
+- [ ] **CORE-02 — Reconciliar filtros y boilerplate.** Este repo es el que **más diverge en las
+  migraciones de infra**: `jobs`, `request_logs`, `audit_logs` e `idempotency_keys` difieren de las
+  copias de api/catalog/event en las cuatro → schema drift. Conservar el comentario de
+  `app/Filters/WebAppKeyRequiredFilter.php:26-31` al consolidar: es el único sitio donde vive la
+  explicación de por qué el filtro debe fallar cerrado.
+- [ ] **CORE-03 — `app/Config/Api.php` es una copia verbatim de 148 líneas** del que publica
+  `ci4-api-core`, byte-idéntica a las de catalog, event y bff. Arrastra `$jwtSecretKey`,
+  `$jwtAccessTokenTtl`, `$jwtRefreshTokenTtl`, `$jwtRevocationCheck`, `$jwtServiceTokenTtl` y lee
+  `JWT_SECRET_KEY` (l.20, l.105) **en una app que no puede firmar ni verificar un JWT**. Extender la
+  base del paquete como ya hace el hub (30 líneas), eliminando el bloque muerto y sus cadenas i18n.
+- [ ] **CORE-05 — `app/Libraries/Cms/JsonCastNormalizer.php`** es una reimplementación local de 52
+  líneas de `Support/JsonCastNormalizer` de core, **con semántica distinta** (la de core devuelve
+  `[]` ante una cadena JSON; esta la decodifica). La de core no se referencia aquí. Decidir cuál es
+  correcta, consolidar en core, eliminar la copia.
+- [ ] **CORE-06 — Convención de permisos.** Hoy `cms.<plural>.<read|write|admin>`, incompatible con
+  catalog (`catalog.<camelCaseSingular>.<crud>`) y event (`event.<kebab-plural>.<read|write|delete>`).
+  ⚠️ Requiere ventana de mantenimiento — ver decisiones pendientes en el tracker global.
+
+### Fase 4 — Coherencia de capas
+
+- [ ] **LAYER-02 — 12 controladores se saltan el DTO.** Prioritarios:
+  `SettingConnectionController.php:47` **rompe el sobre `ApiResponse`** devolviendo
+  `setJSON(['ok'=>true,'data'=>$data])` directo; `TranslationAuditController.php:46-60` lleva la
+  paginación y validación en el controlador; `BlockInstanceController.php:29` hace routing con
+  `service('request')->getUri()->getSegments()`.
+- [ ] **LAYER-03 — Servicios con builder crudo:** `BlockInstanceTranslationAuditor` (l.272, 291, 311),
+  `EntryService` (l.359, 527-539, 564-572), `FormSubmissionService:258`, `FormService` (l.187, 213),
+  `FileUsageService:40`, `BlockTypeService` (l.86, 179, 295), `EntryBlockTemplateInitializer:41`.
+  El test de arquitectura **no prohíbe**: solo congela un conteo base
+  (`ServiceModelDependencyConventionsTest.php:145-147`), es decir ratifica las violaciones en vez de
+  eliminarlas. Convertirlo en una regla real.
+- [ ] **LAYER-05 — `app/Models/PageViewModel.php` (221 líneas) es un servicio de analítica dentro de
+  un modelo**: `getTotalViews`, `getUniqueVisitors`, `getTopPages`, `getTopReferrers`,
+  `getDeviceBreakdown`, `getBrowserBreakdown`, `getDailyTrend`, con `AnalyticsController`/
+  `AnalyticsService` encima. Mover la agregación a los servicios.
+- [ ] **LAYER-07 — 8 controladores sin referencia en `tests/`:** `FileTranslationController`,
+  `PublicFormSubmissionController`, `AnalyticsController`, `PublicTrackingController`,
+  `PublicTagController`, `FormSubmissionController`, `FileUsageController`, `PublicCategoryController`.
+  Sin tests también `Cms/FileTranslationService`.
+
+### Fase 5 — Migraciones y datos
+
+- [ ] **MIG-01 — 41 de 67 migraciones editan contenido editorial, no esquema** (ninguna llamada a
+  `forge->`): `NormalizeTheatreSchoolLabels`, `NormalizeTheatreSchoolPageTitles`,
+  `PersistAboutSpanishEditorialContent`, `CreateAboutTeamChildren`, `RetireObrasCollection`,
+  `NormalizeSiteSettings`… (secuencia contigua de `2026-08-03-120000` a `2026-08-05-000001`).
+  **Efecto real: `php spark migrate` revierte en silencio los cambios que un editor hizo en el admin.**
+  Hay además cadenas donde cada migración parchea la anterior:
+  `ConsolidateAboutTeamBlocks` → `SyncAboutTeamEditorialData` → `RestoreAboutTeamBlockCompatibilityId`
+  → `NormalizeAboutTeamAdditionalRoles` (4 pasadas sobre el mismo bloque);
+  `RenamePublicationsToEditorial` → `CanonicalizeEditorialRoutes` → `PreserveEditorialEntryRoutes`
+  → `ConsolidateEditorialIndexPage` (4 sobre el mismo renombrado);
+  `AddListingFieldProjection` → `BackfillListingProjections` → `NormalizeListingProjectionReferences`;
+  `NormalizeBlockNavigationSchemas` → `NormalizeExistingBlockNavigationSchemas`.
+  **Plan acordado:** (1) consolidar cada cadena en una operación única con el estado final;
+  (2) convertirlas en seeders/comandos spark idémpotentes que solo corren si se invocan;
+  (3) dejar las 26 de esquema como únicas migraciones; (4) **coordinar con producción** — las 41 ya
+  se aplicaron, el paso de conversión debe registrarlas como ejecutadas sin re-ejecutar;
+  (5) añadir un test de arquitectura que falle si una migración nueva no llama a `forge->`.
+- [ ] **MIG-02 — Otras inconsistencias:** huecos de numeración (`2026-06-11-070011` → `070013`;
+  `2026-08-04-000007` → `000010`), `deleted_at` en 17 migraciones pero solo 3 de 34 modelos con
+  `useSoftDeletes = true`, `ENUM` crudo en 14 migraciones (event y catalog usan otros dos enfoques
+  para lo mismo), y la tabla **`cms_search_index` completamente huérfana** — creada en
+  `2026-06-11-070013_CreateCmsSearchIndex.php:36` y referenciada en ningún otro sitio de `app/` ni
+  `tests/`.
+- [ ] **MIG-03 — Cuatro mecanismos para un solo slider:** `LegacyHomeHeroSliderSeeder`,
+  `LegacyHistoryHeroSliderSeeder`, el comando `RestoreHomeHeroSlider` y las migraciones `120008` y
+  `120009`. Consolidar en uno. Decidir además si `AnalyticsSeeder` (datos sintéticos) es fixture de
+  test (→ `tests/`) o bootstrap real.
+- [ ] **HYG-01 — Purgar y rotar `writable/debugbar` (3,9 GB, el mayor de la flota) y
+  `writable/logs` (64 MB).**
+
+### Fase 6 — Docs
+
+- [ ] **DOC-01 — Deriva documental:** 1 mención a `ci4-website-builder*` y 4 a `ci4-*-starter` en
+  `CLAUDE.md`, más el puerto 8080 (debe ser 8180 para el hub / 8190 para esta app).
 
 ## ✅ Completadas
 
