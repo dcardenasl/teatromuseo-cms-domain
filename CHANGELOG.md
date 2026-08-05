@@ -78,6 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`GET cms/public/languages`** — moved into the `webappkey + throttle` filter group like every
+  other public endpoint in this file; it previously accepted anonymous, unthrottled requests.
 - **Operational translation regression fixture** — seed integration coverage now matches the
   normalized operational translation data used by the CMS bootstrap.
 - **Publication type rollback** — rolling back publication page types now reclassifies affected
