@@ -18,9 +18,12 @@ class BlockInstanceTranslationAuditor
 {
     protected \App\Models\BlockInstanceTranslationModel $blockInstanceTranslationModel;
 
+    protected \App\Models\BlockInstanceModel $blockInstanceModel;
+
     public function __construct(private TranslationAuditSupport $support)
     {
         $this->blockInstanceTranslationModel = model(\App\Models\BlockInstanceTranslationModel::class);
+        $this->blockInstanceModel = model(\App\Models\BlockInstanceModel::class);
     }
 
     /**
@@ -269,18 +272,7 @@ class BlockInstanceTranslationAuditor
      */
     private function getBlockInstancesWithTypes(): array
     {
-        $db = \Config\Database::connect();
-        $query = $db->table('cms_block_instances i')
-            ->select('i.*, b.block_key, b.schema_definition')
-            ->join('cms_content_blocks b', 'b.id = i.block_id')
-            ->where('i.is_active', 1)
-            ->orderBy('i.sort_order', 'ASC')
-            ->get();
-
-        /** @var list<array<string, mixed>> $rows */
-        $rows = $query ? $query->getResultArray() : [];
-
-        return $rows;
+        return $this->blockInstanceModel->findAllWithBlockType(onlyActive: true);
     }
 
     /**
@@ -288,19 +280,7 @@ class BlockInstanceTranslationAuditor
      */
     private function getBlockInstancesForOwner(string $ownerType, int $ownerId): array
     {
-        $db = \Config\Database::connect();
-        $query = $db->table('cms_block_instances i')
-            ->select('i.*, b.block_key, b.schema_definition')
-            ->join('cms_content_blocks b', 'b.id = i.block_id')
-            ->where('i.owner_type', $ownerType)
-            ->where('i.owner_id', $ownerId)
-            ->orderBy('i.sort_order', 'ASC')
-            ->get();
-
-        /** @var list<array<string, mixed>> $rows */
-        $rows = $query ? $query->getResultArray() : [];
-
-        return $rows;
+        return $this->blockInstanceModel->findAllWithBlockType($ownerType, $ownerId);
     }
 
     /**
@@ -308,17 +288,7 @@ class BlockInstanceTranslationAuditor
      */
     private function getBlockInstanceWithType(int $resourceId): ?array
     {
-        $db = \Config\Database::connect();
-        $query = $db->table('cms_block_instances i')
-            ->select('i.*, b.block_key, b.schema_definition')
-            ->join('cms_content_blocks b', 'b.id = i.block_id')
-            ->where('i.id', $resourceId)
-            ->limit(1)
-            ->get();
-
-        $instance = $query ? $query->getRowArray() : null;
-
-        return is_array($instance) ? $instance : null;
+        return $this->blockInstanceModel->findOneWithBlockType($resourceId);
     }
 
     /**

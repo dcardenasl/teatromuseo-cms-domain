@@ -6,7 +6,8 @@ namespace App\Services\Cms;
 
 use App\Entities\BlockTypeEntity;
 use App\Interfaces\Cms\BlockTypeServiceInterface;
-use CodeIgniter\Database\BaseConnection;
+use App\Models\BlockInstanceModel;
+use App\Models\CollectionModel;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ConflictException;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
@@ -25,24 +26,20 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
 
     private const ALLOWED_NAVIGATION_TARGETS = ['collection_index', 'listing_page', 'parent_page', 'slide_destination'];
 
-    /** @var BaseConnection<mixed, mixed> */
-    private BaseConnection $db;
-
     private bool $schemaChanged = false;
 
     /**
      * @param RepositoryInterface<BlockTypeEntity> $blockTypeRepository
-     * @param BaseConnection<mixed, mixed> $db
      */
     public function __construct(
         RepositoryInterface $blockTypeRepository,
         ResponseMapperInterface $responseMapper,
-        BaseConnection $db,
+        private readonly BlockInstanceModel $blockInstanceModel,
+        private readonly CollectionModel $collectionModel,
         private readonly \App\Libraries\Cms\FileReferenceSynchronizer $fileReferenceSynchronizer,
         private readonly \App\Libraries\Cms\OwnerUsageResolver $ownerUsageResolver,
     ) {
         parent::__construct($blockTypeRepository, $responseMapper);
-        $this->db = $db;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -83,13 +80,8 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
      */
     public function getUsages(int $blockTypeId): array
     {
-        $instancesResult = $this->db->table('cms_block_instances')
-            ->select('id, owner_type, owner_id')
-            ->where('block_id', $blockTypeId)
-            ->get();
-
         /** @var list<array{id: int|string, owner_type: string, owner_id: int|string}> $instances */
-        $instances = $instancesResult ? $instancesResult->getResultArray() : [];
+        $instances = $this->blockInstanceModel->findAllForBlockType($blockTypeId);
 
         $owners = array_map(
             static fn (array $instance): array => [
@@ -176,12 +168,9 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
             return;
         }
 
-        $result = $this->db->table('cms_block_instances')
-            ->select('id')
-            ->where('block_id', (int) $entity->id)
-            ->get();
+        $instances = $this->blockInstanceModel->findAllForBlockType((int) $entity->id);
 
-        foreach ($result ? $result->getResultArray() : [] as $row) {
+        foreach ($instances as $row) {
             $instanceId = (int) ($row['id'] ?? 0);
             if ($instanceId > 0) {
                 $this->fileReferenceSynchronizer->syncBlockInstance($instanceId);
@@ -292,9 +281,7 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
             }
 
             foreach ($collections as $collectionKey) {
-                $exists = $this->db->table('cms_collections')
-                    ->where('collection_key', $collectionKey)
-                    ->countAllResults() > 0;
+                $exists = $this->collectionModel->existsByKey((string) $collectionKey);
                 if (! $exists) {
                     throw new ValidationException(
                         lang('Api.validationFailed'),

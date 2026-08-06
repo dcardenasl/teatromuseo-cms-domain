@@ -356,16 +356,13 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             $translationResolver = $this->translationResolver;
             $languageCodeMap = [];
             if ($entry instanceof \App\Entities\EntryEntity) {
-                $currentLangResult = \Config\Database::connect()->table('cms_languages')
-                    ->where('is_active', 1)
-                    ->get();
-                $languageRows = $currentLangResult instanceof \CodeIgniter\Database\ResultInterface
-                    ? $currentLangResult->getResultArray()
-                    : [];
+                /** @var \App\Models\LanguageModel $languageModel */
+                $languageModel = model(\App\Models\LanguageModel::class);
+                $activeLanguages = $languageModel->where('is_active', 1)->findAll();
                 $languageCodeMap = [];
-                foreach ($languageRows as $languageRow) {
-                    if (isset($languageRow['id'], $languageRow['code'])) {
-                        $languageCodeMap[(int) $languageRow['id']] = (string) $languageRow['code'];
+                foreach ($activeLanguages as $language) {
+                    if ($language instanceof \App\Entities\LanguageEntity) {
+                        $languageCodeMap[(int) $language->id] = (string) $language->code;
                     }
                 }
             }
@@ -524,20 +521,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        $db = \Config\Database::connect();
-        $db->table('cms_entry_categories')->where('entry_id', $entryId)->delete();
-
-        if ($categoryIds !== []) {
-            $rows = [];
-            foreach ($categoryIds as $order => $categoryId) {
-                $rows[] = [
-                    'entry_id'    => $entryId,
-                    'category_id' => $categoryId,
-                    'sort_order'  => $order,
-                ];
-            }
-            $db->table('cms_entry_categories')->insertBatch($rows);
-        }
+        /** @var \App\Models\EntryCategoryModel $entryCategoryModel */
+        $entryCategoryModel = model(\App\Models\EntryCategoryModel::class);
+        $entryCategoryModel->replaceForEntry($entryId, $categoryIds);
     }
 
     /**
@@ -561,16 +547,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        $db = \Config\Database::connect();
-        $db->table('cms_entry_tags')->where('entry_id', $entryId)->delete();
-
-        if ($tagIds !== []) {
-            $rows = [];
-            foreach ($tagIds as $tagId) {
-                $rows[] = ['entry_id' => $entryId, 'tag_id' => $tagId];
-            }
-            $db->table('cms_entry_tags')->insertBatch($rows);
-        }
+        /** @var \App\Models\EntryTagModel $entryTagModel */
+        $entryTagModel = model(\App\Models\EntryTagModel::class);
+        $entryTagModel->replaceForEntry($entryId, $tagIds);
     }
 
     public function listPublic(PublicEntryIndexRequestDTO $dto): DataTransferObjectInterface

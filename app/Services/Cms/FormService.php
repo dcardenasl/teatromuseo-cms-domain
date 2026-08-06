@@ -13,6 +13,7 @@ use App\Libraries\Cms\ModelResultNormalizer;
 use App\Libraries\Cms\OwnerUsageResolver;
 use App\Libraries\Cms\TranslationSynchronizer;
 use App\Models\FormModel;
+use App\Models\FormSubmissionModel;
 use App\Models\FormTranslationModel;
 use CodeIgniter\Database\BaseConnection;
 use dcardenasl\Ci4ApiCore\Exceptions\ConflictException;
@@ -40,6 +41,7 @@ class FormService
         private BaseConnection $db,
         private OwnerUsageResolver $ownerUsageResolver,
         private FormFieldService $fieldService,
+        private FormSubmissionModel $formSubmissionModel,
         private ?TranslationSynchronizer $translationSynchronizer = null,
     ) {
     }
@@ -183,10 +185,7 @@ class FormService
             );
         }
 
-        $hasSubmissions = (int) $this->db
-            ->table('cms_form_submissions')
-            ->where('form_id', $id)
-            ->countAllResults() > 0;
+        $hasSubmissions = $this->formSubmissionModel->countByFormId($id) > 0;
 
         if ($hasSubmissions) {
             $this->formModel->update($id, ['is_active' => false]);
@@ -209,6 +208,16 @@ class FormService
             throw new NotFoundException(lang('Forms.not_found'));
         }
 
+        // LAYER-03: intentionally left on the injected BaseConnection rather
+        // than migrated to a Model. This is a 2-table join (block instances
+        // -> their block type) filtered by a JSON_EXTRACT expression over
+        // `block_config` (a block-type-specific JSON blob with no dedicated
+        // column) — the same "genuinely complex cross-entity query" shape as
+        // FileUsageService::getUsagesByHubFileId(), which has the same
+        // exception for the same reason. An Active Record model can't
+        // express the JSON_UNQUOTE/JSON_EXTRACT predicate or the join
+        // without effectively re-implementing this builder chain inside a
+        // Model method that isn't otherwise reusable.
         $formKey = (string) $form->form_key;
         $result = $this->db->table('cms_block_instances bi')
             ->select('bi.id, bi.owner_type, bi.owner_id, bi.sort_order, cb.block_key, cb.name as block_name')

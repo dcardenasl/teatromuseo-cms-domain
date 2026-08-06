@@ -281,7 +281,8 @@ trait CmsDomainServices
         return new \App\Services\Cms\BlockTypeService(
             new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockTypeModel::class)),
             static::blockTypeResponseMapper(),
-            \Config\Database::connect(),
+            model(\App\Models\BlockInstanceModel::class),
+            model(\App\Models\CollectionModel::class),
             static::fileReferenceSynchronizer(),
             static::ownerUsageResolver()
         );
@@ -614,6 +615,7 @@ trait CmsDomainServices
             \Config\Database::connect(),
             static::ownerUsageResolver(),
             static::formFieldService(),
+            model(\App\Models\FormSubmissionModel::class),
             static::translationSynchronizer(),
         );
     }
@@ -667,6 +669,17 @@ trait CmsDomainServices
 
         return new \App\Services\Cms\AnalyticsService(
             new \App\Models\PageViewModel()
+        );
+    }
+
+    public static function requestMetricsService(bool $getShared = true): \App\Services\System\RequestMetricsService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('requestMetricsService');
+        }
+
+        return new \App\Services\System\RequestMetricsService(
+            model(\App\Models\RequestLogModel::class)
         );
     }
 }

@@ -29,6 +29,19 @@ class FormSubmissionService
      */
     public function list(FormSubmissionIndexRequestDTO $dto): array
     {
+        // FormSubmissionModel is constructor-injected (not resolved fresh
+        // per call via a Repository like BaseCrudService's generic index()
+        // does — see BaseRepository::paginateCriteria()'s own
+        // `$this->model->builder()->resetQuery()` for the same defensive
+        // reset), so a prior get()/find($id) call sharing this same model
+        // instance (e.g. create()/import() both end by calling get()) can
+        // leave a stale `where($primaryKey, $id)` on the model's internal
+        // query builder — found via LAYER-07 characterization testing,
+        // where two sequential import()+list() calls against the same
+        // (test-process-shared) service singleton silently filtered list()
+        // down to just the last imported row.
+        $this->model->builder()->resetQuery();
+
         $builder = $this->model->orderBy('created_at', 'DESC');
 
         if ($dto->status !== null) {
@@ -255,18 +268,6 @@ class FormSubmissionService
      */
     public function countByStatus(): array
     {
-        $db = \Config\Database::connect();
-        $result = $db->table('cms_form_submissions')
-            ->select('status, COUNT(*) as total')
-            ->groupBy('status')
-            ->get();
-        $rows = $result ? $result->getResultArray() : [];
-
-        $counts = ['new' => 0, 'read' => 0, 'replied' => 0, 'spam' => 0, 'archived' => 0];
-        foreach ($rows as $row) {
-            $counts[$row['status']] = (int) $row['total'];
-        }
-
-        return $counts;
+        return $this->model->countByStatus();
     }
 }
