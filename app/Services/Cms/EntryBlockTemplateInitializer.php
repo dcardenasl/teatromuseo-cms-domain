@@ -95,7 +95,7 @@ class EntryBlockTemplateInitializer
                 // `schema_definition` is cast as 'json' on BlockTypeEntity, which CI4 decodes to
                 // stdClass (recursively) rather than array — go through the normalizer instead of
                 // an `is_array()` check, which would always be false and silently drop every field.
-                $schemaDef   = \App\Libraries\Cms\JsonCastNormalizer::toArray($blockType->schema_definition ?? null);
+                $schemaDef   = \dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer::toArray($blockType->schema_definition ?? null);
                 $schemaFields = is_array($schemaDef['fields'] ?? null) ? (array) $schemaDef['fields'] : [];
 
                 $extraction   = $wizardExtra !== null

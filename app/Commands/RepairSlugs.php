@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Commands;
 
-use App\Libraries\Cms\JsonCastNormalizer;
 use App\Libraries\Cms\SlugGenerator;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 use CodeIgniter\Database\BaseConnection;
 use Config\Database;
+use dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer;
 
 final class RepairSlugs extends BaseCommand
 {

@@ -245,15 +245,18 @@ a loophole.
   shallow cast only converts the outer object, leaving nested values (e.g.
   `$schema['fields']['heading']`) as `stdClass`, which then silently fail any
   downstream `is_array()` check and get treated as empty. Always go through
-  `App\Libraries\Cms\JsonCastNormalizer::toArray()` instead, which handles the
-  string/object/array shapes correctly via a full `json_encode`/`json_decode`
-  round-trip. (Root-caused 2026-07-21 during DOM-122: this exact bug shipped in
-  `WizardConfigService`'s first draft and would have made the wizard's block
-  editor always see empty `fields`/`config_fields` — caught only because a
-  characterization test with real fixtures was written before trusting the
-  refactor. `BlockSchemaIntrospector::introspect()` now self-normalizes via this
-  helper too, so passing it a raw un-normalized Entity property can no longer
-  silently misbehave.)
+  `dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer::toArray()` instead, which
+  handles the string/object/array shapes correctly via a full
+  `json_encode`/`json_decode` round-trip. (Root-caused 2026-07-21 during DOM-122:
+  this exact bug shipped in `WizardConfigService`'s first draft and would have
+  made the wizard's block editor always see empty `fields`/`config_fields` —
+  caught only because a characterization test with real fixtures was written
+  before trusting the refactor. `BlockSchemaIntrospector::introspect()` now
+  self-normalizes via this helper too, so passing it a raw un-normalized Entity
+  property can no longer silently misbehave. This app carried a local copy of
+  the normalizer until 2026-08-06, when `ci4-api-core` v1.3.0 added the missing
+  JSON-string branch and the local copy — byte-for-byte the same semantics —
+  was deleted in favor of the shared one.)
 
 ## Where to read next
 

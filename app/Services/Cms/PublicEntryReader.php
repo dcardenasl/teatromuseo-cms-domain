@@ -478,7 +478,7 @@ class PublicEntryReader
                 if (! is_array($definition) || ! in_array((string) ($definition['type'] ?? ''), ['string', 'text', 'textarea', 'richtext', 'date', 'datetime', 'number', 'integer', 'select', 'boolean'], true)) {
                     continue;
                 }
-                $decoded = \App\Libraries\Cms\JsonCastNormalizer::toArray($row->block_data);
+                $decoded = \dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer::toArray($row->block_data);
                 $value = $decoded[$fieldKey] ?? null;
                 if (is_array($value)) {
                     $value = implode(', ', array_map(static fn (mixed $item): string => is_scalar($item) ? trim((string) $item) : '', $value));
