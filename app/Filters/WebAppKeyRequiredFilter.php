@@ -4,58 +4,21 @@ declare(strict_types=1);
 
 namespace App\Filters;
 
-use CodeIgniter\Filters\FilterInterface;
-use CodeIgniter\HTTP\RequestInterface;
-use CodeIgniter\HTTP\ResponseInterface;
+use dcardenasl\Ci4ApiCore\Http\Filters\AbstractWebAppKeyRequiredFilter;
 
 /**
  * Validates that the X-App-Key header matches the configured WEB_API_KEY.
  *
  * Used on /api/v1/public/* routes so they are only callable by the Web app,
- * not directly from browsers or third parties.
+ * not directly from browsers or third parties. Fails closed (403) when
+ * `WEB_API_KEY` is unset — the original bug here (before this filter extended
+ * the package base) was a bare `return null` on the empty-key branch, which
+ * let every request through unauthenticated whenever the key was unset.
  */
-class WebAppKeyRequiredFilter implements FilterInterface
+class WebAppKeyRequiredFilter extends AbstractWebAppKeyRequiredFilter
 {
-    /**
-     * @param list<string>|null $arguments
-     */
-    public function before(RequestInterface $request, $arguments = null): ResponseInterface|null
+    protected function webAppKey(): string
     {
-        $configuredKey = (string) env('WEB_API_KEY', '');
-        if ($configuredKey === '') {
-            // Fail closed: an unconfigured gate is a misconfiguration, not
-            // "no gate" — the old `return null` here let every request
-            // through unauthenticated whenever WEB_API_KEY was unset, which
-            // is exactly the case today (confirmed absent from .env and
-            // .env.example). Same fail-closed posture as Config\Hub's
-            // constructor for the equivalent hub.url/apiKey/appCode gates.
-            return \Config\Services::response()
-                ->setStatusCode(403)
-                ->setJSON([
-                    'status'   => 'error',
-                    'messages' => ['WEB_API_KEY is not configured.'],
-                ]);
-        }
-
-        $incomingKey = (string) $request->getHeaderLine('X-App-Key');
-
-        if ($incomingKey === '' || ! hash_equals($configuredKey, $incomingKey)) {
-            return \Config\Services::response()
-                ->setStatusCode(401)
-                ->setJSON([
-                    'status'   => 'error',
-                    'messages' => ['Unauthorized'],
-                ]);
-        }
-
-        return null;
-    }
-
-    /**
-     * @param list<string>|null $arguments
-     */
-    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null): ResponseInterface|null
-    {
-        return null;
+        return (string) env('WEB_API_KEY', '');
     }
 }
