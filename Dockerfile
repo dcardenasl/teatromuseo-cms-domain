@@ -21,8 +21,8 @@ RUN composer dump-autoload --optimize --no-dev
 # Stage 2: Production image
 FROM php:8.2-apache
 
-LABEL maintainer="CodeIgniter 4 API Starter"
-LABEL description="Production-ready CI4 API with JWT authentication"
+LABEL maintainer="Teatro Museo"
+LABEL description="Production-ready Teatro Museo CMS domain API"
 
 # Install system deps, PHP extensions, and enable Apache modules in one layer.
 # `apt-get upgrade` first so transitive OS packages (e.g. linux-libc-dev) pick
