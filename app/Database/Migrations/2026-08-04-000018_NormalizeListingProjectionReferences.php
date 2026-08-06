@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Normalizes legacy bare block field names inside the declarative projection. */
+/**
+ * Normalizes legacy bare block field names inside the declarative projection.
+ *
+ * @cms-content-data-migration
+ */
 final class NormalizeListingProjectionReferences extends Migration
 {
     public function up(): void

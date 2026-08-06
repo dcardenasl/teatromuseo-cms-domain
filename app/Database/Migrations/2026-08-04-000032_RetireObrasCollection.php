@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Retires the empty legacy Obras collection without deleting its history. */
+/**
+ * Retires the empty legacy Obras collection without deleting its history.
+ *
+ * @cms-content-data-migration
+ */
 final class RetireObrasCollection extends Migration
 {
     public function up(): void

@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Renames the public Editorial section without changing its stable slugs. */
+/**
+ * Renames the public Editorial section without changing its stable slugs.
+ *
+ * @cms-content-data-migration
+ */
 final class RenamePublicationsToEditorial extends Migration
 {
     /** @var array<string, string> */

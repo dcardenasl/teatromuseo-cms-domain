@@ -12,6 +12,8 @@ use CodeIgniter\Database\Migration;
  * Cartelera is represented by the canonical `events` page. The old
  * collection-backed pages for Cartelera/Obras must not compete with it.
  * Their records remain recoverable through soft deletion.
+ *
+ * @cms-content-data-migration
  */
 final class NormalizeLegacyCollectionIndexPages extends Migration
 {

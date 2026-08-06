@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Adds the explicit public date-field projection to existing block schemas. */
+/**
+ * Adds the explicit public date-field projection to existing block schemas.
+ *
+ * @cms-content-data-migration
+ */
 final class AddListingFieldProjection extends Migration
 {
     public function up(): void

@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Preserves old Editorial entry URLs after the canonical prefix changes. */
+/**
+ * Preserves old Editorial entry URLs after the canonical prefix changes.
+ *
+ * @cms-content-data-migration
+ */
 final class PreserveEditorialEntryRoutes extends Migration
 {
     /** @var array<string, string> */

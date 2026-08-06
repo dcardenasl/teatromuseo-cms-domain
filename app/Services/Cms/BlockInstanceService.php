@@ -88,9 +88,23 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeUpdate($id, $data, $context);
-        $this->validateSlideNavigation($data, $id);
+
+        // Both helpers below may need the persisted row for fields the payload
+        // omits (block_id, owner_type, owner_id). `$instance` is passed by
+        // reference so whichever one needs it first loads it and the other
+        // reuses it — a payload carrying those fields loads nothing at all.
+        //
+        // This still leaves one read more than strictly necessary:
+        // BaseCrudService::update() already loaded the same row before invoking
+        // this hook, but hands it only to setEntityContext(), which forwards it
+        // to the audit trail without exposing it. Removing that third SELECT
+        // means passing the loaded entity into beforeUpdate() — a ci4-api-core
+        // signature change, tracked under CORE-02.
+        $instance = null;
+
+        $this->validateSlideNavigation($data, $id, $instance);
         $data = $this->normalizeBlockConfig($data);
-        $data = $this->normalizeEntryReferencesFromPayload($data, $id);
+        $data = $this->normalizeEntryReferencesFromPayload($data, $id, $instance);
 
         return $this->deferTranslationsFromUpdate($data);
     }
@@ -350,11 +364,11 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     }
 
     /** @param array<string, mixed> $data */
-    private function validateSlideNavigation(array $data, ?int $instanceId = null): void
+    private function validateSlideNavigation(array $data, ?int $instanceId = null, ?object &$instance = null): void
     {
         $blockId = (int) ($data['block_id'] ?? 0);
         if ($blockId <= 0 && $instanceId !== null) {
-            $instance = $this->repository->find($instanceId);
+            $instance ??= $this->repository->find($instanceId);
             $blockId = (int) ($instance->block_id ?? 0);
         }
         $type = $this->blockTypeById($blockId);
@@ -446,7 +460,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    private function normalizeEntryReferencesFromPayload(array $data, ?int $instanceId = null): array
+    private function normalizeEntryReferencesFromPayload(array $data, ?int $instanceId = null, ?object &$instance = null): array
     {
         if ($this->blockReferenceValidator === null || ! array_key_exists('translations', $data)) {
             return $data;
@@ -461,7 +475,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         $ownerType = (string) ($data['owner_type'] ?? '');
         $ownerId = isset($data['owner_id']) ? (int) $data['owner_id'] : null;
         if ($instanceId !== null) {
-            $instance = $this->repository->find($instanceId);
+            $instance ??= $this->repository->find($instanceId);
             if ($blockId <= 0 && isset($instance->block_id)) {
                 $blockId = (int) $instance->block_id;
             }

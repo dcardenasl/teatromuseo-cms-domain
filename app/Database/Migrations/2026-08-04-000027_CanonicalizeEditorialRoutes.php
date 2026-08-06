@@ -12,6 +12,8 @@ use CodeIgniter\Database\Migration;
  * The public listing page and collection index are the same navigational
  * concept. Keeping their localized slugs aligned prevents entry details from
  * generating a breadcrumb URL different from the menu URL.
+ *
+ * @cms-content-data-migration
  */
 final class CanonicalizeEditorialRoutes extends Migration
 {

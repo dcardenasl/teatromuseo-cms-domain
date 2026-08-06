@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Moves Press from About into the Press & Media menu group. */
+/**
+ * Moves Press from About into the Press & Media menu group.
+ *
+ * @cms-content-data-migration
+ */
 final class MovePressMenuItem extends Migration
 {
     /** @var array<string, string> */

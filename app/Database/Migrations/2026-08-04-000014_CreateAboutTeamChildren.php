@@ -10,6 +10,8 @@ use CodeIgniter\Database\Migration;
  * Converts only the roster selected by the About page into editable CMS
  * children. The `personas` collection remains a shared catalogue and is not
  * used as the page's implicit roster.
+ *
+ * @cms-content-data-migration
  */
 final class CreateAboutTeamChildren extends Migration
 {

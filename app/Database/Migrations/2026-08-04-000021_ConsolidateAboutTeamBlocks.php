@@ -13,6 +13,8 @@ use CodeIgniter\Database\Migration;
  * (the current database uses 3024). Existing children are moved there before
  * the duplicate root is removed, so the admin child listing and public page
  * use the same source of truth.
+ *
+ * @cms-content-data-migration
  */
 final class ConsolidateAboutTeamBlocks extends Migration
 {

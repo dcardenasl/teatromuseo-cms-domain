@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Completes only missing primary photos on the already-created team children. */
+/**
+ * Completes only missing primary photos on the already-created team children.
+ *
+ * @cms-content-data-migration
+ */
 final class CompleteAboutTeamPrimaryMedia extends Migration
 {
     /** @var array<string, string> */

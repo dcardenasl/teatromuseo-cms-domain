@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Synchronizes the Spanish About-page roster with the approved public roster. */
+/**
+ * Synchronizes the Spanish About-page roster with the approved public roster.
+ *
+ * @cms-content-data-migration
+ */
 final class SyncAboutTeamEditorialData extends Migration
 {
     /** @var array<string, array{profession: string, position: string, email: string}> */

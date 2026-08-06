@@ -246,29 +246,41 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         ]);
         $pageId = $this->db->insertID();
 
-        // Complete, but translated before the page's latest update.
+        // Staleness is only meaningful for a NON-default language: the default
+        // language IS the source, so auditResource() deliberately passes a null
+        // source timestamp for it — see
+        // testDefaultLanguageIsNotMarkedOutdatedAgainstItsOwnSourceResource,
+        // which asserts the same fixture stays 'complete' for `es`.
+        // `es` is the default here (is_default = 1 in setUp), so the stale copy
+        // has to be `en`.
+        //
+        // (Before 2026-08-05 this test put the stale copy on `es` and expected
+        // 'outdated', directly contradicting that sibling test. It had been
+        // failing ever since the default-language rule landed.)
+
+        // Default language, translated after the page's latest update.
         $this->db->table('cms_page_translations')->insert([
             'page_id' => $pageId,
             'language_id' => $this->langEsId,
             'slug' => 'inicio',
             'title' => 'Inicio',
-            'updated_at' => '2026-07-19 08:00:00',
+            'updated_at' => '2026-07-20 13:00:00',
         ]);
 
-        // Complete and translated after the page's latest update: stays complete.
+        // Complete, but translated before the page's latest update.
         $this->db->table('cms_page_translations')->insert([
             'page_id' => $pageId,
             'language_id' => $this->langEnId,
             'slug' => 'home',
             'title' => 'Home',
-            'updated_at' => '2026-07-20 13:00:00',
+            'updated_at' => '2026-07-19 08:00:00',
         ]);
 
         $service = Services::translationAuditService(false);
         $audit = $service->auditResource('page', $pageId);
 
-        $this->assertEquals('outdated', $audit['es']['status']);
-        $this->assertEquals('complete', $audit['en']['status']);
+        $this->assertEquals('complete', $audit['es']['status']);
+        $this->assertEquals('outdated', $audit['en']['status']);
     }
 
     public function testDefaultLanguageIsNotMarkedOutdatedAgainstItsOwnSourceResource(): void
@@ -735,8 +747,15 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
             'block_key' => 'image',
             'name' => 'Imagen',
             'category' => 'media',
+            // `alt`, not `alt_text`: a bare `type: string` field is only audited
+            // when its key is in TranslationResourceCatalog::AUDITABLE_BLOCK_STRING_FIELDS
+            // (or it carries an explicit `translatable` flag). Every real image
+            // block schema in CmsBlockTypeSeeder uses `alt`; the invented
+            // `alt_text` key made this block have zero translatable fields, so
+            // auditForOwner() skipped it entirely and the assertions below hit
+            // an undefined instance key.
             'schema_definition' => json_encode([
-                'fields' => ['alt_text' => ['type' => 'string', 'required' => true]],
+                'fields' => ['alt' => ['type' => 'string', 'required' => true]],
             ]),
             'supports_pages' => 1,
             'supports_entries' => 1,
@@ -761,14 +780,14 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->db->table('cms_block_instance_translations')->insert([
             'instance_id' => $instanceId,
             'language_id' => $this->langEsId,
-            'block_data' => json_encode(['alt_text' => 'Plataforma E-commerce Nacional']),
+            'block_data' => json_encode(['alt' => 'Plataforma E-commerce Nacional']),
             'is_published' => 1,
             'updated_at' => '2026-07-20 04:26:05',
         ]);
         $this->db->table('cms_block_instance_translations')->insert([
             'instance_id' => $instanceId,
             'language_id' => $this->langEnId,
-            'block_data' => json_encode(['alt_text' => 'National E-commerce Platform']),
+            'block_data' => json_encode(['alt' => 'National E-commerce Platform']),
             'is_published' => 1,
             'updated_at' => '2026-07-21 03:50:41',
         ]);

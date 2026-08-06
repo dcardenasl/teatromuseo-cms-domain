@@ -43,10 +43,17 @@ final class BlockInstanceServiceTest extends CIUnitTestCase
         $repository->expects($this->once())
             ->method('setEntityContext')
             ->with(10, $this->isInstanceOf(\stdClass::class));
-        $repository->expects($this->exactly(2))
+        // Three reads, all of the same row: BaseCrudService::update() loads the
+        // entity before beforeUpdate() and again after writing, and this payload
+        // carries no block_id, so validateSlideNavigation() has to resolve it
+        // from the persisted row. Collapsing the first and third is a
+        // ci4-api-core change (see CORE-02) — beforeUpdate() currently has no
+        // access to the entity update() already fetched.
+        $repository->expects($this->exactly(3))
             ->method('find')
             ->with(10)
             ->willReturnOnConsecutiveCalls(
+                (object) ['id' => 10],
                 (object) ['id' => 10],
                 (object) ['id' => 10, 'block_config' => ['theme' => 'dark']]
             );
@@ -89,11 +96,15 @@ final class BlockInstanceServiceTest extends CIUnitTestCase
         $repository->expects($this->once())
             ->method('setEntityContext')
             ->with(10, $this->isInstanceOf(\stdClass::class));
-        $repository->expects($this->exactly(2))
+        // See the note in testUpdateSerializesBlockConfigBeforePersisting: three
+        // reads of the same row, the middle one from validateSlideNavigation()
+        // resolving block_id that this payload omits.
+        $repository->expects($this->exactly(3))
             ->method('find')
             ->with(10)
             ->willReturnOnConsecutiveCalls(
                 (object) ['id' => 10],
+                (object) ['id' => 10, 'owner_type' => 'entry'],
                 (object) ['id' => 10, 'owner_type' => 'entry', 'block_config' => ['theme' => 'dark']]
             );
         $repository->expects($this->once())

@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Removes the public People collection page and main-menu link. */
+/**
+ * Removes the public People collection page and main-menu link.
+ *
+ * @cms-content-data-migration
+ */
 final class RemovePeoplePublicNavigation extends Migration
 {
     public function up(): void

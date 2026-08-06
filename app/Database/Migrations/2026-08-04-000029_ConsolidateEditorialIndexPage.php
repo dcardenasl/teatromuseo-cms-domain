@@ -12,6 +12,8 @@ use CodeIgniter\Database\Migration;
  * A collection-backed section must not have one page for the menu and another
  * page for entry details. The collection index is the single navigational
  * owner; its localized slug is resolved dynamically by the CMS.
+ *
+ * @cms-content-data-migration
  */
 final class ConsolidateEditorialIndexPage extends Migration
 {

@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Removes profession/position duplicates from the additional roles field. */
+/**
+ * Removes profession/position duplicates from the additional roles field.
+ *
+ * @cms-content-data-migration
+ */
 final class NormalizeAboutTeamAdditionalRoles extends Migration
 {
     public function up(): void

@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Clarifies that listing taxonomy switches control different public surfaces. */
+/**
+ * Clarifies that listing taxonomy switches control different public surfaces.
+ *
+ * @cms-content-data-migration
+ */
 final class ClarifyCollectionListingTaxonomyLabels extends Migration
 {
     public function up(): void

@@ -13,6 +13,8 @@ use CodeIgniter\Database\Migration;
  * through EntryService. This migration repairs older/imported records that
  * were published with a null value, so publication-date sorting remains
  * meaningful for every public collection.
+ *
+ * @cms-content-data-migration
  */
 final class BackfillPublishedAtForPublishedEntries extends Migration
 {

@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Backfills the declarative listing projection from the previous date/order settings. */
+/**
+ * Backfills the declarative listing projection from the previous date/order settings.
+ *
+ * @cms-content-data-migration
+ */
 final class BackfillListingProjections extends Migration
 {
     public function up(): void

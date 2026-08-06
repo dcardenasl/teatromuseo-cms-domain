@@ -6,7 +6,11 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-/** Keeps the existing admin deep link /17/blocks/3024/edit valid. */
+/**
+ * Keeps the existing admin deep link /17/blocks/3024/edit valid.
+ *
+ * @cms-content-data-migration
+ */
 final class RestoreAboutTeamBlockCompatibilityId extends Migration
 {
     private const COMPATIBILITY_ID = 3024;

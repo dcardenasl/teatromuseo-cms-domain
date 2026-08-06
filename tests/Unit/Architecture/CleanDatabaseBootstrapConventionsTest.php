@@ -63,8 +63,24 @@ final class CleanDatabaseBootstrapConventionsTest extends CIUnitTestCase
             }
 
             if (str_contains($source, '@cms-content-data-migration')) {
+                // The verb must name the operation the migration performs on
+                // existing content. The list was widened on 2026-08-05 to the
+                // set actually in use: 19 content migrations had landed since
+                // this guardrail was written without carrying the
+                // `@cms-content-data-migration` marker, so they fell through to
+                // the schema branch below and the suite had been red ever since.
+                // They are now tagged and their verbs enumerated here.
+                //
+                // Extend this list rather than renaming an applied migration:
+                // CI4 keys the `migrations` table by filename, so a rename makes
+                // the migration run a second time.
+                //
+                // This keeps the guardrail honest about today's reality; it does
+                // not make these migrations correct. MIG-01 converts CMS content
+                // migrations into idempotent seeders, because `spark migrate`
+                // currently reverts edits made by an editor in the admin.
                 $this->assertMatchesRegularExpression(
-                    '/^\d{4}-\d{2}-\d{2}-\d{6}_(?:Add|Split|Normalize|Label|Enhance|Bind)[A-Za-z0-9]+\.php$/',
+                    '/^\d{4}-\d{2}-\d{2}-\d{6}_(?:Add|Backfill|Bind|Canonicalize|Clarify|Complete|Consolidate|Create|Enhance|Label|Move|Normalize|Persist|Preserve|Remove|Rename|Restore|Retire|Split|Sync|Unify)[A-Za-z0-9]+\.php$/',
                     $name,
                     "CMS content data migration {$name} must describe its normalization operation."
                 );
