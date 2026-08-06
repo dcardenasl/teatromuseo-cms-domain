@@ -388,7 +388,6 @@ HTML,
             ],
         ], $languages);
 
-        return;
         $this->upsertBlock($pageId, $blockIds, 'image', 3, [
             'image' => $this->mediaReference('https://picsum.photos/id/1019/800/600'),
             'aspect_ratio' => '16/9',
