@@ -45,6 +45,16 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         $this->filterOwnerId   = $ownerId;
     }
 
+    public function ownerTypeForInstance(int $id): ?string
+    {
+        $instance = $this->repository->find($id);
+        if (! isset($instance->owner_type)) {
+            return null;
+        }
+
+        return (string) $instance->owner_type;
+    }
+
     /**
      * @param RepositoryInterface<BlockInstanceEntity> $blockInstanceRepository
      */

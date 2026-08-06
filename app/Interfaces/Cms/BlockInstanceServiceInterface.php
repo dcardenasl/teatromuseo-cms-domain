@@ -13,4 +13,12 @@ interface BlockInstanceServiceInterface extends CrudServiceContract
      * Must be called before index(); the context is consumed on first use.
      */
     public function setOwnerContext(string $ownerType, int $ownerId): void;
+
+    /**
+     * Resolve the owner type ('page'|'entry') of an existing block instance,
+     * so callers (the controller's permission gate) can determine the right
+     * permission code without inspecting the request URI. Returns null if
+     * the instance doesn't exist.
+     */
+    public function ownerTypeForInstance(int $id): ?string;
 }
