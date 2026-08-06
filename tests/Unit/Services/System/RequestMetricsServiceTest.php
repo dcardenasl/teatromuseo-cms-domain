@@ -2,13 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Tests\Integration\Models;
+namespace Tests\Unit\Services\System;
 
 use App\Models\RequestLogModel;
+use App\Services\System\RequestMetricsService;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 
-class RequestLogModelTest extends CIUnitTestCase
+/**
+ * Was tests/Integration/Models/RequestLogModelTest.php, exercising
+ * RequestLogModel::getStats() directly. Moved and renamed for LAYER-05
+ * (2026-08-06): that aggregation logic now lives in RequestMetricsService,
+ * with RequestLogModel reduced to thin scoped finders — see both files'
+ * docblocks.
+ *
+ * @internal
+ */
+final class RequestMetricsServiceTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
 
@@ -20,7 +30,7 @@ class RequestLogModelTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        \Config\Database::connect()->query("DELETE FROM `request_logs`");
+        \Config\Database::connect()->query('DELETE FROM `request_logs`');
     }
 
     public function testGetStatsReturnsSloAndBreakdownMetrics(): void
@@ -49,7 +59,8 @@ class RequestLogModelTest extends CIUnitTestCase
             ]);
         }
 
-        $stats = $model->getStats('day');
+        $service = new RequestMetricsService($model);
+        $stats = $service->getStats('day');
 
         $this->assertSame(5, $stats['total_requests']);
         $this->assertSame(3, $stats['successful_requests']);
@@ -66,5 +77,18 @@ class RequestLogModelTest extends CIUnitTestCase
         $this->assertArrayHasKey('slo', $stats);
         $this->assertArrayHasKey('p95_target_ms', $stats['slo']);
         $this->assertArrayHasKey('p95_target_met', $stats['slo']);
+    }
+
+    public function testGetStatsWithNoRequestsReturnsZeroedMetricsAndFullAvailability(): void
+    {
+        $model = new RequestLogModel();
+        $service = new RequestMetricsService($model);
+
+        $stats = $service->getStats('hour');
+
+        $this->assertSame(0, $stats['total_requests']);
+        $this->assertSame(0.0, (float) $stats['error_rate_percent']);
+        $this->assertSame(100.0, (float) $stats['availability_percent']);
+        $this->assertSame(0.0, (float) $stats['p95_response_time_ms']);
     }
 }

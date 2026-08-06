@@ -74,47 +74,6 @@ class AuditLogModel extends Model
     protected array $sortableFields = ['id', 'user_id', 'action', 'entity_type', 'entity_id', 'result', 'severity', 'created_at'];
 
     /**
-     * Get audit logs for an entity
-     *
-     * @param string $entityType Entity type (e.g., 'user', 'file')
-     * @param int $entityId Entity ID
-     * @return array<int, mixed>
-     */
-    public function getByEntity(string $entityType, int $entityId): array
-    {
-        return $this->where('entity_type', $entityType)
-            ->where('entity_id', $entityId)
-            ->orderBy('id', 'DESC')
-            ->findAll();
-    }
-
-    /**
-     * Get audit logs for a user
-     *
-     * @param int $userId
-     * @param int $limit
-     * @return array<int, mixed>
-     */
-    public function getByUser(int $userId, int $limit = 50): array
-    {
-        return $this->where('user_id', $userId)
-            ->orderBy('created_at', 'DESC')
-            ->findAll($limit);
-    }
-
-    /**
-     * Get recent audit logs
-     *
-     * @param int $limit
-     * @return array<int, mixed>
-     */
-    public function getRecent(int $limit = 100): array
-    {
-        return $this->orderBy('created_at', 'DESC')
-            ->findAll($limit);
-    }
-
-    /**
      * @return array<int, array{value:string,count:int}>
      */
     public function getActionFacets(int $windowDays = 90, int $limit = 100): array

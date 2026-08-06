@@ -23,69 +23,66 @@ class RequestLogModel extends Model
     protected $useTimestamps = false;
 
     /**
-     * Get request statistics
+     * Get slow requests
      *
-     * @param string $period (hour, day, week, month)
-     * @return array<string, mixed>
+     * @param int $threshold Threshold in milliseconds
+     * @param int $limit
+     * @return array<int, array<int|string, bool|float|int|object|string|null>|object>
      */
-    public function getStats(string $period = 'day'): array
+    public function getSlowRequests(int $threshold = 1000, int $limit = 10): array
     {
-        $since = $this->getSinceFromPeriod($period);
+        return $this->select('method, uri, response_time, created_at')
+            ->where('response_time >', $threshold)
+            ->orderBy('response_time', 'DESC')
+            ->limit($limit)
+            ->find();
+    }
 
-        $totalRequests = (int) $this->db->table($this->table)
+    /**
+     * Count requests logged since a datetime.
+     */
+    public function countSince(string $since): int
+    {
+        return (int) $this->db->table($this->table)
             ->where('created_at >=', $since)
             ->countAllResults();
+    }
 
-        $successfulRequests = (int) $this->db->table($this->table)
+    /**
+     * Count requests with a response_code in [$min, $max) since a datetime.
+     */
+    public function countByResponseCodeRange(string $since, int $min, int $max): int
+    {
+        return (int) $this->db->table($this->table)
             ->where('created_at >=', $since)
-            ->where('response_code >=', 200)
-            ->where('response_code <', 400)
+            ->where('response_code >=', $min)
+            ->where('response_code <', $max)
             ->countAllResults();
+    }
 
-        $failedRequests = (int) $this->db->table($this->table)
-            ->where('created_at >=', $since)
-            ->where('response_code >=', 400)
-            ->countAllResults();
-
-        $avgResponseTimeQuery = $this->db->table($this->table)
+    /**
+     * Average response time (ms) since a datetime.
+     */
+    public function avgResponseTimeSince(string $since): float
+    {
+        $query = $this->db->table($this->table)
             ->select('AVG(response_time) as avg_response_time')
             ->where('created_at >=', $since)
             ->get();
 
-        $avgResponseTimeRaw = $avgResponseTimeQuery ? $avgResponseTimeQuery->getRow() : null;
-        $avgResponseTime = $avgResponseTimeRaw ? (float) ($avgResponseTimeRaw->avg_response_time ?? 0) : 0.0;
+        $row = $query ? $query->getRow() : null;
 
-        // Optimized Percentile Calculation (O(1) Memory)
-        $p95 = $this->getPercentileFromDb($since, $totalRequests, 0.95);
-        $p99 = $this->getPercentileFromDb($since, $totalRequests, 0.99);
-
-        $errorRate = $totalRequests > 0 ? ($failedRequests / $totalRequests) * 100 : 0.0;
-        $availability = $totalRequests > 0 ? ($successfulRequests / $totalRequests) * 100 : 100.0;
-        $latencyTarget = config('Api')->sloP95TargetMs ?? 500;
-
-        return [
-            'period' => $period,
-            'since' => $since,
-            'total_requests' => $totalRequests,
-            'successful_requests' => $successfulRequests,
-            'failed_requests' => $failedRequests,
-            'avg_response_time_ms' => round($avgResponseTime, 2),
-            'p95_response_time_ms' => $p95,
-            'p99_response_time_ms' => $p99,
-            'error_rate_percent' => round($errorRate, 2),
-            'availability_percent' => round($availability, 2),
-            'status_code_breakdown' => $this->getStatusCodeBreakdown($since),
-            'slo' => [
-                'p95_target_ms' => $latencyTarget,
-                'p95_target_met' => $p95 <= $latencyTarget,
-            ],
-        ];
+        return $row ? (float) ($row->avg_response_time ?? 0) : 0.0;
     }
 
     /**
-     * Efficiently calculates a percentile value directly from the DB using LIMIT/OFFSET.
+     * Efficiently calculates a percentile response time (ms) directly from
+     * the DB using LIMIT/OFFSET (O(1) memory) — $totalCount is supplied by
+     * the caller (already computed via countSince()) rather than recounted
+     * here, so callers that need several percentiles for the same window
+     * only pay for the count once.
      */
-    private function getPercentileFromDb(string $since, int $totalCount, float $percentile): float
+    public function percentileResponseTime(string $since, float $percentile, int $totalCount): float
     {
         if ($totalCount === 0) {
             return 0.0;
@@ -105,61 +102,5 @@ class RequestLogModel extends Model
         $row = $query ? $query->getRow() : null;
 
         return $row ? (float) $row->response_time : 0.0;
-    }
-
-    /**
-     * Get slow requests
-     *
-     * @param int $threshold Threshold in milliseconds
-     * @param int $limit
-     * @return array<int, array<int|string, bool|float|int|object|string|null>|object>
-     */
-    public function getSlowRequests(int $threshold = 1000, int $limit = 10): array
-    {
-        return $this->select('method, uri, response_time, created_at')
-            ->where('response_time >', $threshold)
-            ->orderBy('response_time', 'DESC')
-            ->limit($limit)
-            ->find();
-    }
-
-    private function getSinceFromPeriod(string $period): string
-    {
-        return match ($period) {
-            'hour' => date('Y-m-d H:i:s', strtotime('-1 hour')),
-            'day' => date('Y-m-d H:i:s', strtotime('-1 day')),
-            'week' => date('Y-m-d H:i:s', strtotime('-1 week')),
-            'month' => date('Y-m-d H:i:s', strtotime('-1 month')),
-            default => date('Y-m-d H:i:s', strtotime('-1 day')),
-        };
-    }
-
-    /**
-     * @return array{'2xx':int,'3xx':int,'4xx':int,'5xx':int}
-     */
-    private function getStatusCodeBreakdown(string $since): array
-    {
-        return [
-            '2xx' => (int) $this->db->table($this->table)
-                ->where('created_at >=', $since)
-                ->where('response_code >=', 200)
-                ->where('response_code <', 300)
-                ->countAllResults(),
-            '3xx' => (int) $this->db->table($this->table)
-                ->where('created_at >=', $since)
-                ->where('response_code >=', 300)
-                ->where('response_code <', 400)
-                ->countAllResults(),
-            '4xx' => (int) $this->db->table($this->table)
-                ->where('created_at >=', $since)
-                ->where('response_code >=', 400)
-                ->where('response_code <', 500)
-                ->countAllResults(),
-            '5xx' => (int) $this->db->table($this->table)
-                ->where('created_at >=', $since)
-                ->where('response_code >=', 500)
-                ->where('response_code <', 600)
-                ->countAllResults(),
-        ];
     }
 }

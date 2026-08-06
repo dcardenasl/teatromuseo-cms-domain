@@ -4,17 +4,47 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Config\Database;
+use CodeIgniter\Model;
 
-class PageViewModel
+/**
+ * Thin Active Record model for `page_views`: fillable fields, one write
+ * method (record(), which truncates fields to their column widths — a
+ * data-integrity concern, not business logic), and simple scoped finders
+ * that return raw rows/counts. AnalyticsService owns period-window
+ * resolution, percentage/rate computation, and response shaping — see its
+ * docblock (LAYER-05, 2026-08-06): this model used to carry all of that
+ * (getTotalViews/getUniqueVisitors/getTopPages/getTopReferrers/
+ * getDeviceBreakdown/getBrowserBreakdown/getDailyTrend), making it an
+ * analytics service disguised as a model. `getBrowserBreakdown` had zero
+ * callers anywhere (AnalyticsService never exposed it, no route existed)
+ * and was dropped rather than migrated — see TASKS.md for the note.
+ */
+class PageViewModel extends Model
 {
-    private const ALLOWED_PERIODS = ['1h', '24h', '7d', '30d'];
-    private const DEFAULT_PERIOD  = '7d';
+    protected $table = 'page_views';
+    protected $primaryKey = 'id';
+    protected $returnType = 'array';
+    protected $useSoftDeletes = false;
+    protected $useTimestamps = false;
+
+    protected $allowedFields = [
+        'url',
+        'page_title',
+        'referrer',
+        'referrer_domain',
+        'utm_source',
+        'utm_medium',
+        'utm_campaign',
+        'device_type',
+        'browser',
+        'os',
+        'session_id',
+        'created_at',
+    ];
 
     public function record(string $url, ?string $pageTitle, ?string $referrer, ?string $referrerDomain, ?string $utmSource, ?string $utmMedium, ?string $utmCampaign, string $deviceType, ?string $browser, ?string $os, ?string $sessionId): void
     {
-        $db = Database::connect();
-        $db->table('page_views')->insert([
+        $this->insert([
             'url'             => substr($url, 0, 500),
             'page_title'      => $pageTitle !== null ? substr($pageTitle, 0, 255) : null,
             'referrer'        => $referrer !== null ? substr($referrer, 0, 500) : null,
@@ -30,51 +60,41 @@ class PageViewModel
         ]);
     }
 
-    public function getTotalViews(string $period): int
+    public function countSince(string $since): int
     {
-        $db     = Database::connect();
-        $result = $db->table('page_views')
+        $query = $this->builder()
             ->selectCount('id', 'total')
-            ->where('created_at >=', $this->periodToDatetime($period))
+            ->where('created_at >=', $since)
             ->get();
 
-        if ($result === false) {
-            return 0;
-        }
-
-        $row = $result->getRowArray();
+        $row = $query !== false ? $query->getRowArray() : null;
 
         return (int) ($row['total'] ?? 0);
     }
 
-    public function getUniqueVisitors(string $period): int
+    public function countDistinctSessionsSince(string $since): int
     {
-        $db     = Database::connect();
-        $result = $db->table('page_views')
+        $query = $this->builder()
             ->select('COUNT(DISTINCT session_id) as total')
-            ->where('created_at >=', $this->periodToDatetime($period))
+            ->where('created_at >=', $since)
             ->where('session_id IS NOT NULL')
             ->get();
 
-        if ($result === false) {
-            return 0;
-        }
-
-        $row = $result->getRowArray();
+        $row = $query !== false ? $query->getRowArray() : null;
 
         return (int) ($row['total'] ?? 0);
     }
 
     /**
-     * @return list<array{url: string, page_title: string|null, views: int, percentage: float}>
+     * Raw view counts grouped by url+page_title, most-viewed first. No
+     * percentage — that's AnalyticsService's job, since it needs the
+     * period's total (a separate query) to compute it.
+     *
+     * @return list<array{url: string, page_title: string|null, views: int}>
      */
-    public function getTopPages(string $period, int $limit = 10): array
+    public function groupByUrlSince(string $since, int $limit): array
     {
-        $db    = Database::connect();
-        $since = $this->periodToDatetime($period);
-        $total = $this->getTotalViews($period);
-
-        $result = $db->table('page_views')
+        $query = $this->builder()
             ->select('url, page_title, COUNT(*) as views')
             ->where('created_at >=', $since)
             ->groupBy('url, page_title')
@@ -82,28 +102,21 @@ class PageViewModel
             ->limit($limit)
             ->get();
 
-        $rows = $result !== false ? $result->getResultArray() : [];
+        $rows = $query !== false ? $query->getResultArray() : [];
 
-        return array_values(array_map(function (array $row) use ($total): array {
-            return [
-                'url'        => (string) $row['url'],
-                'page_title' => isset($row['page_title']) ? (string) $row['page_title'] : null,
-                'views'      => (int) $row['views'],
-                'percentage' => $total > 0 ? round((int) $row['views'] / $total * 100, 1) : 0.0,
-            ];
-        }, $rows));
+        return array_values(array_map(static fn (array $row): array => [
+            'url'        => (string) $row['url'],
+            'page_title' => isset($row['page_title']) ? (string) $row['page_title'] : null,
+            'views'      => (int) $row['views'],
+        ], $rows));
     }
 
     /**
-     * @return list<array{domain: string, views: int, percentage: float}>
+     * @return list<array{domain: string, views: int}>
      */
-    public function getTopReferrers(string $period, int $limit = 10): array
+    public function groupByReferrerDomainSince(string $since, int $limit): array
     {
-        $db    = Database::connect();
-        $since = $this->periodToDatetime($period);
-        $total = $this->getTotalViews($period);
-
-        $result = $db->table('page_views')
+        $query = $this->builder()
             ->select('referrer_domain as domain, COUNT(*) as views')
             ->where('created_at >=', $since)
             ->where('referrer_domain IS NOT NULL')
@@ -112,110 +125,60 @@ class PageViewModel
             ->limit($limit)
             ->get();
 
-        $rows = $result !== false ? $result->getResultArray() : [];
+        $rows = $query !== false ? $query->getResultArray() : [];
 
-        return array_values(array_map(function (array $row) use ($total): array {
-            return [
-                'domain'     => (string) $row['domain'],
-                'views'      => (int) $row['views'],
-                'percentage' => $total > 0 ? round((int) $row['views'] / $total * 100, 1) : 0.0,
-            ];
-        }, $rows));
+        return array_values(array_map(static fn (array $row): array => [
+            'domain' => (string) $row['domain'],
+            'views'  => (int) $row['views'],
+        ], $rows));
     }
 
     /**
-     * @return array{desktop: int, mobile: int, tablet: int, bot: int, unknown: int}
+     * @return list<array{device_type: string, total: int}>
      */
-    public function getDeviceBreakdown(string $period): array
+    public function groupByDeviceTypeSince(string $since): array
     {
-        $db    = Database::connect();
-        $since = $this->periodToDatetime($period);
-
-        $result = $db->table('page_views')
+        $query = $this->builder()
             ->select('device_type, COUNT(*) as total')
             ->where('created_at >=', $since)
             ->groupBy('device_type')
             ->get();
 
-        $rows = $result !== false ? $result->getResultArray() : [];
+        $rows = $query !== false ? $query->getResultArray() : [];
 
-        $breakdown = ['desktop' => 0, 'mobile' => 0, 'tablet' => 0, 'bot' => 0, 'unknown' => 0];
-        foreach ($rows as $row) {
-            $type = (string) $row['device_type'];
-            if (array_key_exists($type, $breakdown)) {
-                $breakdown[$type] = (int) $row['total'];
-            }
-        }
-
-        return $breakdown;
+        return array_values(array_map(static fn (array $row): array => [
+            'device_type' => (string) $row['device_type'],
+            'total'       => (int) $row['total'],
+        ], $rows));
     }
 
     /**
-     * @return array<string, int>
-     */
-    public function getBrowserBreakdown(string $period): array
-    {
-        $db    = Database::connect();
-        $since = $this->periodToDatetime($period);
-
-        $result = $db->table('page_views')
-            ->select('browser, COUNT(*) as total')
-            ->where('created_at >=', $since)
-            ->where('browser IS NOT NULL')
-            ->groupBy('browser')
-            ->orderBy('total', 'DESC')
-            ->limit(10)
-            ->get();
-
-        $rows = $result !== false ? $result->getResultArray() : [];
-
-        $breakdown = [];
-        foreach ($rows as $row) {
-            $breakdown[(string) $row['browser']] = (int) $row['total'];
-        }
-
-        return $breakdown;
-    }
-
-    /**
+     * View/unique-visitor counts grouped by hour or day, oldest first.
+     * $hourly picks the SQL DATE_FORMAT granularity — a query-construction
+     * detail, not the business decision of which granularity a given period
+     * warrants (that stays in AnalyticsService).
+     *
      * @return list<array{label: string, views: int, unique_visitors: int}>
      */
-    public function getDailyTrend(string $period): array
+    public function groupByPeriod(string $since, bool $hourly): array
     {
-        $db    = Database::connect();
-        $since = $this->periodToDatetime($period);
-
-        $groupFormat = in_array($period, ['1h', '24h'], true)
+        $groupFormat = $hourly
             ? "DATE_FORMAT(created_at, '%Y-%m-%d %H:00')"
-            : "DATE(created_at)";
+            : 'DATE(created_at)';
 
-        $result = $db->table('page_views')
+        $query = $this->builder()
             ->select("{$groupFormat} as label, COUNT(*) as views, COUNT(DISTINCT session_id) as unique_visitors")
             ->where('created_at >=', $since)
             ->groupBy($groupFormat)
             ->orderBy('label', 'ASC')
             ->get();
 
-        $rows = $result !== false ? $result->getResultArray() : [];
+        $rows = $query !== false ? $query->getResultArray() : [];
 
-        return array_values(array_map(fn (array $row): array => [
+        return array_values(array_map(static fn (array $row): array => [
             'label'           => (string) $row['label'],
             'views'           => (int) $row['views'],
             'unique_visitors' => (int) $row['unique_visitors'],
         ], $rows));
-    }
-
-    private function periodToDatetime(string $period): string
-    {
-        if (!in_array($period, self::ALLOWED_PERIODS, true)) {
-            $period = self::DEFAULT_PERIOD;
-        }
-
-        return match ($period) {
-            '1h'  => date('Y-m-d H:i:s', strtotime('-1 hour')),
-            '24h' => date('Y-m-d H:i:s', strtotime('-24 hours')),
-            '7d'  => date('Y-m-d H:i:s', strtotime('-7 days')),
-            '30d' => date('Y-m-d H:i:s', strtotime('-30 days')),
-        };
     }
 }
