@@ -1,0 +1,4371 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "CodeIgniter 4 Website Builder",
+        "description": "CodeIgniter 4 website builder starter that delegates authentication and IAM to a central hub.",
+        "version": "1.2.1"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8080",
+            "description": "Local development server"
+        }
+    ],
+    "paths": {
+        "/api/v1/cms/block-instances": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "List BlockInstances",
+                "operationId": "029677470543c414bbf344710eef6668",
+                "responses": {
+                    "200": {
+                        "description": "List retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BlockInstanceResponse"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Create new BlockInstance",
+                "operationId": "01ea04750eb58251f6cb19d519e0de22",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BlockInstanceCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/block-instances/{id}": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Get BlockInstance by ID",
+                "operationId": "3f3df4ab8910d58e941844bf1a904e0b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BlockInstanceResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Update existing BlockInstance",
+                "operationId": "38da9ffb78c91af2c24e0892bb50e603",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BlockInstanceUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BlockInstanceResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Delete BlockInstance by ID",
+                "operationId": "5e4fb1ee989d1682ce919e14d8b698a9",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/block-types": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "List BlockTypes",
+                "operationId": "c886ff773cff6631b32e4fa8c6989767",
+                "responses": {
+                    "200": {
+                        "description": "List retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BlockTypeResponse"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Create new BlockType",
+                "operationId": "a5c64db727ae9e41eecc0d9de053cd5a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BlockTypeCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/block-types/{id}": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Get BlockType by ID",
+                "operationId": "1c329d5b136bd154a9be7e0d3053b746",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BlockTypeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Update existing BlockType",
+                "operationId": "3280ec7e08006f462fb0faf44b6db9ef",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BlockTypeUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BlockTypeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Delete BlockType by ID",
+                "operationId": "5d6f5411ca35b2fc8985a4516c322bed",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/categories": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "List Categories",
+                "operationId": "5dc121b2ba414d9dce68bcb044d8d74d",
+                "responses": {
+                    "200": {
+                        "description": "List retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CategoryResponse"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Create new Category",
+                "operationId": "07c6734bb8dff486c698cb9cc41f9cab",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CategoryCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/categories/{id}": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Get Category by ID",
+                "operationId": "f64ec37477a2b8c92743bc3da7172d3d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CategoryResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Update existing Category",
+                "operationId": "a878175d18d47c313d439015a288b290",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CategoryUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CategoryResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Delete Category by ID",
+                "operationId": "689b6f064e793711199345ce85a6dd91",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/collections": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "List Collections",
+                "operationId": "1b3586a61d630c4c72f9f6b168711e6a",
+                "responses": {
+                    "200": {
+                        "description": "List retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CollectionResponse"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Create new Collection",
+                "operationId": "499f921df668979014ec9ec443b9cda1",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CollectionCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/collections/{id}": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Get Collection by ID",
+                "operationId": "11f44abab710419cc8d3ec17eab5404a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CollectionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Update existing Collection",
+                "operationId": "3c92c16bfb6007b943d713d9e064a17f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CollectionUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CollectionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Delete Collection by ID",
+                "operationId": "9ffc790fd64f7d8a7bd037a26eb23909",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/entries": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "List Entries",
+                "operationId": "6ee45884e0a448ed61cbe01b44a8cead",
+                "responses": {
+                    "200": {
+                        "description": "List retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/EntryResponse"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Create new Entry",
+                "operationId": "2aaa0e2837a1927b94fbcc0d804553ca",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EntryCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/entries/{id}": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Get Entry by ID",
+                "operationId": "c2256925a86b89a3029a6b4ce757f239",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EntryResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Update existing Entry",
+                "operationId": "1d7639db31add19832f102027f9cac1f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EntryUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EntryResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Delete Entry by ID",
+                "operationId": "87bb7e25c47c5e3708c3137930cd242e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/menus": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "List Menus",
+                "operationId": "346b2ce3bf0825287819c25e1f032c94",
+                "responses": {
+                    "200": {
+                        "description": "List retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/MenuResponse"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Create new Menu",
+                "operationId": "4bb0e7f588ec723a634d65c9ed64277c",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MenuCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/menus/{id}": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Get Menu by ID",
+                "operationId": "6cbe1fcc199d76d02a69d82b34717ba2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MenuResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Update existing Menu",
+                "operationId": "adba66011aa57f6367aece96a9639ab9",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MenuUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MenuResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Delete Menu by ID",
+                "operationId": "68ad6f86b42f89409eb99b32c27a418e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/menu-items": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "List MenuItems",
+                "operationId": "b1442f5a20384178a48d13a9cf017259",
+                "responses": {
+                    "200": {
+                        "description": "List retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/MenuItemResponse"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Create new MenuItem",
+                "operationId": "e4398031ade627b2c0dcc49a6bcd8926",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MenuItemCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/menu-items/{id}": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Get MenuItem by ID",
+                "operationId": "e2bd25783a39f147a9f1c6bdce3af922",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MenuItemResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Update existing MenuItem",
+                "operationId": "554a1d50daf5c0bad166488b40112faf",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MenuItemUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MenuItemResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Delete MenuItem by ID",
+                "operationId": "b697cec56d3fe180e0395a3d061d60db",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/pages": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "List Pages",
+                "operationId": "c92249d2b8ea2d3985aa9301b8f0ea0d",
+                "responses": {
+                    "200": {
+                        "description": "List retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PageResponse"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Create new Page",
+                "operationId": "6c840665eeaef0bb762400b1dc7b6d06",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PageCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/pages/{id}": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Get Page by ID",
+                "operationId": "5caa9cf9c19407d88d7fcff444ac0e95",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Update existing Page",
+                "operationId": "24d5e77e29a24b8d2b3defe2dbedbf91",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PageUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Delete Page by ID",
+                "operationId": "e61d8224b012abe6d683b903af4bc62e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/redirects": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "List Redirects",
+                "operationId": "3ee8b6b0417d38e3242a384a734d6c9e",
+                "responses": {
+                    "200": {
+                        "description": "List retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/RedirectResponse"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Create new Redirect",
+                "operationId": "f47240304f344a2dde1cf02b63836ea8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RedirectCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/redirects/{id}": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Get Redirect by ID",
+                "operationId": "a6e54fe92ee3038b16c8611e89fea5ad",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RedirectResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Update existing Redirect",
+                "operationId": "b99eecbae2458789eee75f4f453e1533",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RedirectUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RedirectResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Delete Redirect by ID",
+                "operationId": "99cac8575d6efdf7aeb4dc4da3a4fcde",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/tags": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "List Tags",
+                "operationId": "c7c0c9062d182e1b35bbe5418eab0c23",
+                "responses": {
+                    "200": {
+                        "description": "List retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TagResponse"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Create new Tag",
+                "operationId": "dda0bec6faf5c216bfb71b4e20123aaf",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TagCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/cms/tags/{id}": {
+            "get": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Get Tag by ID",
+                "operationId": "a394ec61d171dcf1de02a91771100115",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Update existing Tag",
+                "operationId": "8f8b2c0726427579922e67b28ddc3734",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TagUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Delete Tag by ID",
+                "operationId": "466ef92f8d9038cf70de5f8e7c55193c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Health check",
+                "operationId": "8134f87e7bbe4107dc228a3b8d62d619",
+                "responses": {
+                    "200": {
+                        "description": "System healthy",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "healthy"
+                                        },
+                                        "timestamp": {
+                                            "type": "string"
+                                        },
+                                        "checks": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "System unhealthy or monitoring disabled"
+                    }
+                }
+            }
+        },
+        "/ping": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Ping",
+                "operationId": "dbed0a220ea82e65e99701b5a0827c7e",
+                "responses": {
+                    "200": {
+                        "description": "Service reachable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "ok"
+                                        },
+                                        "timestamp": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ready": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Readiness check",
+                "operationId": "e5d2e3dea8c7b5d8c0113dce7beb0d09",
+                "responses": {
+                    "200": {
+                        "description": "Ready to serve",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "ready"
+                                        },
+                                        "timestamp": {
+                                            "type": "string"
+                                        },
+                                        "database": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Not ready"
+                    }
+                }
+            }
+        },
+        "/live": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Liveness check",
+                "operationId": "7a050261f6e4cedb42617b378f1e1415",
+                "responses": {
+                    "200": {
+                        "description": "Service alive",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "alive"
+                                        },
+                                        "timestamp": {
+                                            "type": "string"
+                                        },
+                                        "uptime_seconds": {
+                                            "type": "integer",
+                                            "example": 12345
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "BlockInstanceCreateRequest": {
+                "properties": {
+                    "block_id": {
+                        "description": "block_id",
+                        "type": "integer"
+                    },
+                    "owner_type": {
+                        "description": "owner_type",
+                        "type": "string"
+                    },
+                    "owner_id": {
+                        "description": "owner_id",
+                        "type": "integer"
+                    },
+                    "parent_instance_id": {
+                        "description": "parent_instance_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "column_index": {
+                        "description": "column_index",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "block_config": {
+                        "description": "block_config",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "BlockInstanceIndexRequest": {},
+            "BlockInstanceUpdateRequest": {
+                "properties": {
+                    "block_id": {
+                        "description": "block_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "owner_type": {
+                        "description": "owner_type",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "owner_id": {
+                        "description": "owner_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "parent_instance_id": {
+                        "description": "parent_instance_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "column_index": {
+                        "description": "column_index",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "block_config": {
+                        "description": "block_config",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "BlockTypeCreateRequest": {
+                "properties": {
+                    "block_key": {
+                        "description": "block_key",
+                        "type": "string"
+                    },
+                    "name": {
+                        "description": "name",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "description",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "category": {
+                        "description": "category",
+                        "type": "string"
+                    },
+                    "icon": {
+                        "description": "icon",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "schema_definition": {
+                        "description": "schema_definition",
+                        "type": "object"
+                    },
+                    "supports_pages": {
+                        "description": "supports_pages",
+                        "type": "boolean"
+                    },
+                    "supports_entries": {
+                        "description": "supports_entries",
+                        "type": "boolean"
+                    },
+                    "is_container": {
+                        "description": "is_container",
+                        "type": "boolean"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    }
+                },
+                "type": "object"
+            },
+            "BlockTypeIndexRequest": {},
+            "BlockTypeUpdateRequest": {
+                "properties": {
+                    "block_key": {
+                        "description": "block_key",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "name": {
+                        "description": "name",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "description": {
+                        "description": "description",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "category": {
+                        "description": "category",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "icon": {
+                        "description": "icon",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "schema_definition": {
+                        "description": "schema_definition",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "supports_pages": {
+                        "description": "supports_pages",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "supports_entries": {
+                        "description": "supports_entries",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "is_container": {
+                        "description": "is_container",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "CategoryCreateRequest": {
+                "properties": {
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer"
+                    },
+                    "parent_id": {
+                        "description": "parent_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "CategoryIndexRequest": {},
+            "CategoryUpdateRequest": {
+                "properties": {
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "parent_id": {
+                        "description": "parent_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "CollectionCreateRequest": {
+                "properties": {
+                    "collection_type": {
+                        "description": "collection_type",
+                        "type": "string"
+                    },
+                    "collection_key": {
+                        "description": "collection_key",
+                        "type": "string"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "requires_approval": {
+                        "description": "requires_approval",
+                        "type": "boolean"
+                    },
+                    "enables_categories": {
+                        "description": "enables_categories",
+                        "type": "boolean"
+                    },
+                    "enables_tags": {
+                        "description": "enables_tags",
+                        "type": "boolean"
+                    },
+                    "default_sitemap_priority": {
+                        "description": "default_sitemap_priority",
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "default_changefreq": {
+                        "description": "default_changefreq",
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                            "always",
+                            "hourly",
+                            "daily",
+                            "weekly",
+                            "monthly",
+                            "yearly",
+                            "never"
+                        ]
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "block_template": {
+                        "description": "block_template",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "wizard_config": {
+                        "description": "wizard_config",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "CollectionIndexRequest": {},
+            "CollectionUpdateRequest": {
+                "properties": {
+                    "collection_type": {
+                        "description": "collection_type",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "collection_key": {
+                        "description": "collection_key",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "requires_approval": {
+                        "description": "requires_approval",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "enables_categories": {
+                        "description": "enables_categories",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "enables_tags": {
+                        "description": "enables_tags",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "default_sitemap_priority": {
+                        "description": "default_sitemap_priority",
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "default_changefreq": {
+                        "description": "default_changefreq",
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                            "always",
+                            "hourly",
+                            "daily",
+                            "weekly",
+                            "monthly",
+                            "yearly",
+                            "never"
+                        ]
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "block_template": {
+                        "description": "block_template",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "wizard_config": {
+                        "description": "wizard_config",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "EntryCreateRequest": {
+                "properties": {
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer"
+                    },
+                    "author_id": {
+                        "description": "author_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "workflow_status": {
+                        "description": "workflow_status",
+                        "type": "string",
+                        "enum": [
+                            "draft",
+                            "in_review",
+                            "approved",
+                            "published",
+                            "archived"
+                        ]
+                    },
+                    "published_at": {
+                        "description": "published_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "scheduled_at": {
+                        "description": "scheduled_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "is_featured": {
+                        "description": "is_featured",
+                        "type": "boolean"
+                    },
+                    "view_count": {
+                        "description": "view_count",
+                        "type": "integer"
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "sitemap_priority": {
+                        "description": "sitemap_priority",
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "sitemap_changefreq": {
+                        "description": "sitemap_changefreq",
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                            "always",
+                            "hourly",
+                            "daily",
+                            "weekly",
+                            "monthly",
+                            "yearly",
+                            "never"
+                        ]
+                    },
+                    "is_in_sitemap": {
+                        "description": "is_in_sitemap",
+                        "type": "boolean"
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "wizard_extra": {
+                        "description": "Extra fields captured by wizard (non-standard entry data)",
+                        "type": "object",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "EntryIndexRequest": {},
+            "EntrySetCategoriesRequest": {},
+            "EntrySetTagsRequest": {},
+            "EntrySyncTaxonomyRequest": {},
+            "EntryUpdateRequest": {
+                "properties": {
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "author_id": {
+                        "description": "author_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "workflow_status": {
+                        "description": "workflow_status",
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                            "draft",
+                            "in_review",
+                            "approved",
+                            "published",
+                            "archived"
+                        ]
+                    },
+                    "published_at": {
+                        "description": "published_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "scheduled_at": {
+                        "description": "scheduled_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "is_featured": {
+                        "description": "is_featured",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "view_count": {
+                        "description": "view_count",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "sitemap_priority": {
+                        "description": "sitemap_priority",
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "sitemap_changefreq": {
+                        "description": "sitemap_changefreq",
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                            "always",
+                            "hourly",
+                            "daily",
+                            "weekly",
+                            "monthly",
+                            "yearly",
+                            "never"
+                        ]
+                    },
+                    "is_in_sitemap": {
+                        "description": "is_in_sitemap",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "FileTranslationIndexRequest": {},
+            "FileTranslationSaveRequest": {
+                "properties": {
+                    "fileId": {
+                        "description": "file_id",
+                        "type": "integer"
+                    },
+                    "languageId": {
+                        "description": "language_id",
+                        "type": "integer"
+                    },
+                    "altText": {
+                        "description": "alt_text",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "caption": {
+                        "description": "caption",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "title": {
+                        "description": "title",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "credit": {
+                        "description": "credit",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "description": {
+                        "description": "description",
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "LanguageCreateRequest": {
+                "properties": {
+                    "code": {
+                        "description": "code",
+                        "type": "string"
+                    },
+                    "name": {
+                        "description": "name",
+                        "type": "string"
+                    },
+                    "nativeName": {
+                        "description": "native_name",
+                        "type": "string"
+                    },
+                    "isDefault": {
+                        "description": "is_default",
+                        "type": "boolean"
+                    },
+                    "isActive": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "fallbackLanguageId": {
+                        "description": "fallback_language_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "sortOrder": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    }
+                },
+                "type": "object"
+            },
+            "LanguageIndexRequest": {},
+            "LanguageUpdateRequest": {
+                "properties": {
+                    "code": {
+                        "description": "code",
+                        "type": "string"
+                    },
+                    "name": {
+                        "description": "name",
+                        "type": "string"
+                    },
+                    "nativeName": {
+                        "description": "native_name",
+                        "type": "string"
+                    },
+                    "isDefault": {
+                        "description": "is_default",
+                        "type": "boolean"
+                    },
+                    "isActive": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "fallbackLanguageId": {
+                        "description": "fallback_language_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "sortOrder": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    }
+                },
+                "type": "object"
+            },
+            "MenuCreateRequest": {
+                "properties": {
+                    "menu_key": {
+                        "description": "menu_key",
+                        "type": "string"
+                    },
+                    "location": {
+                        "description": "location",
+                        "type": "string"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "MenuIndexRequest": {},
+            "MenuItemCreateRequest": {
+                "properties": {
+                    "menu_id": {
+                        "description": "menu_id",
+                        "type": "integer"
+                    },
+                    "parent_id": {
+                        "description": "parent_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "link_type": {
+                        "description": "link_type",
+                        "type": "string"
+                    },
+                    "page_id": {
+                        "description": "page_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "entry_id": {
+                        "description": "entry_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "link_target": {
+                        "description": "link_target",
+                        "type": "string"
+                    },
+                    "icon": {
+                        "description": "icon",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "css_class": {
+                        "description": "css_class",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "MenuItemIndexRequest": {},
+            "MenuItemUpdateRequest": {
+                "properties": {
+                    "menu_id": {
+                        "description": "menu_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "parent_id": {
+                        "description": "parent_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "link_type": {
+                        "description": "link_type",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "page_id": {
+                        "description": "page_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "entry_id": {
+                        "description": "entry_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "link_target": {
+                        "description": "link_target",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "icon": {
+                        "description": "icon",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "css_class": {
+                        "description": "css_class",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "MenuUpdateRequest": {
+                "properties": {
+                    "menu_key": {
+                        "description": "menu_key",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "location": {
+                        "description": "location",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PageCreateRequest": {
+                "properties": {
+                    "parent_id": {
+                        "description": "parent_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "page_type": {
+                        "description": "page_type",
+                        "type": "string",
+                        "enum": [
+                            "home",
+                            "generic",
+                            "contact",
+                            "privacy",
+                            "terms",
+                            "404",
+                            "500",
+                            "maintenance",
+                            "about",
+                            "history",
+                            "events",
+                            "catalog_listing",
+                            "collection_index",
+                            "template_catalog_item",
+                            "template_event_item",
+                            "press",
+                            "publications",
+                            "transparency"
+                        ]
+                    },
+                    "status": {
+                        "description": "status",
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                            "draft",
+                            "published",
+                            "archived"
+                        ]
+                    },
+                    "published_at": {
+                        "description": "published_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "scheduled_at": {
+                        "description": "scheduled_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "sitemap_priority": {
+                        "description": "sitemap_priority",
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "sitemap_changefreq": {
+                        "description": "sitemap_changefreq",
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                            "always",
+                            "hourly",
+                            "daily",
+                            "weekly",
+                            "monthly",
+                            "yearly",
+                            "never"
+                        ]
+                    },
+                    "is_in_sitemap": {
+                        "description": "is_in_sitemap",
+                        "type": "boolean"
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "PageIndexRequest": {},
+            "PageUpdateRequest": {
+                "properties": {
+                    "parent_id": {
+                        "description": "parent_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "page_type": {
+                        "description": "page_type",
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                            "home",
+                            "generic",
+                            "contact",
+                            "privacy",
+                            "terms",
+                            "404",
+                            "500",
+                            "maintenance",
+                            "about",
+                            "history",
+                            "events",
+                            "catalog_listing",
+                            "collection_index",
+                            "template_catalog_item",
+                            "template_event_item",
+                            "press",
+                            "publications",
+                            "transparency"
+                        ]
+                    },
+                    "status": {
+                        "description": "status",
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                            "draft",
+                            "published",
+                            "archived"
+                        ]
+                    },
+                    "published_at": {
+                        "description": "published_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "scheduled_at": {
+                        "description": "scheduled_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "sitemap_priority": {
+                        "description": "sitemap_priority",
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "sitemap_changefreq": {
+                        "description": "sitemap_changefreq",
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                            "always",
+                            "hourly",
+                            "daily",
+                            "weekly",
+                            "monthly",
+                            "yearly",
+                            "never"
+                        ]
+                    },
+                    "is_in_sitemap": {
+                        "description": "is_in_sitemap",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PublicPageShowRequest": {
+                "description": "Query-string params for PublicPageController::show(). Extracted from the\ncontroller (LAYER-02) so `?preview=1&preview_expires=...&preview_sig=...`\nparsing/typing lives in the DTO layer instead of raw `$this->request->getGet()`\ncalls in the closure. Stays a pure data object — verifying the signature\nagainst lang+slug (PreviewToken::verify()) is left to the controller,\nwhich is the same class of HTTP-boundary security check the base\nApiController itself performs for JWTs, not domain business logic."
+            },
+            "RedirectCreateRequest": {
+                "properties": {
+                    "old_path": {
+                        "description": "old_path",
+                        "type": "string"
+                    },
+                    "new_url": {
+                        "description": "new_url",
+                        "type": "string"
+                    },
+                    "redirect_type": {
+                        "description": "redirect_type",
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "hit_count": {
+                        "description": "hit_count",
+                        "type": "integer"
+                    },
+                    "note": {
+                        "description": "note",
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "RedirectIndexRequest": {},
+            "RedirectUpdateRequest": {
+                "properties": {
+                    "old_path": {
+                        "description": "old_path",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "new_url": {
+                        "description": "new_url",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "redirect_type": {
+                        "description": "redirect_type",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "hit_count": {
+                        "description": "hit_count",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "note": {
+                        "description": "note",
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "SettingConnectionCreateRequest": {
+                "properties": {
+                    "entityType": {
+                        "description": "Type of the connected entity",
+                        "type": "string",
+                        "example": "block_type"
+                    },
+                    "entityKey": {
+                        "description": "Key of the connected entity (e.g. hero_banner, form_embed)",
+                        "type": "string",
+                        "example": "hero_banner"
+                    },
+                    "usageLabel": {
+                        "description": "Human-readable description of how this setting is used",
+                        "type": "string",
+                        "example": "Logo shown in hero banner",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "SettingCreateRequest": {
+                "properties": {
+                    "settingKey": {
+                        "description": "setting_key",
+                        "type": "string"
+                    },
+                    "settingValue": {
+                        "description": "setting_value",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "settingType": {
+                        "description": "setting_type",
+                        "type": "string"
+                    },
+                    "inputType": {
+                        "description": "input_type",
+                        "type": "string",
+                        "example": "text"
+                    },
+                    "optionsJson": {
+                        "description": "options_json for select type: [{value, label}]",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "settingGroup": {
+                        "description": "setting_group",
+                        "type": "string"
+                    },
+                    "isTranslatable": {
+                        "description": "is_translatable",
+                        "type": "boolean"
+                    },
+                    "isRequired": {
+                        "description": "is_required",
+                        "type": "boolean"
+                    },
+                    "isReadonly": {
+                        "description": "is_readonly",
+                        "type": "boolean"
+                    },
+                    "sortOrder": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "description": {
+                        "description": "description",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "settingMeta": {
+                        "description": "setting_meta",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "SettingIndexRequest": {},
+            "SettingUpdateRequest": {
+                "properties": {
+                    "id": {
+                        "description": "id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "settingKey": {
+                        "description": "setting_key",
+                        "type": "string"
+                    },
+                    "settingValue": {
+                        "description": "setting_value",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "settingType": {
+                        "description": "setting_type",
+                        "type": "string"
+                    },
+                    "inputType": {
+                        "description": "input_type",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "optionsJson": {
+                        "description": "options_json for select type: [{value, label}]",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "settingGroup": {
+                        "description": "setting_group",
+                        "type": "string"
+                    },
+                    "isTranslatable": {
+                        "description": "is_translatable",
+                        "type": "boolean"
+                    },
+                    "isRequired": {
+                        "description": "is_required",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "isReadonly": {
+                        "description": "is_readonly",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "sortOrder": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "description": {
+                        "description": "description",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "settingMeta": {
+                        "description": "setting_meta",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "TagCreateRequest": {
+                "properties": {
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "TagIndexRequest": {},
+            "TagUpdateRequest": {
+                "properties": {
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "TranslationAuditReportRequest": {
+                "description": "Filters + pagination for TranslationAuditController::report(). Extracted\nfrom the controller (LAYER-02) so query-string parsing/validation lives in\nthe DTO layer, matching this app's DTO-first convention, instead of the\ncontroller reading `$this->request->getGet(...)` directly."
+            },
+            "AuditResponse": {
+                "title": "Audit Response",
+                "description": "Audit log entry metadata",
+                "required": [
+                    "id",
+                    "action",
+                    "entity_type",
+                    "created_at"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique log identifier",
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "action": {
+                        "description": "Action performed",
+                        "type": "string",
+                        "example": "update",
+                        "enum": [
+                            "create",
+                            "update",
+                            "delete",
+                            "login_success",
+                            "login_failure"
+                        ]
+                    },
+                    "entity_type": {
+                        "description": "Affected entity type",
+                        "type": "string",
+                        "example": "users"
+                    },
+                    "entity_id": {
+                        "description": "Affected entity ID",
+                        "type": "integer",
+                        "example": 5,
+                        "nullable": true
+                    },
+                    "old_values": {
+                        "description": "Values before the change",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "new_values": {
+                        "description": "Values after the change",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "user_id": {
+                        "description": "ID of user who performed the action",
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "user_email": {
+                        "description": "Email of user who performed the action",
+                        "type": "string",
+                        "example": "admin@example.com",
+                        "nullable": true
+                    },
+                    "user_full_name": {
+                        "description": "Full name of user who performed the action",
+                        "type": "string",
+                        "example": "Jane Doe",
+                        "nullable": true
+                    },
+                    "ip_address": {
+                        "description": "IP address of the requester",
+                        "type": "string",
+                        "example": "127.0.0.1",
+                        "nullable": true
+                    },
+                    "user_agent": {
+                        "description": "User-Agent of the requester",
+                        "type": "string",
+                        "example": "Mozilla/5.0...",
+                        "nullable": true
+                    },
+                    "result": {
+                        "description": "Execution result",
+                        "type": "string",
+                        "example": "success",
+                        "enum": [
+                            "success",
+                            "failure",
+                            "denied"
+                        ]
+                    },
+                    "severity": {
+                        "description": "Event severity",
+                        "type": "string",
+                        "example": "info",
+                        "enum": [
+                            "info",
+                            "warning",
+                            "critical"
+                        ]
+                    },
+                    "request_id": {
+                        "description": "Request correlation ID",
+                        "type": "string",
+                        "example": "req_01HZY...",
+                        "nullable": true
+                    },
+                    "metadata": {
+                        "description": "Additional sanitized metadata",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Log timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00"
+                    }
+                },
+                "type": "object"
+            },
+            "BlockInstanceResponse": {
+                "title": "BlockInstance Response",
+                "required": [
+                    "id",
+                    "block_id",
+                    "owner_type",
+                    "owner_id",
+                    "sort_order",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "block_id": {
+                        "description": "block_id",
+                        "type": "integer"
+                    },
+                    "owner_type": {
+                        "description": "owner_type",
+                        "type": "string"
+                    },
+                    "owner_id": {
+                        "description": "owner_id",
+                        "type": "integer"
+                    },
+                    "parent_instance_id": {
+                        "description": "parent_instance_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "column_index": {
+                        "description": "column_index",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "block_config": {
+                        "description": "block_config",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "BlockTypeResponse": {
+                "title": "BlockType Response",
+                "required": [
+                    "id",
+                    "block_key",
+                    "name",
+                    "category",
+                    "schema_definition",
+                    "supports_pages",
+                    "supports_entries",
+                    "is_container",
+                    "is_active",
+                    "sort_order"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "block_key": {
+                        "description": "block_key",
+                        "type": "string"
+                    },
+                    "name": {
+                        "description": "name",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "description",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "category": {
+                        "description": "category",
+                        "type": "string"
+                    },
+                    "icon": {
+                        "description": "icon",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "schema_definition": {
+                        "description": "schema_definition",
+                        "type": "object"
+                    },
+                    "fields": {
+                        "description": "Content fields extracted from schema_definition.fields",
+                        "type": "object"
+                    },
+                    "config_fields": {
+                        "description": "Config fields extracted from schema_definition.config_fields",
+                        "type": "object"
+                    },
+                    "supports_pages": {
+                        "description": "supports_pages",
+                        "type": "boolean"
+                    },
+                    "supports_entries": {
+                        "description": "supports_entries",
+                        "type": "boolean"
+                    },
+                    "is_container": {
+                        "description": "is_container",
+                        "type": "boolean"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "CategoryResponse": {
+                "title": "Category Response",
+                "required": [
+                    "id",
+                    "collection_id",
+                    "sort_order",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer"
+                    },
+                    "parent_id": {
+                        "description": "parent_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "collection_name": {
+                        "description": "collection_name",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "parent_label": {
+                        "description": "parent_label",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "name": {
+                        "description": "name",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "slug": {
+                        "description": "slug",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "CollectionResponse": {
+                "title": "Collection Response",
+                "required": [
+                    "id",
+                    "collection_key",
+                    "collection_type",
+                    "is_active",
+                    "requires_approval",
+                    "enables_categories",
+                    "enables_tags",
+                    "sort_order"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "collection_key": {
+                        "description": "collection_key",
+                        "type": "string"
+                    },
+                    "collection_type": {
+                        "description": "collection_type",
+                        "type": "string"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "requires_approval": {
+                        "description": "requires_approval",
+                        "type": "boolean"
+                    },
+                    "enables_categories": {
+                        "description": "enables_categories",
+                        "type": "boolean"
+                    },
+                    "enables_tags": {
+                        "description": "enables_tags",
+                        "type": "boolean"
+                    },
+                    "default_sitemap_priority": {
+                        "description": "default_sitemap_priority",
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "default_changefreq": {
+                        "description": "default_changefreq",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "block_template": {
+                        "description": "Block template defining fixed structure inherited by entries",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "wizard_config": {
+                        "description": "Wizard step configuration for non-technical content creation",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "Collection translations",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "EntryResponse": {
+                "title": "Entry Response",
+                "required": [
+                    "id",
+                    "collection_id",
+                    "workflow_status",
+                    "is_featured",
+                    "view_count",
+                    "sort_order",
+                    "is_in_sitemap"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer"
+                    },
+                    "author_id": {
+                        "description": "author_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "workflow_status": {
+                        "description": "workflow_status",
+                        "type": "string"
+                    },
+                    "published_at": {
+                        "description": "published_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "scheduled_at": {
+                        "description": "scheduled_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "is_featured": {
+                        "description": "is_featured",
+                        "type": "boolean"
+                    },
+                    "view_count": {
+                        "description": "view_count",
+                        "type": "integer"
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "sitemap_priority": {
+                        "description": "sitemap_priority",
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "sitemap_changefreq": {
+                        "description": "sitemap_changefreq",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_in_sitemap": {
+                        "description": "is_in_sitemap",
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    },
+                    "categories": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    },
+                    "title": {
+                        "description": "title",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "slug": {
+                        "description": "slug",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "collection_key": {
+                        "description": "collection_key",
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "FileTranslationResponse": {
+                "title": "File Translation Response",
+                "required": [
+                    "id",
+                    "file_id",
+                    "language_id"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "fileId": {
+                        "description": "File ID",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "languageId": {
+                        "description": "Language ID",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "altText": {
+                        "description": "Alt text",
+                        "type": "string",
+                        "example": "Image of a cat",
+                        "nullable": true
+                    },
+                    "caption": {
+                        "description": "Caption",
+                        "type": "string",
+                        "example": "A fluffy kitten",
+                        "nullable": true
+                    },
+                    "title": {
+                        "description": "Title",
+                        "type": "string",
+                        "example": "Cat",
+                        "nullable": true
+                    },
+                    "credit": {
+                        "description": "Credit",
+                        "type": "string",
+                        "example": "John Doe",
+                        "nullable": true
+                    },
+                    "description": {
+                        "description": "Description",
+                        "type": "string",
+                        "example": "Detailed description",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "LanguageResponse": {
+                "title": "Language Response",
+                "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "native_name"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "code": {
+                        "description": "Language code",
+                        "type": "string",
+                        "example": "en"
+                    },
+                    "name": {
+                        "description": "Language name",
+                        "type": "string",
+                        "example": "English"
+                    },
+                    "nativeName": {
+                        "description": "Language native name",
+                        "type": "string",
+                        "example": "English"
+                    },
+                    "isDefault": {
+                        "description": "Is default language",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "isActive": {
+                        "description": "Is language active",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "fallbackLanguageId": {
+                        "description": "Fallback language ID",
+                        "type": "integer",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "sortOrder": {
+                        "description": "Sort order",
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "MenuItemResponse": {
+                "title": "MenuItem Response",
+                "required": [
+                    "id",
+                    "menu_id",
+                    "link_type",
+                    "link_target",
+                    "sort_order",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "menu_id": {
+                        "description": "menu_id",
+                        "type": "integer"
+                    },
+                    "parent_id": {
+                        "description": "parent_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "link_type": {
+                        "description": "link_type",
+                        "type": "string"
+                    },
+                    "page_id": {
+                        "description": "page_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "entry_id": {
+                        "description": "entry_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "link_target": {
+                        "description": "link_target",
+                        "type": "string"
+                    },
+                    "icon": {
+                        "description": "icon",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "css_class": {
+                        "description": "css_class",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "MenuResponse": {
+                "title": "Menu Response",
+                "required": [
+                    "id",
+                    "menu_key",
+                    "location",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "menu_key": {
+                        "description": "menu_key",
+                        "type": "string"
+                    },
+                    "location": {
+                        "description": "location",
+                        "type": "string"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PageResponse": {
+                "title": "Page Response",
+                "required": [
+                    "id",
+                    "page_type",
+                    "status",
+                    "sort_order",
+                    "is_in_sitemap"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "parent_id": {
+                        "description": "parent_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "collection_id": {
+                        "description": "collection_id",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "page_type": {
+                        "description": "page_type",
+                        "type": "string"
+                    },
+                    "status": {
+                        "description": "status",
+                        "type": "string"
+                    },
+                    "published_at": {
+                        "description": "published_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "scheduled_at": {
+                        "description": "scheduled_at",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "sort_order": {
+                        "description": "sort_order",
+                        "type": "integer"
+                    },
+                    "sitemap_priority": {
+                        "description": "sitemap_priority",
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "sitemap_changefreq": {
+                        "description": "sitemap_changefreq",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_in_sitemap": {
+                        "description": "is_in_sitemap",
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "RedirectResponse": {
+                "title": "Redirect Response",
+                "required": [
+                    "id",
+                    "old_path",
+                    "new_url",
+                    "redirect_type",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "old_path": {
+                        "description": "old_path",
+                        "type": "string"
+                    },
+                    "new_url": {
+                        "description": "new_url",
+                        "type": "string"
+                    },
+                    "redirect_type": {
+                        "description": "redirect_type",
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "hit_count": {
+                        "description": "hit_count",
+                        "type": "integer"
+                    },
+                    "note": {
+                        "description": "note",
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "SettingConnectionResponse": {
+                "title": "Setting Connection Response",
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "settingId": {
+                        "description": "Setting ID this connection belongs to",
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "entityType": {
+                        "description": "Type of entity this setting is connected to",
+                        "type": "string",
+                        "example": "block_type"
+                    },
+                    "entityKey": {
+                        "description": "Key of the connected entity",
+                        "type": "string",
+                        "example": "hero_banner"
+                    },
+                    "usageLabel": {
+                        "description": "Human-readable description of how this setting is used",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "SettingResponse": {
+                "title": "Setting Response",
+                "required": [
+                    "id",
+                    "setting_key",
+                    "setting_type",
+                    "input_type",
+                    "setting_group",
+                    "is_translatable"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "settingKey": {
+                        "description": "Setting key",
+                        "type": "string",
+                        "example": "site_name"
+                    },
+                    "settingValue": {
+                        "description": "Setting value",
+                        "type": "string",
+                        "example": "My Web Site",
+                        "nullable": true
+                    },
+                    "settingType": {
+                        "description": "Data type for storage and casting",
+                        "type": "string",
+                        "example": "string"
+                    },
+                    "inputType": {
+                        "description": "UI control type for rendering the field",
+                        "type": "string",
+                        "example": "text"
+                    },
+                    "settingGroup": {
+                        "description": "Setting group",
+                        "type": "string",
+                        "example": "general"
+                    },
+                    "isTranslatable": {
+                        "description": "Is translatable",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "isRequired": {
+                        "description": "Is required",
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "isReadonly": {
+                        "description": "Is readonly",
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "sortOrder": {
+                        "description": "Sort order",
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "description": {
+                        "description": "Description",
+                        "type": "string",
+                        "example": "Main site title",
+                        "nullable": true
+                    },
+                    "optionsJson": {
+                        "description": "Options for select input_type",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "Translations list with value, label, placeholder, help_text per language",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "TagResponse": {
+                "title": "Tag Response",
+                "required": [
+                    "id",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "is_active": {
+                        "description": "is_active",
+                        "type": "boolean"
+                    },
+                    "name": {
+                        "description": "Tag name",
+                        "type": "string",
+                        "example": "News",
+                        "nullable": true
+                    },
+                    "slug": {
+                        "description": "Tag slug",
+                        "type": "string",
+                        "example": "news",
+                        "nullable": true
+                    },
+                    "translations": {
+                        "description": "Translations list",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "example": "2026-02-26 12:00:00",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "responses": {
+            "UnauthorizedResponse": {
+                "description": "Unauthorized - Invalid or missing authentication token",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "properties": {
+                                "status": {
+                                    "description": "Response status",
+                                    "type": "string",
+                                    "example": "error"
+                                },
+                                "message": {
+                                    "description": "Error message (localized by Accept-Language)",
+                                    "type": "string",
+                                    "example": "Unauthorized / No autorizado"
+                                },
+                                "errors": {
+                                    "description": "Error details",
+                                    "type": "object",
+                                    "nullable": true
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "ValidationErrorResponse": {
+                "description": "Validation Error - Request data failed validation",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "properties": {
+                                "status": {
+                                    "description": "Response status",
+                                    "type": "string",
+                                    "example": "error"
+                                },
+                                "message": {
+                                    "description": "Main error message (localized by Accept-Language)",
+                                    "type": "string",
+                                    "example": "Validation failed / Validacion fallida"
+                                },
+                                "errors": {
+                                    "description": "Field-specific error messages (localized by Accept-Language)",
+                                    "type": "object",
+                                    "example": {
+                                        "email": "Localized validation message"
+                                    }
+                                },
+                                "code": {
+                                    "description": "Error code",
+                                    "type": "integer",
+                                    "example": 422,
+                                    "nullable": true
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "Enter your JWT token in the format: Bearer {token}",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            },
+            "appKeyAuth": {
+                "type": "apiKey",
+                "description": "Per-application API key issued by this server, used to authenticate the calling app (no user JWT required).",
+                "name": "X-App-Key",
+                "in": "header"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Health",
+            "description": "Health and readiness endpoints"
+        },
+        {
+            "name": "Cms",
+            "description": "Cms"
+        }
+    ]
+}

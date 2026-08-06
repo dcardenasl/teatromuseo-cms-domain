@@ -194,7 +194,5 @@ public/writable/uploads/
 
 tests/ci4_test.sqlite
 
-public/swagger.json
-
 # Local FTP deploy tooling (credentials + generated artifacts)
 .deploy/
