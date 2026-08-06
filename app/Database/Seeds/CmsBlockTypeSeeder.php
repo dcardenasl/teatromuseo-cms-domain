@@ -315,6 +315,7 @@ class CmsBlockTypeSeeder extends Seeder
                         'entry_label' => ['type' => 'string', 'label' => 'Texto del enlace de ficha', 'required' => false],
                     ],
                     'config_fields' => [
+                        'collection_id' => ['type' => 'number', 'label' => 'ID de colección', 'required' => false],
                         'collection_key' => ['type' => 'select', 'label' => 'Colección CMS', 'required' => true, 'options' => [], 'default' => ''],
                         'category_id' => ['type' => 'select', 'label' => 'Categoría específica', 'description' => 'Opcional. Usa una categoría de la colección seleccionada.', 'required' => false, 'options' => [], 'default' => ''],
                         'items_limit' => ['type' => 'number', 'label' => 'Máx. elementos', 'required' => false, 'default' => 100],
