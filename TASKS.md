@@ -21,15 +21,9 @@
 
 ### Fase 1 — Seguridad
 
-- [ ] **SEC-02 — Alinear `PermissionFilter` con la versión de event-domain.**
-  `app/Filters/PermissionFilter.php:46` no concede paso a `iam.superadmin-access`; la copia de
-  event (l.46-52) sí, con su justificación en comentario. Hoy un superadmin de plataforma pasa en
-  event y recibe **403** aquí y en catalog. La lógica de event es la correcta.
 
 ### Fase 2 — Configuración y CI
 
-- [ ] **CFG-01 — Puertos incorrectos.** `.env.example`: `app.baseURL` en 8090 (debe ser **8190**) y
-  `hub.url` en 8080 (debe ser **8180**). `phpunit.xml` también en 8080.
 - [ ] **CFG-02 — 28 variables leídas y no documentadas**, entre ellas `HUB_INTERNAL_SECRET` /
   `hub.internalSecret` (secreto compartido con el hub y los otros 2 dominios, documentado en cero),
   `hub.adminToken`, `WEB_API_KEY`, `HUB_URL`/`HUB_API_KEY`/`HUB_APP_CODE`, `QUEUE_REDIS_*`,
@@ -46,23 +40,28 @@
 
 ### Fase 3 — Extracción a `ci4-api-core`
 
-- [ ] **CORE-02 — Reconciliar filtros y boilerplate.** Este repo es el que **más diverge en las
-  migraciones de infra**: `jobs`, `request_logs`, `audit_logs` e `idempotency_keys` difieren de las
-  copias de api/catalog/event en las cuatro → schema drift. Conservar el comentario de
-  `app/Filters/WebAppKeyRequiredFilter.php:26-31` al consolidar: es el único sitio donde vive la
-  explicación de por qué el filtro debe fallar cerrado.
-- [ ] **CORE-03 — `app/Config/Api.php` es una copia verbatim de 148 líneas** del que publica
-  `ci4-api-core`, byte-idéntica a las de catalog, event y bff. Arrastra `$jwtSecretKey`,
-  `$jwtAccessTokenTtl`, `$jwtRefreshTokenTtl`, `$jwtRevocationCheck`, `$jwtServiceTokenTtl` y lee
-  `JWT_SECRET_KEY` (l.20, l.105) **en una app que no puede firmar ni verificar un JWT**. Extender la
-  base del paquete como ya hace el hub (30 líneas), eliminando el bloque muerto y sus cadenas i18n.
-- [ ] **CORE-05 — `app/Libraries/Cms/JsonCastNormalizer.php`** es una reimplementación local de 52
-  líneas de `Support/JsonCastNormalizer` de core, **con semántica distinta** (la de core devuelve
-  `[]` ante una cadena JSON; esta la decodifica). La de core no se referencia aquí. Decidir cuál es
-  correcta, consolidar en core, eliminar la copia.
+- [x] ~~CORE-02 (filtros)~~ — **completado 2026-08-06.** `PermissionFilter`, `HubSignatureFilter` y
+  `WebAppKeyRequiredFilter` extienden ahora las bases del paquete (`ci4-api-core` v1.3.0). Ver
+  Completadas.
+- [ ] **CORE-02 (residual) — Reconciliar las migraciones de infra.** Este repo es el que **más
+  diverge**: `jobs`, `request_logs`, `audit_logs` e `idempotency_keys` difieren de las copias de
+  api/catalog/event en las cuatro → schema drift real de columnas/índices. `core:install` del
+  paquete **no resuelve esto** — solo escribe una migración cuando el consumidor no tiene ya una
+  clase con ese nombre, y las 4 apps ya la tienen, así que sigue siendo reconciliación manual.
+  También quedan sin base compartida: `AuditRepository` (a propósito, el paquete solo expone la
+  interfaz), `MetricModel`, `RequestLogModel`, `AuditLogModel`.
+- [x] ~~CORE-03~~ — **completado 2026-08-06.** `app/Config/Api.php` ahora extiende
+  `dcardenasl\Ci4ApiCore\Config\Api`. Ver Completadas.
+- [x] ~~CORE-05~~ — **completado 2026-08-06.** `JsonCastNormalizer` local eliminado; el paquete
+  añadió la rama de string en v1.3.0. Ver Completadas.
 - [ ] **CORE-06 — Convención de permisos.** Hoy `cms.<plural>.<read|write|admin>`, incompatible con
   catalog (`catalog.<camelCaseSingular>.<crud>`) y event (`event.<kebab-plural>.<read|write|delete>`).
-  ⚠️ Requiere ventana de mantenimiento — ver decisiones pendientes en el tracker global.
+  **Confirmado fuera de alcance de `ci4-api-core`** — es config local (`DomainPermissions.php`) más
+  una migración de datos en `permissions`/`role_permissions` del hub, no código de paquete.
+  ⚠️ **`domain:sync-permissions` es insert-if-missing, no upsert**: renombrar un código sin migración
+  SQL manual deja huérfanas las filas viejas y sus bindings de rol — los roles pierden el permiso en
+  silencio. Requiere ventana de mantenimiento — ver decisiones pendientes en el tracker global.
+  **No tocar sin confirmación explícita.**
 
 ### Fase 4 — Coherencia de capas
 
@@ -124,6 +123,72 @@
   `CLAUDE.md`, más el puerto 8080 (debe ser 8180 para el hub / 8190 para esta app).
 
 ## ✅ Completadas
+
+### CORE-02 (filtros) + CORE-05 — bases del paquete v1.3.0 (2026-08-06, segunda pasada)
+
+- **CORE-02:** `PermissionFilter` extiende `AbstractPermissionFilter` (`ci4-api-core` v1.3.0), con
+  `superAdminBypassCode()` devolviendo `'iam.superadmin-access'` — antes solo event tenía este
+  bypass; ahora las tres apps se comportan igual. Como `app/Language/{es,en}/Auth.php` no define
+  `authRequired`/`insufficientPermissions` (solo `rateLimitExceeded`), se sobrescribieron
+  `unauthenticatedMessage()`/`forbiddenMessage()` para seguir leyendo `Api.authRequired`/
+  `Api.insufficientPermissions` en español, en vez de caer al `Auth.php` en inglés del paquete.
+  `HubSignatureFilter` y `WebAppKeyRequiredFilter` ahora extienden
+  `AbstractHubSignatureFilter`/`AbstractWebAppKeyRequiredFilter` — mismo HMAC y mismo fail-closed
+  de antes, sin la copia manual.
+  `App\Traits\Controllers\HasCrudActions.php` **resultó ser código muerto**, no boilerplate en
+  uso: ningún controlador real lo consumía (los controladores escritos a mano necesitan
+  `$context->hasPermission(...)` por acción, que ni la versión local ni la del paquete soportan).
+  Se eliminó en vez de migrarse.
+- **CORE-05:** eliminado `app/Libraries/Cms/JsonCastNormalizer.php` (52 líneas) y su test; el
+  paquete añadió en v1.3.0 la rama de string que faltaba (`json_decode` con fallback a `[]`),
+  semánticamente idéntica a la copia local. 7 llamadores actualizados
+  (`BlockTypeResponseDTO`, `BlockTemplateCatalog`, `BlockSchemaIntrospector`, `RepairSlugs`,
+  `WizardConfigService`, `PublicEntryReader`, `EntryBlockTemplateInitializer`) más el `CLAUDE.md`
+  de esta app, que lo citaba como ejemplo en "Common pitfalls".
+
+**Verificación:** 523 tests / 2.068 assertions ✅ (suite principal), PHPStan sin errores.
+
+### CORE-03 + saneamiento de la suite de tests (2026-08-06)
+
+- **CORE-03:** `app/Config/Api.php` pasa de 148 líneas copiadas verbatim a extender
+  `dcardenasl\Ci4ApiCore\Config\Api`. Se elimina `accessPolicyBypassRoutes` apuntando a
+  `auth/resend-verification`, una ruta que no existe en esta app.
+- **`ci4-api-core` subido a v1.2.0.**
+- **La suite estaba roja y ahora está verde: 529 tests ✅** (antes 1 error + 4 fallos). Los cinco se
+  verificaron como preexistentes reproduciéndolos con core v1.1.1 y el `Config/Api` original:
+  - **19 migraciones de contenido sin `@cms-content-data-migration`.** Caían en la rama de esquema
+    de `CleanDatabaseBootstrapConventionsTest`, que exige `Create*` + `createTable(`. Se comprobó
+    que **ninguna de las 19 toca esquema** y se etiquetaron; la lista de verbos permitidos se amplió
+    al conjunto realmente en uso. Es un parche honesto para que el guardrail refleje la realidad de
+    hoy — **no sustituye a `MIG-01`**, que sigue pendiente.
+  - **`TranslationAuditServiceTest` se contradecía consigo mismo.** Un test esperaba `outdated` sobre
+    el idioma por defecto; su hermano `testDefaultLanguageIsNotMarkedOutdatedAgainstItsOwnSource...`
+    monta el mismo escenario y afirma `complete`. La regla del idioma por defecto es deliberada y
+    está documentada, así que el caso obsoleto ahora usa un idioma no-predeterminado.
+  - **Campo inventado en un fixture:** el mismo archivo usaba `alt_text`, pero solo se auditan los
+    campos de `AUDITABLE_BLOCK_STRING_FIELDS` y los esquemas reales usan `alt` — el bloque se omitía
+    entero y las aserciones caían en un índice inexistente.
+  - **`BlockInstanceServiceTest` esperaba 2 lecturas donde el código hace 3.** `beforeUpdate()` ahora
+    comparte la instancia por referencia entre `validateSlideNavigation()` y
+    `normalizeEntryReferencesFromPayload()`, así que un payload que traiga `block_id` no lee nada.
+    La tercera lectura (`BaseCrudService` carga la entidad antes del hook y solo la pasa a
+    `setEntityContext()`, que no la expone) solo se elimina cambiando la firma de `beforeUpdate()`
+    en el paquete — queda anotado en el código y en `CORE-02`.
+
+**Verificación:** 529 tests / 2.068 assertions ✅, PHPStan sin errores.
+⚠️ Quedan **2 fallos preexistentes** en la suite `SeederContracts`, verificados como previos: falta
+cobertura pública del bloque `hero_banner`, y `collection_timeline#1264` lleva un `collection_id`
+que su esquema no declara. Son decisiones de contenido → `MIG-03`.
+
+- **CFG-01 — Puertos canónicos de CMS y hub (2026-08-05):** `.env.example`, `.env.docker.example`,
+  PHPUnit, Compose y `init.sh` ahora usan CMS `8190` y hub `8180`. Composer, YAML, Bash y los
+  gates de estilo/PHPStan/Swagger pasan; `composer quality` conserva únicamente el fallo
+  arquitectónico preexistente de `2026-08-04-000012_UnifyAboutPageLocales.php`.
+
+- **SEC-02 — Alinear `PermissionFilter` con event-domain (2026-08-05):** CMS ahora permite que un
+  superadmin de plataforma atraviese filtros de permisos de dominio sin alterar los casos 401/403.
+  Se añadieron seis regresiones unitarias. CS-Fixer, PHPStan, Swagger y el test dirigido pasan; el
+  gate completo conserva fallos arquitectónicos y unitarios preexistentes no relacionados.
 
 - **SEC-01 — Proteger `GET cms/public/languages` (2026-08-05):** la ruta quedó dentro del grupo
   `webappkey + throttle`; se corrigió además el `declare` de la ruta y se añadió regresión de 401 sin
