@@ -89,12 +89,14 @@ class PrepareTestDatabase extends BaseCommand
             }
 
             $identifier = $db->escapeIdentifiers($database);
+            $db->query('SET FOREIGN_KEY_CHECKS=0');
             $db->query('DROP DATABASE IF EXISTS ' . $identifier);
             $db->query(
                 'CREATE DATABASE ' . $identifier
                 . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci'
             );
             $db->query('USE ' . $identifier);
+            $db->query('SET FOREIGN_KEY_CHECKS=1');
             $db->resetDataCache();
             CLI::write('Recreated the MySQL test database.');
             return;
