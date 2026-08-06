@@ -62,14 +62,18 @@ final class SiteBootstrapPublicBlockCoverageTest extends CIUnitTestCase
 
     public function testBootstrapCoversAllPublicTopLevelBlocks(): void
     {
-        // 'gallery', 'video_player', 'tabs', 'alert', and 'container' intentionally have no
-        // entry in $expected below (removed 2026-08-02 along with the demo pages — Portfolio/
-        // Components/Media/Landing — that were their only page-level user, per a fresh
-        // SiteBootstrapSeeder run with those seeders gone). 'gallery' is still meaningfully
-        // used on this site, just at entry scope (real obras/festivales galleries via the
-        // legacy ETL), never on a top-level page, which is what this test checks. The other
-        // four have zero usage anywhere now — this site's real content never needed them
-        // (e.g. video content uses the project-specific `video_ficha` fields instead of the
+        // 'gallery', 'video_player', 'tabs', 'alert', 'container', 'cards_slider',
+        // 'asset_showcase', and 'accordion' intentionally have no entry in $expected below
+        // (removed 2026-08-02 along with the demo pages — Portfolio/Components/Media/Landing —
+        // that were their only page-level user, per a fresh SiteBootstrapSeeder run with those
+        // seeders gone; 'cards_slider'/'asset_showcase'/'accordion' never had a content seeder
+        // at all — checked 2026-08-06 while chasing an unrelated fixture drift, all three
+        // block_keys only appear in CmsBlockTypeSeeder's/TeatroMuseoBlockTypeSeeder's type
+        // registration, no seeder ever places an instance of any of them). 'gallery' is still
+        // meaningfully used on this site, just at entry scope (real obras/festivales galleries
+        // via the legacy ETL), never on a top-level page, which is what this test checks. The
+        // rest have zero usage anywhere now — this site's real content never needed them (e.g.
+        // video content uses the project-specific `video_ficha` fields instead of the
         // generic `video_player` block).
         $seeder = \Config\Database::seeder();
         $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
@@ -102,9 +106,6 @@ final class SiteBootstrapPublicBlockCoverageTest extends CIUnitTestCase
             'event_item_header',
             'cards_grid',
             'metrics_grid',
-            'cards_slider',
-            'asset_showcase',
-            'accordion',
             'collection_listing',
         ];
 

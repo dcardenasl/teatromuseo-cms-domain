@@ -208,7 +208,7 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
 
         $historyPage = $this->pageBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
         $this->assertNotNull($historyPage);
-        $this->assertSame(['page_header', 'hero_slider', 'rich_text'], $this->pageBlockKeys((int) $historyPage['id']));
+        $this->assertSame(['page_header', 'hero_slider', 'rich_text', 'image', 'timeline', 'metrics_grid', 'cta'], $this->pageBlockKeys((int) $historyPage['id']));
 
         $historyText = $this->db->table('cms_block_instance_translations bit')
             ->select('bit.block_data')

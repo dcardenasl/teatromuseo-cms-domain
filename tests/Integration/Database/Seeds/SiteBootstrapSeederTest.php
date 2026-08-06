@@ -238,7 +238,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $historyPage = $this->pageBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
         $this->assertNotNull($historyPage);
         $this->assertSame(['historia', 'history', 'histoire', 'nossa-historia'], $this->pageTranslationSlugs((int) $historyPage['id']));
-        $this->assertSame(['page_header', 'hero_slider', 'rich_text'], $this->pageBlockKeys((int) $historyPage['id']));
+        $this->assertSame(['page_header', 'hero_slider', 'rich_text', 'image', 'timeline', 'metrics_grid', 'cta'], $this->pageBlockKeys((int) $historyPage['id']));
 
         $catalogTemplatePage = $this->pageBySlug(['__template_catalog_item']);
         $this->assertNotNull($catalogTemplatePage);
