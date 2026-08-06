@@ -202,6 +202,31 @@ class TranslationAuditService implements TranslationAuditServiceInterface
     /**
      * {@inheritdoc}
      */
+    public function getMissingTranslationsReportPage(array $filters, int $page, int $limit): array
+    {
+        $page = max(1, $page);
+        $limit = min(100, max(10, $limit));
+
+        $report = $this->getMissingTranslationsReport($filters);
+        $total = count($report);
+        $lastPage = $total > 0 ? (int) ceil($total / $limit) : 1;
+        $page = min($page, $lastPage);
+        $offset = ($page - 1) * $limit;
+
+        return [
+            'data' => array_slice($report, $offset, $limit),
+            'meta' => [
+                'current_page' => $page,
+                'last_page'    => $lastPage,
+                'per_page'     => $limit,
+                'total_items'  => $total,
+            ],
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function auditResource(string $resourceType, int $resourceId): array
     {
         $activeLanguages = $this->getActiveLanguages();

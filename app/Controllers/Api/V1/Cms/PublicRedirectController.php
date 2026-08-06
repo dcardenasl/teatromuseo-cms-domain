@@ -27,13 +27,8 @@ class PublicRedirectController extends ApiController
     public function resolve(string ...$segments): ResponseInterface
     {
         return $this->handleRequest(
-            function (array $dto, SecurityContext $context) use ($segments): ResponseInterface {
-                $data = $this->redirectService->resolvePublic(array_values($segments));
-
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'data'   => $data,
-                ])->setStatusCode(200);
+            function (array $dto, SecurityContext $context) use ($segments): mixed {
+                return $this->redirectService->resolvePublic(array_values($segments));
             }
         );
     }

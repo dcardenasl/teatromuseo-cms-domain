@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api\V1\Cms;
 
+use App\DTO\Request\Cms\TranslationAuditReportRequestDTO;
 use App\Interfaces\Cms\TranslationAuditServiceInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
@@ -26,12 +27,10 @@ class TranslationAuditController extends ApiController
     public function stats(): ResponseInterface
     {
         return $this->handleRequest(
-            function (): ResponseInterface {
+            function (): array {
                 $stats = $this->auditService->getOverallCompleteness();
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'data'   => $stats,
-                ])->setStatusCode(200);
+
+                return ['status' => 'success', 'data' => $stats];
             }
         );
     }
@@ -42,39 +41,16 @@ class TranslationAuditController extends ApiController
     public function report(): ResponseInterface
     {
         return $this->handleRequest(
-            function (): ResponseInterface {
-                $langId = $this->request->getGet('language_id');
-                $filters = [];
-                if ($langId !== null) {
-                    /** @var int $langId */
-                    $filters['language_id'] = (int) $langId;
-                }
-                foreach (['resource', 'status', 'search', 'scope'] as $filter) {
-                    $value = $this->request->getGet($filter);
-                    if (is_string($value) && trim($value) !== '') {
-                        $filters[$filter] = trim($value);
-                    }
-                }
+            function (TranslationAuditReportRequestDTO $dto): array {
+                $result = $this->auditService->getMissingTranslationsReportPage(
+                    $dto->filters(),
+                    $dto->page,
+                    $dto->limit
+                );
 
-                $page = max(1, (int) ($this->request->getGet('page') ?? 1));
-                $limit = min(100, max(10, (int) ($this->request->getGet('limit') ?? 25)));
-                $report = $this->auditService->getMissingTranslationsReport($filters);
-                $total = count($report);
-                $lastPage = $total > 0 ? (int) ceil($total / $limit) : 1;
-                $page = min($page, $lastPage);
-                $offset = ($page - 1) * $limit;
-
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'data'   => array_slice($report, $offset, $limit),
-                    'meta'   => [
-                        'current_page' => $page,
-                        'last_page' => $lastPage,
-                        'per_page' => $limit,
-                        'total_items' => $total,
-                    ],
-                ])->setStatusCode(200);
-            }
+                return ['status' => 'success', 'data' => $result['data'], 'meta' => $result['meta']];
+            },
+            TranslationAuditReportRequestDTO::class
         );
     }
 
@@ -84,12 +60,10 @@ class TranslationAuditController extends ApiController
     public function resource(string $type, int $id): ResponseInterface
     {
         return $this->handleRequest(
-            function () use ($type, $id): ResponseInterface {
+            function () use ($type, $id): array {
                 $report = $this->auditService->auditResource($type, $id);
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'data'   => $report,
-                ])->setStatusCode(200);
+
+                return ['status' => 'success', 'data' => $report];
             }
         );
     }
@@ -102,16 +76,14 @@ class TranslationAuditController extends ApiController
     public function owner(string $ownerType, int $ownerId): ResponseInterface
     {
         return $this->handleRequest(
-            function () use ($ownerType, $ownerId): ResponseInterface {
+            function () use ($ownerType, $ownerId): array {
                 if (! in_array($ownerType, ['page', 'entry'], true)) {
                     throw new ValidationException(null, ['owner_type' => 'Must be "page" or "entry".']);
                 }
 
                 $report = $this->auditService->auditOwnerBlocks($ownerType, $ownerId);
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'data'   => $report,
-                ])->setStatusCode(200);
+
+                return ['status' => 'success', 'data' => $report];
             }
         );
     }

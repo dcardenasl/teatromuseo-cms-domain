@@ -29,13 +29,8 @@ class PublicCollectionController extends ApiController
     public function index(string $lang): ResponseInterface
     {
         return $this->handleRequest(
-            function (array $dto, SecurityContext $context) use ($lang): ResponseInterface {
-                $data = $this->collectionService->listPublic($lang);
-
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'data'   => $data,
-                ])->setStatusCode(200);
+            function (array $dto, SecurityContext $context) use ($lang): mixed {
+                return $this->collectionService->listPublic($lang);
             }
         );
     }

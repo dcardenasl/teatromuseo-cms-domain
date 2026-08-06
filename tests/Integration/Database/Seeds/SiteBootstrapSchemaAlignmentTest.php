@@ -53,6 +53,7 @@ final class SiteBootstrapSchemaAlignmentTest extends CIUnitTestCase
             'cms_pages',
             'cms_collection_translations',
             'cms_collections',
+            'cms_setting_connections',
             'cms_setting_translations',
             'cms_settings',
             'cms_languages',

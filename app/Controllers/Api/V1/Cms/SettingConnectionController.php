@@ -10,9 +10,14 @@ use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Http\ApiController;
+use dcardenasl\Ci4ApiCore\Support\ApiResult;
 
 class SettingConnectionController extends ApiController
 {
+    protected array $statusCodes = [
+        'create' => 201,
+    ];
+
     protected SettingConnectionServiceInterface $settingConnectionService;
 
     protected function resolveDefaultService(): SettingConnectionServiceInterface
@@ -25,10 +30,10 @@ class SettingConnectionController extends ApiController
     public function index(int $settingId): ResponseInterface
     {
         return $this->handleRequest(
-            function (array $data, SecurityContext $context) use ($settingId): ResponseInterface {
+            function (array $dto, SecurityContext $context) use ($settingId): array {
                 $result = $this->settingConnectionService->listForSetting($settingId);
 
-                return $this->response->setJSON(['ok' => true, 'data' => $result]);
+                return ['status' => 'success', 'data' => $result];
             }
         );
     }
@@ -36,7 +41,7 @@ class SettingConnectionController extends ApiController
     public function create(int $settingId): ResponseInterface
     {
         return $this->handleRequest(
-            function (SettingConnectionCreateRequestDTO $dto, SecurityContext $context) use ($settingId): ResponseInterface {
+            function (SettingConnectionCreateRequestDTO $dto, SecurityContext $context) use ($settingId): ApiResult {
                 $data = $this->settingConnectionService->create(
                     $settingId,
                     $dto->entityType,
@@ -44,7 +49,7 @@ class SettingConnectionController extends ApiController
                     $dto->usageLabel
                 );
 
-                return $this->response->setStatusCode(201)->setJSON(['ok' => true, 'data' => $data]);
+                return new ApiResult(['status' => 'success', 'data' => $data], 201);
             },
             SettingConnectionCreateRequestDTO::class
         );
@@ -53,10 +58,10 @@ class SettingConnectionController extends ApiController
     public function delete(int $settingId, int $connectionId): ResponseInterface
     {
         return $this->handleRequest(
-            function (array $data, SecurityContext $context) use ($settingId, $connectionId): ResponseInterface {
+            function (array $dto, SecurityContext $context) use ($settingId, $connectionId): array {
                 $this->settingConnectionService->delete($settingId, $connectionId);
 
-                return $this->response->setJSON(['ok' => true, 'data' => null]);
+                return ['status' => 'success', 'data' => null];
             }
         );
     }
