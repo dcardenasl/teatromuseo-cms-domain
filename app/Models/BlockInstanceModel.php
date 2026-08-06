@@ -41,4 +41,72 @@ class BlockInstanceModel extends BaseAuditableModel
         'is_active' => 'permit_empty|boolean_like',
         'block_config' => 'permit_empty',
     ];
+
+    /**
+     * Block instances joined with their block type's `block_key`/`schema_definition`
+     * — needed by translation-audit callers to know which fields of a block's
+     * `block_data` are actually translatable. Extracted from
+     * BlockInstanceTranslationAuditor (LAYER-03), which used to run this join
+     * via `Database::connect()` directly instead of going through this model.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findAllWithBlockType(?string $ownerType = null, ?int $ownerId = null, bool $onlyActive = false): array
+    {
+        $builder = $this->builder('cms_block_instances i')
+            ->select('i.*, b.block_key, b.schema_definition')
+            ->join('cms_content_blocks b', 'b.id = i.block_id');
+
+        if ($onlyActive) {
+            $builder->where('i.is_active', 1);
+        }
+        if ($ownerType !== null) {
+            $builder->where('i.owner_type', $ownerType);
+        }
+        if ($ownerId !== null) {
+            $builder->where('i.owner_id', $ownerId);
+        }
+
+        $query = $builder->orderBy('i.sort_order', 'ASC')->get();
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $query ? $query->getResultArray() : [];
+
+        return $rows;
+    }
+
+    /**
+     * Single block instance joined with its block type's `block_key`/`schema_definition`.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findOneWithBlockType(int $id): ?array
+    {
+        $query = $this->builder('cms_block_instances i')
+            ->select('i.*, b.block_key, b.schema_definition')
+            ->join('cms_content_blocks b', 'b.id = i.block_id')
+            ->where('i.id', $id)
+            ->limit(1)
+            ->get();
+
+        $row = $query ? $query->getRowArray() : null;
+
+        return is_array($row) ? $row : null;
+    }
+
+    /**
+     * All block instances of a given block type, as plain arrays. Extracted
+     * from BlockTypeService::getUsages()/afterUpdate() (LAYER-03), which
+     * used to run this single-table select via an injected BaseConnection
+     * directly instead of through this model.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findAllForBlockType(int $blockId): array
+    {
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->asArray()->where('block_id', $blockId)->findAll();
+
+        return $rows;
+    }
 }
