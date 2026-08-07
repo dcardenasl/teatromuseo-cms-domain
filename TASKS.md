@@ -14,27 +14,22 @@
 > Saneamiento arquitectónico — auditoría del 2026-08-05.
 > **Contexto, evidencia y rutas exactas:** [`../docs/plan/2026-08-05-saneamiento-arquitectonico.md`](../docs/plan/2026-08-05-saneamiento-arquitectonico.md)
 > Orden y dependencias cross-repo: [`../TASKS.md`](../TASKS.md)
->
-> ⚠️ **Este repo está 2 commits por delante de `origin/dev`** (`a20b3eb`, `af50ae6`): son la mitad
-> *proveedora* de un cambio del admin ya publicado. Origin tiene hoy el consumidor sin su proveedor.
-> **Publicar antes de empezar cualquier otra cosa.**
+
 
 ### Fase 1 — Seguridad
 
 
 ### Fase 2 — Configuración y CI
 
-- [ ] **CFG-02 — 28 variables leídas y no documentadas**, entre ellas `HUB_INTERNAL_SECRET` /
-  `hub.internalSecret` (secreto compartido con el hub y los otros 2 dominios, documentado en cero),
-  `hub.adminToken`, `WEB_API_KEY`, `HUB_URL`/`HUB_API_KEY`/`HUB_APP_CODE`, `QUEUE_REDIS_*`,
-  `cms.eventListingPath`. Nota: este repo lee **tres convenciones de configuración en paralelo**
-  (`hub.url`-style, `HUB_*` y `DB_*`/`MYSQL_*` de la ruta Docker). Unificar.
-- [ ] **CFG-03 — El gate de swagger es inerte.** `public/swagger.json` está en `.gitignore` y
-  `swagger-validate` hace `git diff --exit-code` sobre él: un diff sobre un archivo ignorado y no
-  rastreado **nunca puede fallar**. Dejar de ignorarlo, commitear el generado, y verificar que el
-  gate detecta drift (así funciona en `teatromuseo-api`, que no lo ignora).
-- [ ] **CFG-05 — Umbral de cobertura en 35,05 %**, el más bajo de la flota sobre la base de código
-  más grande. Alinear con la política única.
+- [ ] **CFG-02 (residual) — 27 de 28 variables siguen sin documentar.** `HUB_INTERNAL_SECRET` ya
+  se documentó (2026-08-06, ver Completadas). Faltan `hub.adminToken`, `WEB_API_KEY`,
+  `HUB_URL`/`HUB_API_KEY`/`HUB_APP_CODE`, `QUEUE_REDIS_*`, `cms.eventListingPath`. Nota: este repo
+  lee **tres convenciones de configuración en paralelo** (`hub.url`-style, `HUB_*` y
+  `DB_*`/`MYSQL_*` de la ruta Docker). Unificar.
+- [x] ~~CFG-03~~ — **completado 2026-08-06.** `public/swagger.json` dejó de estar en `.gitignore`
+  y quedó commiteado. Ver Completadas.
+- [x] ~~CFG-05~~ — **completado 2026-08-06.** Umbral de cobertura subido a 60 %, alineado con la
+  política única. Ver Completadas.
 - [ ] **CFG-08 — Único repo en CI4 v4.7.4** (los otros 7 en v4.7.3) y único con un requisito
   explícito de `guzzlehttp/psr7` (`^2.12.1`, resuelto en 2.12.4 vs 2.13.0 del resto).
 
@@ -122,7 +117,40 @@
 - [ ] **DOC-01 — Deriva documental:** 1 mención a `ci4-website-builder*` y 4 a `ci4-*-starter` en
   `CLAUDE.md`, más el puerto 8080 (debe ser 8180 para el hub / 8190 para esta app).
 
+### Fase 7 — Estabilidad de tests
+
+- [ ] **TEST-01 — Flakiness no determinística en la suite completa, no reproducible en
+  ejecuciones aisladas (encontrada 2026-08-06 durante el commit-flow de la auditoría, no causada
+  por esos commits).**
+  1. `tests/Feature/Controllers/Cms/FormSubmissionControllerTest.php::testIndexListsSubmissions`/
+     `testIndexFilteredByStatus` fallan de forma intermitente (a veces 0 resultados en `index()`
+     pese a que las filas existen en la DB, confirmado con debug directo). El propio test ya
+     documenta un bug real que sí se corrigió (`FormSubmissionService::list()` no reseteaba el
+     query builder) y un retry-loop de 5 intentos como mitigación, pero el retry no siempre
+     alcanza.
+  2. Corriendo la suite **completa** (>560 tests contra MySQL real, no en ejecuciones aisladas por
+     carpeta/clase), ~13 tests de seeders (`SiteBootstrapSeederTest`,
+     `SiteBootstrapPublicBlockCoverageTest`, `SiteBootstrapContentTest`,
+     `CmsCollectionGridAspectRatioSeederTest`, `CmsTeatroMuseoNavigationSeederTest`,
+     `ScheduledPublishingJobTest`) fallan con `RuntimeException` de
+     `FileReferenceSynchronizer::replaceReferences()` ("no se pudieron sincronizar referencias de
+     archivos CMS"). Confirmado que `FileReferenceSynchronizer.php` no tiene cambios desde el
+     commit inicial de kickstart — no es un bug de lógica introducido recientemente.
+  **Hipótesis a investigar:** transacciones anidadas (`$db->transStart()`/`transComplete()` dentro
+  de `FileReferenceSynchronizer`, posiblemente dentro de una transacción ya abierta por el test) o
+  agotamiento de conexiones MySQL al escalar el número de tests en un solo proceso PHPUnit.
+
 ## ✅ Completadas
+
+### CFG-03 + CFG-05 + CFG-02 (parcial) — swagger, cobertura y HUB_INTERNAL_SECRET (2026-08-06)
+
+- **CFG-03:** `public/swagger.json` dejó de estar en `.gitignore` y se commiteó el archivo
+  generado — el gate `swagger-validate` (`git diff --exit-code` sobre ese archivo) ahora puede
+  detectar drift real, igual que en `teatromuseo-api`.
+- **CFG-05:** `coverage:check` subido de 35,05 % a 60 %, alineado con la política única de la
+  flota.
+- **CFG-02 (parcial):** documentado `HUB_INTERNAL_SECRET` en `.env.example`. Las otras 27
+  variables listadas en el ítem CFG-02 (residual) de arriba siguen sin documentar.
 
 ### CORE-02 (filtros) + CORE-05 — bases del paquete v1.3.0 (2026-08-06, segunda pasada)
 
