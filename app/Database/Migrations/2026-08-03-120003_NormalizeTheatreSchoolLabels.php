@@ -7,27 +7,20 @@ namespace App\Database\Migrations;
 use CodeIgniter\Database\Migration;
 
 /**
- * Brings existing TeatroEscuela collection labels in line with the canonical
- * public nomenclature already used by the bootstrap seeders.
+ * Stubbed migration (originally 2026-08-03-120003_NormalizeTheatreSchoolLabels.php).
+ * Content migration moved to CmsContentSanitizationSeeder.
  *
- * @cms-public-route-data-migration
+ * @cms-content-data-migration
  */
 final class NormalizeTheatreSchoolLabels extends Migration
 {
     public function up(): void
     {
-        $this->db->query(
-            'UPDATE cms_collection_translations t '
-            . 'INNER JOIN cms_collections c ON c.id = t.collection_id '
-            . 'SET t.name = ?, t.listing_title = ?, t.default_meta_title = ? '
-            . 'WHERE c.collection_key = ?',
-            ['TeatroEscuela', 'TeatroEscuela', 'TeatroEscuela | TeatroMuseo', 'cursos'],
-        );
+        // Stubbed - logic moved to CmsContentSanitizationSeeder
     }
 
     public function down(): void
     {
-        // Forward-only. Restoring the historical “Cursos” labels would make
-        // the public section contradict its canonical navigation name.
+        // Stubbed - logic moved to CmsContentSanitizationSeeder
     }
 }

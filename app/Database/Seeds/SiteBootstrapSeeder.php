@@ -41,6 +41,7 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(CmsPageBlockSeeder::class);
         $this->call(CmsTeatroMuseoNavigationSeeder::class);
         $this->call(CmsTeatroMuseoRedirectSeeder::class);
+        $this->call(CmsContentSanitizationSeeder::class);
 
         // Seeders write directly for deterministic bootstrap performance, so
         // finish through the same canonical reference synchronizer used by the

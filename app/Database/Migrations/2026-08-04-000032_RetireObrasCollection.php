@@ -7,7 +7,8 @@ namespace App\Database\Migrations;
 use CodeIgniter\Database\Migration;
 
 /**
- * Retires the empty legacy Obras collection without deleting its history.
+ * Stubbed migration (originally 2026-08-04-000032_RetireObrasCollection.php).
+ * Content migration moved to CmsContentSanitizationSeeder.
  *
  * @cms-content-data-migration
  */
@@ -15,13 +16,11 @@ final class RetireObrasCollection extends Migration
 {
     public function up(): void
     {
-        $this->db->table('cms_collections')
-            ->where('collection_key', 'obras')
-            ->update(['is_active' => 0]);
+        // Stubbed - logic moved to CmsContentSanitizationSeeder
     }
 
     public function down(): void
     {
-        // The legacy collection remains retired after rollback.
+        // Stubbed - logic moved to CmsContentSanitizationSeeder
     }
 }

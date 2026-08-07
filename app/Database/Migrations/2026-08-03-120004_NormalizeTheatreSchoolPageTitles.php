@@ -7,27 +7,20 @@ namespace App\Database\Migrations;
 use CodeIgniter\Database\Migration;
 
 /**
- * Aligns the generated collection index page titles with TeatroEscuela.
+ * Stubbed migration (originally 2026-08-03-120004_NormalizeTheatreSchoolPageTitles.php).
+ * Content migration moved to CmsContentSanitizationSeeder.
  *
- * @cms-public-route-data-migration
+ * @cms-content-data-migration
  */
 final class NormalizeTheatreSchoolPageTitles extends Migration
 {
     public function up(): void
     {
-        $this->db->query(
-            'UPDATE cms_page_translations t '
-            . 'INNER JOIN cms_pages p ON p.id = t.page_id '
-            . 'INNER JOIN cms_collections c ON c.id = p.collection_id '
-            . 'SET t.title = ?, t.meta_title = ? '
-            . 'WHERE p.page_type = ? AND c.collection_key = ?',
-            ['TeatroEscuela', 'TeatroEscuela | TeatroMuseo', 'collection_index', 'cursos'],
-        );
+        // Stubbed - logic moved to CmsContentSanitizationSeeder
     }
 
     public function down(): void
     {
-        // Forward-only. Historical “Cursos” titles are not part of the public
-        // nomenclature and must not be restored.
+        // Stubbed - logic moved to CmsContentSanitizationSeeder
     }
 }
