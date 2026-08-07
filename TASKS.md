@@ -82,23 +82,6 @@
 
 ### Fase 5 — Migraciones y datos
 
-- [ ] **MIG-01 — 41 de 67 migraciones editan contenido editorial, no esquema** (ninguna llamada a
-  `forge->`): `NormalizeTheatreSchoolLabels`, `NormalizeTheatreSchoolPageTitles`,
-  `PersistAboutSpanishEditorialContent`, `CreateAboutTeamChildren`, `RetireObrasCollection`,
-  `NormalizeSiteSettings`… (secuencia contigua de `2026-08-03-120000` a `2026-08-05-000001`).
-  **Efecto real: `php spark migrate` revierte en silencio los cambios que un editor hizo en el admin.**
-  Hay además cadenas donde cada migración parchea la anterior:
-  `ConsolidateAboutTeamBlocks` → `SyncAboutTeamEditorialData` → `RestoreAboutTeamBlockCompatibilityId`
-  → `NormalizeAboutTeamAdditionalRoles` (4 pasadas sobre el mismo bloque);
-  `RenamePublicationsToEditorial` → `CanonicalizeEditorialRoutes` → `PreserveEditorialEntryRoutes`
-  → `ConsolidateEditorialIndexPage` (4 sobre el mismo renombrado);
-  `AddListingFieldProjection` → `BackfillListingProjections` → `NormalizeListingProjectionReferences`;
-  `NormalizeBlockNavigationSchemas` → `NormalizeExistingBlockNavigationSchemas`.
-  **Plan acordado:** (1) consolidar cada cadena en una operación única con el estado final;
-  (2) convertirlas en seeders/comandos spark idémpotentes que solo corren si se invocan;
-  (3) dejar las 26 de esquema como únicas migraciones; (4) **coordinar con producción** — las 41 ya
-  se aplicaron, el paso de conversión debe registrarlas como ejecutadas sin re-ejecutar;
-  (5) añadir un test de arquitectura que falle si una migración nueva no llama a `forge->`.
 - [ ] **MIG-02 — Otras inconsistencias:** huecos de numeración (`2026-06-11-070011` → `070013`;
   `2026-08-04-000007` → `000010`), `deleted_at` en 17 migraciones pero solo 3 de 34 modelos con
   `useSoftDeletes = true`, `ENUM` crudo en 14 migraciones (event y catalog usan otros dos enfoques
@@ -141,6 +124,54 @@
   agotamiento de conexiones MySQL al escalar el número de tests en un solo proceso PHPUnit.
 
 ## ✅ Completadas
+
+### MIG-01 — 41 migraciones de contenido convertidas a seeder idémpotente (ejecutado 2026-08-06 en `c5de9d6`, cerrado en auditoría 2026-08-07)
+
+El código de MIG-01 ya estaba en `origin/dev` (commit `c5de9d6`) sin que este TASKS.md lo
+reflejara: las 41 migraciones de contenido (`2026-08-03-120000` a `2026-08-05-000001`) quedaron
+stubbeadas con `@cms-content-data-migration` y su lógica real se consolidó en
+`CmsContentSanitizationSeeder.php` (~3.300 líneas, 41 métodos `sanitize_*`, uno por migración,
+llamados en el mismo orden cronológico), colgado del final de `SiteBootstrapSeeder::run()`. Las 26
+migraciones de esquema quedan como únicas migraciones reales.
+
+Una auditoría posterior (2026-08-07) encontró que la conversión había dejado la suite roja en 2
+puntos, ambos corregidos aquí:
+
+1. **`CleanDatabaseBootstrapConventionsTest::testMigrationsOnlyCreateAndDropFinalSchema`** exigía
+   que todo archivo `@cms-content-data-migration` contuviera el substring `cms_` — cierto cuando la
+   migración tocaba la tabla directamente, ya no cuando es un stub inerte. Se reemplazó esa
+   aserción por: (a) el stub debe declarar en el docblock que su lógica se movió a
+   `CmsContentSanitizationSeeder`, y (b) el stub no debe volver a contener ninguna operación de
+   esquema o datos (mismo set de patrones prohibidos que la rama genérica). Se añadió un test
+   nuevo, `testContentDataMigrationsMapToASanitizationSeederMethod`, que reubica el chequeo de
+   `cms_` donde ahora vive de verdad: verifica que las 41 migraciones stubbeadas y las 41 llamadas
+   `sanitize_*` de `run()` coinciden 1:1 en el mismo orden cronológico, y que el cuerpo de cada
+   método `sanitize_*` sigue tocando una tabla `cms_`.
+2. **`NormalizeSiteSettingsTest::testUpRemovesRetiredSettingsAndNormalizesAnalyticsProvider`**
+   afirmaba el comportamiento *del migration `up()`*, que ya no hace nada. Se eliminó ese archivo
+   (cobertura muerta contra un stub) y se creó
+   `tests/Integration/Database/Seeds/CmsContentSanitizationSeederTest.php`, que corre
+   `SiteBootstrapSeeder` completo, inyecta el mismo escenario de settings retirados/legacy que el
+   test viejo, corre `CmsContentSanitizationSeeder` de nuevo y **lo corre una segunda vez** para
+   probar la propiedad que MIG-01 existe para dar: idempotencia real, no solo el resultado de una
+   sola pasada.
+
+**Verificación:** 572 tests / 2.600 assertions, 14 errores + 3 fallos + 1 skip — el mismo tipo de
+flakiness preexistente de `FileReferenceSynchronizer` documentado en TEST-01 (no causado por este
+cambio; el nuevo `CmsContentSanitizationSeederTest` corre `SiteBootstrapSeeder` completo igual que
+`CmsCollectionGridAspectRatioSeederTest`, ya en la lista de TEST-01, así que hereda la misma
+susceptibilidad). PHPStan y CS-Fixer no ven ninguno de estos archivos: `phpstan.neon` no incluye
+`app/Database/Seeds`, `app/Database/Migrations` ni `tests/` en `paths`, así que `composer quality`
+no es el gate para este código — el gate real es la propia suite de arquitectura.
+
+La nota "19 migraciones de contenido sin `@cms-content-data-migration`" en el registro de
+CORE-03 (más abajo) describe un estado intermedio real del 2026-08-06, anterior a `c5de9d6`; ya no
+contradice esta entrada, que documenta las 41 finales.
+
+**Pendiente de MIG-01, no absorbido por este cierre:** ninguno — los 5 puntos del plan original
+(consolidar cadenas de parcheo, convertir a seeder idémpotente, dejar 26 migraciones de esquema,
+no re-ejecutar en producción, guardrail de arquitectura) quedaron cubiertos por `c5de9d6` más los
+dos fixes de este pase.
 
 ### CFG-03 + CFG-05 + CFG-02 (parcial) — swagger, cobertura y HUB_INTERNAL_SECRET (2026-08-06)
 
@@ -188,7 +219,8 @@
     de `CleanDatabaseBootstrapConventionsTest`, que exige `Create*` + `createTable(`. Se comprobó
     que **ninguna de las 19 toca esquema** y se etiquetaron; la lista de verbos permitidos se amplió
     al conjunto realmente en uso. Es un parche honesto para que el guardrail refleje la realidad de
-    hoy — **no sustituye a `MIG-01`**, que sigue pendiente.
+    hoy — **no sustituye a `MIG-01`**, que en ese momento seguía pendiente. (MIG-01 se cerró
+    después, con las 41 migraciones finales — ver la entrada "MIG-01" más arriba en esta sección.)
   - **`TranslationAuditServiceTest` se contradecía consigo mismo.** Un test esperaba `outdated` sobre
     el idioma por defecto; su hermano `testDefaultLanguageIsNotMarkedOutdatedAgainstItsOwnSource...`
     monta el mismo escenario y afirma `complete`. La regla del idioma por defecto es deliberada y
