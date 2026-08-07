@@ -16,7 +16,6 @@ class CreateCmsCategories extends Migration
             'parent_id'     => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
             'sort_order'    => ['type' => 'INT', 'default' => 0],
             'is_active'     => ['type' => 'TINYINT', 'constraint' => 1, 'default' => 1],
-            'deleted_at'    => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addField('`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
         $this->forge->addField('`updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP');
