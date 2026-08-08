@@ -393,7 +393,7 @@ final class EntryListingContentResolver
             : null;
         $url = $this->stringValue($value['url'] ?? null);
         if ($url === '' && $fileId !== null) {
-            $url = '/files/' . $fileId . '/view';
+            $url = rtrim(config('App')->baseURL, '/') . '/files/' . $fileId . '/view';
         }
         if ($url === '' || ($fileId === null && ! str_starts_with($url, 'http') && ! str_starts_with($url, '/'))) {
             return null;
