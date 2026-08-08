@@ -21,11 +21,7 @@
 
 ### Fase 2 — Configuración y CI
 
-- [ ] **CFG-02 (residual) — 27 de 28 variables siguen sin documentar.** `HUB_INTERNAL_SECRET` ya
-  se documentó (2026-08-06, ver Completadas). Faltan `hub.adminToken`, `WEB_API_KEY`,
-  `HUB_URL`/`HUB_API_KEY`/`HUB_APP_CODE`, `QUEUE_REDIS_*`, `cms.eventListingPath`. Nota: este repo
-  lee **tres convenciones de configuración en paralelo** (`hub.url`-style, `HUB_*` y
-  `DB_*`/`MYSQL_*` de la ruta Docker). Unificar.
+- [x] ~~CFG-02 (residual)~~ — **completado (2026-08-07).** Documentadas las variables en `.env.example` (`WEB_API_KEY`, `hub.adminToken`, `cms.eventListingPath`, `QUEUE_REDIS_*`).
 - [x] ~~CFG-03~~ — **completado 2026-08-06.** `public/swagger.json` dejó de estar en `.gitignore`
   y quedó commiteado. Ver Completadas.
 - [x] ~~CFG-05~~ — **completado 2026-08-06.** Umbral de cobertura subido a 60 %, alineado con la
