@@ -141,7 +141,7 @@ trait IdempotentSeederSupport
             return [
                 'source_kind' => 'hub_file',
                 'file_id' => $fileId,
-                'url' => $url !== '' ? $url : rtrim(config('App')->baseURL, '/') . '/files/' . $fileId . '/view',
+                'url' => $url !== '' ? $url : rtrim(config('Hub')->url, '/') . '/files/' . $fileId . '/view',
             ];
         }
 
