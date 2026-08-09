@@ -78,6 +78,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Stored media URLs** — CMS content now persists portable, host-less `/uploads/...` paths
+  instead of baking in the Hub's deployment host at save time; `FileUrlResolver` resolves the
+  public delivery URL (via the new `hub.publicUrl`) only when content is served, and a
+  sanitization pass normalizes previously-stored rows.
 - **`GET cms/public/languages`** — moved into the `webappkey + throttle` filter group like every
   other public endpoint in this file; it previously accepted anonymous, unthrottled requests.
 - **Operational translation regression fixture** — seed integration coverage now matches the
