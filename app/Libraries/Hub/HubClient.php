@@ -13,6 +13,12 @@ use dcardenasl\Ci4ApiCore\Http\Client\HubClient as CoreHubClient;
  */
 class HubClient extends CoreHubClient
 {
+    protected function recordBreadcrumb(string $method, string $url, ?int $status, float $durationMs, int $attempt): void
+    {
+        parent::recordBreadcrumb($method, $url, $status, $durationMs, $attempt);
+        \App\Support\PublicReadTelemetry::recordHttp($status, $durationMs, $attempt);
+    }
+
     /**
      * Find a role by its unique code in the hub.
      *
