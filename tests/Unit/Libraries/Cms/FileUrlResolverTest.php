@@ -137,4 +137,40 @@ final class FileUrlResolverTest extends CIUnitTestCase
         $this->assertSame('http://localhost:8180/uploads/2026/06/28/logo_md.gif', $result[20]['url']);
         $this->assertSame(['md' => ['url' => 'http://localhost:8180/uploads/2026/06/28/logo_md.gif']], $result[20]['variants']);
     }
+
+    public function testPublicUrlBuildsTheHubOriginAtDeliveryTime(): void
+    {
+        $resolver = new FileUrlResolver(
+            $this->createMock(HubClient::class),
+            'https://api.teatromuseo.cl'
+        );
+
+        $this->assertSame(
+            'https://api.teatromuseo.cl/uploads/2026/06/28/logo.gif',
+            $resolver->publicUrl('http://localhost:8180/uploads/2026/06/28/logo.gif')
+        );
+        $this->assertSame(
+            'https://api.teatromuseo.cl/uploads/2026/06/28/logo.gif',
+            $resolver->publicUrl('/uploads/2026/06/28/logo.gif')
+        );
+    }
+
+    public function testStorageNormalizationKeepsOnlyThePortablePath(): void
+    {
+        $hubClient = $this->createMock(HubClient::class);
+        $hubClient->expects($this->never())->method('resolvePublicFileMeta');
+
+        $resolver = new FileUrlResolver($hubClient, 'https://api.teatromuseo.cl');
+        $reference = $resolver->normalizeMediaReference([
+            'source_kind' => 'hub_file',
+            'file_id' => 20,
+            'url' => 'http://localhost:8180/uploads/2026/06/28/logo.gif',
+        ], 'storage');
+
+        $this->assertSame('/uploads/2026/06/28/logo.gif', $reference['url']);
+        $this->assertSame(
+            '/uploads/2026/06/28/logo.gif',
+            $resolver->storageUrl('https://api.teatromuseo.cl/uploads/2026/06/28/logo.gif')
+        );
+    }
 }
