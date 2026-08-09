@@ -24,7 +24,10 @@ class Cache extends BaseConfig
      * The name of the preferred handler that should be used. If for some reason
      * it is not available, the $backupHandler will be used in its place.
      */
-    public string $handler = 'apcu';
+    // File cache is shared by PHP workers on shared hosting. APCu is
+    // process-local there and makes cross-request introspection caches
+    // effectively unusable.
+    public string $handler = 'file';
 
     /**
      * --------------------------------------------------------------------------
