@@ -11,6 +11,26 @@
 
 ## 🟡 Próximo
 
+### Programa cross-repo — CMS PublicRead
+
+Fuente de verdad: [plan de entrega pública](../docs/plan/2026-08-09-entrega-publica-read-model-page-delivery.md) y
+[tracker raíz](../TASKS.md). No reutilizar CRUD para resolver estas tareas; leer
+la sección 8 del plan antes de implementar.
+
+- [ ] **PUB-00** — Baseline HTTP ejecutado; la capacidad beta queda pendiente de
+  métricas del hosting (PHP-FPM, MySQL, caché y upstream 508) en el tracker raíz.
+- [x] **PUB-01/PUB-02** — Contratos, gobierno, observabilidad y budgets completados
+  en el tracker raíz.
+- [ ] **CMS-01** — Estructura del módulo CMS PublicRead.
+- [ ] **CMS-02** — Lectura set-based de páginas.
+- [ ] **CMS-03** — Lectura unificada de navegación.
+- [ ] **CMS-04** — Lectura unificada de settings y medios.
+- [ ] **CMS-05** — Lecturas públicas de entries.
+- [ ] **SHARED-01** — Cliente de medios batch y policy foreground.
+- [ ] **QA-01/QA-02** — Contract tests, OpenAPI, EXPLAIN, índices y budgets SQL.
+- [ ] **CACHE-03** — Invalidación y regeneración asíncrona cuando el dominio
+  participe en el evento/outbox de publicación.
+
 > Saneamiento arquitectónico — auditoría del 2026-08-05.
 > **Contexto, evidencia y rutas exactas:** [`../docs/plan/2026-08-05-saneamiento-arquitectonico.md`](../docs/plan/2026-08-05-saneamiento-arquitectonico.md)
 > Orden y dependencias cross-repo: [`../TASKS.md`](../TASKS.md)
