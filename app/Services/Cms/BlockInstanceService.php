@@ -264,7 +264,11 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
                     );
                 }
                 if ($blockSchemaFields !== []) {
-                    $blockData = $this->fileUrlResolver->normalizeBlockData($blockData, $blockSchemaFields);
+                    $blockData = $this->fileUrlResolver->normalizeBlockData(
+                        $blockData,
+                        $blockSchemaFields,
+                        'storage'
+                    );
                 }
             }
 
@@ -361,7 +365,11 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
                     ? (array) $schemaDefinition['config_fields']
                     : [];
                 if ($configFields !== []) {
-                    $blockConfig = $this->fileUrlResolver->normalizeBlockConfig($blockConfig, $configFields);
+                    $blockConfig = $this->fileUrlResolver->normalizeBlockConfig(
+                        $blockConfig,
+                        $configFields,
+                        'storage'
+                    );
                 }
             }
 

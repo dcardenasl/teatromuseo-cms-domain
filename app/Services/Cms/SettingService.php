@@ -82,9 +82,12 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
             if ($setting->setting_type === 'file_id') {
                 $meta = is_array($setting->setting_meta) ? $setting->setting_meta : [];
                 $resolvedUrl = $this->fileUrlResolver->resolve((int) ($setting->setting_value ?? 0), 'original');
+                $fallbackUrl = isset($meta['url'])
+                    ? $this->fileUrlResolver->publicUrl((string) $meta['url'])
+                    : null;
                 $value = [
                     'file_id'   => (int) ($setting->setting_value ?? 0),
-                    'url'       => $resolvedUrl ?? ($meta['url'] ?? null),
+                    'url'       => $resolvedUrl ?? $fallbackUrl,
                     'mime_type' => $meta['mime_type'] ?? null,
                 ];
             }

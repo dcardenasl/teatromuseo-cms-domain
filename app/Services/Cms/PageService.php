@@ -222,7 +222,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
                 $translation['og_image'] ?? [
                     'file_id' => $translation['og_image_file_id'] ?? null,
                     'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
-                ]
+                ],
+                'storage'
             );
 
             $existing = $translationModel

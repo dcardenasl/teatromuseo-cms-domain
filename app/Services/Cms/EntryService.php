@@ -390,13 +390,15 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 $translation['featured_image'] ?? [
                     'file_id' => $translation['featured_file_id'] ?? null,
                     'url'     => isset($translation['featured_image_url']) ? (string) $translation['featured_image_url'] : null,
-                ]
+                ],
+                'storage'
             );
             $ogImage = $this->fileUrlResolver->normalizeMediaReference(
                 $translation['og_image'] ?? [
                     'file_id' => $translation['og_image_file_id'] ?? null,
                     'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
-                ]
+                ],
+                'storage'
             );
 
             $rows[] = [

@@ -392,10 +392,10 @@ final class EntryListingContentResolver
             ? (int) $value['file_id']
             : null;
         $url = $this->stringValue($value['url'] ?? null);
-        if ($url === '' && $fileId !== null) {
-            $url = rtrim(config('Hub')->url, '/') . '/files/' . $fileId . '/view';
+        if ($url === '' || str_starts_with($url, '/files/')) {
+            return null;
         }
-        if ($url === '' || ($fileId === null && ! str_starts_with($url, 'http') && ! str_starts_with($url, '/'))) {
+        if ($fileId === null && ! str_starts_with($url, 'http') && ! str_starts_with($url, '/')) {
             return null;
         }
 

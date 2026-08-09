@@ -396,7 +396,7 @@ class BlockInstanceSerializer
             $blockData[$fieldKey] = [
                 'source_kind' => 'external_url',
                 'file_id'     => null,
-                'url'         => $url,
+                'url'         => $this->fileUrlResolver->publicUrl($url),
                 'variants'    => null,
             ];
             return;
@@ -408,7 +408,7 @@ class BlockInstanceSerializer
             $blockData[$fieldKey] = [
                 'source_kind' => 'hub_file',
                 'file_id'     => $fileId,
-                'url'         => $meta['url'] ?? $url,
+                'url'         => $this->fileUrlResolver->publicUrl($meta['url'] ?? $url),
                 'variants'    => $meta['variants'] ?? $variants,
             ];
             return;
@@ -417,7 +417,7 @@ class BlockInstanceSerializer
         $blockData[$fieldKey] = [
             'source_kind' => $sourceKind === 'hub_file' ? 'hub_file' : 'external_url',
             'file_id'     => null,
-            'url'         => $url,
+            'url'         => $this->fileUrlResolver->publicUrl($url),
             'variants'    => null,
         ];
     }
