@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Database\Seeds;
 
 use App\Database\Seeds\Concerns\CollectionBlockPresets;
+use App\Database\Seeds\Concerns\TeatroMuseoPublicRoutes;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -332,22 +333,6 @@ class CmsContentSanitizationSeeder extends Seeder
     }
 
     // Helpers/properties from class:
-    /** @var array<string, array<string, string>> */
-    private const Sanitize_NormalizePublicNavigationSlugs_PAGE_SLUGS = [
-        'events' => [
-            'es' => 'cartelera',
-            'en' => 'events',
-            'fr' => 'programme',
-            'pt' => 'eventos',
-        ],
-        'catalog_listing' => [
-            'es' => 'museo/coleccion',
-            'en' => 'museum/collection',
-            'fr' => 'musee/collection',
-            'pt' => 'museu/colecao',
-        ],
-    ];
-
     /** @var array<string, string> */
     private const Sanitize_NormalizePublicNavigationSlugs_COURSE_SLUGS = [
         'es' => 'teatroescuela',
@@ -362,7 +347,8 @@ class CmsContentSanitizationSeeder extends Seeder
 
     private function Sanitize_NormalizePublicNavigationSlugs_normalizePageSlugs(): void
     {
-        foreach (self::Sanitize_NormalizePublicNavigationSlugs_PAGE_SLUGS as $pageType => $slugs) {
+        foreach (['events', 'catalog_listing'] as $pageType) {
+            $slugs = TeatroMuseoPublicRoutes::pageSlugs($pageType);
             foreach ($slugs as $languageCode => $slug) {
                 $this->db->query(
                     'UPDATE cms_page_translations t '
@@ -593,9 +579,9 @@ class CmsContentSanitizationSeeder extends Seeder
         ],
         'events' => [
             'es' => '/cartelera',
-            'en' => '/events',
-            'fr' => '/programme',
-            'pt' => '/eventos',
+            'en' => '/programming',
+            'fr' => '/programmation',
+            'pt' => '/programacao',
         ],
         'theatre_school' => [
             'es' => '/teatroescuela',
