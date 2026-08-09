@@ -229,6 +229,13 @@ class CmsBlockTypeSeeder extends Seeder
                         'order_direction' => ['type' => 'select', 'label' => 'Dirección',                'required' => false, 'options' => ['asc', 'desc'], 'default' => 'desc'],
                         'layout_variant'  => ['type' => 'select', 'label' => 'Variante visual',          'required' => false, 'options' => ['cards', 'compact', 'portfolio'], 'default' => 'cards'],
                         'image_aspect_ratio' => ['type' => 'select', 'label' => 'Proporción de la imagen de portada', 'description' => 'Controla el alto de la imagen en cada tarjeta; el ancho siempre lo define la cuadrícula.', 'required' => false, 'options' => ['16/9', '4/3', '1/1', '3/4', '2/3'], 'default' => '1/1'],
+                        // Persisted by the content sanitization pass and edited
+                        // through the dedicated projection UI in Admin.
+                        'listing_projection' => [
+                            'type' => 'json',
+                            'label' => 'Proyección pública del listado',
+                            'required' => false,
+                        ],
                         'css_class'       => ['type' => 'string', 'label' => 'Clase CSS',                'required' => false, 'default' => ''],
                     ],
                 ]),
@@ -288,6 +295,13 @@ class CmsBlockTypeSeeder extends Seeder
                         'show_extra_link'  => ['type' => 'boolean', 'label' => 'Mostrar enlace adicional',   'required' => false, 'default' => false],
                         'show_extra_image' => ['type' => 'boolean', 'label' => 'Mostrar imagen adicional',   'required' => false, 'default' => false],
                         'fallback_image_url' => ['type' => 'string', 'label' => 'Imagen de respaldo (URL)', 'required' => false, 'default' => ''],
+                        // Persisted by the content sanitization pass and edited
+                        // through the dedicated projection UI in Admin.
+                        'listing_projection' => [
+                            'type' => 'json',
+                            'label' => 'Proyección pública del listado',
+                            'required' => false,
+                        ],
                         'css_class'        => ['type' => 'string', 'label' => 'Clase CSS',                 'required' => false, 'default' => ''],
                     ],
                 ]),
