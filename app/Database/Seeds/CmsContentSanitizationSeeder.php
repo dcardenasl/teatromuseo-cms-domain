@@ -56,6 +56,115 @@ class CmsContentSanitizationSeeder extends Seeder
         $this->sanitize_NormalizeLegacyCollectionIndexPages();
         $this->sanitize_RetireObrasCollection();
         $this->sanitize_NormalizeSiteSettings();
+        $this->sanitize_NormalizeStoredMediaUrls();
+    }
+
+    private function sanitize_NormalizeStoredMediaUrls(): void
+    {
+        foreach ([
+            ['cms_entry_translations', 'featured_image_url'],
+            ['cms_entry_translations', 'og_image_url'],
+            ['cms_page_translations', 'og_image_url'],
+        ] as [$table, $column]) {
+            if (! $this->db->fieldExists('id', $table) || ! $this->db->fieldExists($column, $table)) {
+                continue;
+            }
+
+            $rows = $this->db->table($table)->select("id, {$column}")->get()->getResultArray();
+            foreach ($rows as $row) {
+                $current = $row[$column] ?? null;
+                $normalized = $this->Sanitize_NormalizeStoredMediaUrls_portableUrl($current);
+                if ($normalized === $current) {
+                    continue;
+                }
+
+                $this->db->table($table)->where('id', (int) $row['id'])->update([
+                    $column => $normalized,
+                ]);
+            }
+        }
+
+        foreach ([
+            'cms_block_instances' => 'block_config',
+            'cms_block_instance_translations' => 'block_data',
+        ] as $table => $column) {
+            if (! $this->db->fieldExists('id', $table) || ! $this->db->fieldExists($column, $table)) {
+                continue;
+            }
+
+            $rows = $this->db->table($table)->select("id, {$column}")->get()->getResultArray();
+            foreach ($rows as $row) {
+                $decoded = json_decode((string) ($row[$column] ?? ''), true);
+                if (! is_array($decoded)) {
+                    continue;
+                }
+
+                $normalized = $this->Sanitize_NormalizeStoredMediaUrls_value($decoded);
+                if ($normalized === $decoded) {
+                    continue;
+                }
+
+                $this->db->table($table)->where('id', (int) $row['id'])->update([
+                    $column => json_encode(
+                        $normalized,
+                        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+                    ),
+                ]);
+            }
+        }
+    }
+
+    private function Sanitize_NormalizeStoredMediaUrls_portableUrl(mixed $value): mixed
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return $value;
+        }
+
+        $url = trim($value);
+        $path = parse_url($url, PHP_URL_PATH);
+        if (! is_string($path)) {
+            return $value;
+        }
+
+        $path = '/' . ltrim($path, '/');
+        if (! str_starts_with($path, '/uploads/')) {
+            return $value;
+        }
+
+        $query = parse_url($url, PHP_URL_QUERY);
+        $fragment = parse_url($url, PHP_URL_FRAGMENT);
+        $suffix = is_string($query) && $query !== '' ? '?' . $query : '';
+        $suffix .= is_string($fragment) && $fragment !== '' ? '#' . $fragment : '';
+
+        return $path . $suffix;
+    }
+
+    private function Sanitize_NormalizeStoredMediaUrls_value(mixed $value, string $sourceKind = ''): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $currentSourceKind = strtolower(trim((string) ($value['source_kind'] ?? $sourceKind)));
+        foreach ($value as $key => $item) {
+            if (is_string($item) && ($key === 'url' || str_ends_with((string) $key, '_url'))) {
+                $normalized = $this->Sanitize_NormalizeStoredMediaUrls_portableUrl($item);
+                if ($key === 'url' && $currentSourceKind === 'hub_file') {
+                    $path = '/' . ltrim((string) $normalized, '/');
+                    if (str_starts_with($path, '/files/')) {
+                        $normalized = '';
+                    }
+                }
+                $value[$key] = $normalized;
+                continue;
+            }
+
+            if (is_array($item)) {
+                $value[$key] = $this->Sanitize_NormalizeStoredMediaUrls_value($item, $currentSourceKind);
+            }
+        }
+
+        return $value;
     }
 
     private function sanitize_NormalizeBlockNavigationSchemas(): void
@@ -3027,7 +3136,7 @@ class CmsContentSanitizationSeeder extends Seeder
                 trim((string) ($data['position'] ?? '')),
                 trim((string) ($data['profession'] ?? '')),
             ]);
-            $excludedKeys = array_map([$this, 'normalize'], $excluded);
+            $excludedKeys = array_map([$this, 'Sanitize_NormalizeAboutTeamAdditionalRoles_normalize'], $excluded);
             $seen = [];
             $roles = [];
 

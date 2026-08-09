@@ -141,7 +141,9 @@ trait IdempotentSeederSupport
             return [
                 'source_kind' => 'hub_file',
                 'file_id' => $fileId,
-                'url' => $url !== '' ? $url : rtrim(config('Hub')->url, '/') . '/files/' . $fileId . '/view',
+                // The file ID is the portable reference. The public URL is
+                // resolved from Hub metadata when the content is delivered.
+                'url' => $this->portableFileUrl($url),
             ];
         }
 
@@ -150,6 +152,25 @@ trait IdempotentSeederSupport
             'file_id' => null,
             'url' => $url,
         ];
+    }
+
+    private function portableFileUrl(string $url): string
+    {
+        if ($url === '') {
+            return '';
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
+        if (! is_string($path)) {
+            return '';
+        }
+
+        $path = '/' . ltrim($path, '/');
+        if (! str_starts_with($path, '/uploads/')) {
+            return '';
+        }
+
+        return $path;
     }
 
     /**
