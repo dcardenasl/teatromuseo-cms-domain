@@ -6,6 +6,8 @@ namespace App\Services\Cms;
 
 use App\Entities\FileTranslationEntity;
 use App\Interfaces\Cms\FileTranslationServiceInterface;
+use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
+use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
@@ -23,6 +25,38 @@ class FileTranslationService extends BaseCrudService implements FileTranslationS
         ResponseMapperInterface $responseMapper
     ) {
         parent::__construct($fileTranslationRepository, $responseMapper);
+    }
+
+    /**
+     * Reject the composite uniqueness conflict before MySQL reports it.
+     *
+     * The generic core transaction wrapper observes a failed duplicate-key
+     * statement as a failed transaction and, on long-lived connections, can
+     * carry that status into the next request.  A domain validation keeps the
+     * expected 422 response deterministic and avoids poisoning the connection
+     * for subsequent CRUD operations.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    protected function beforeStore(array $data, ?SecurityContext $context): array
+    {
+        $model = $this->repository->getModel();
+        $model->builder()->resetQuery();
+        $existing = $model
+            ->where('file_id', (int) ($data['file_id'] ?? 0))
+            ->where('language_id', (int) ($data['language_id'] ?? 0))
+            ->first();
+        $model->builder()->resetQuery();
+
+        if ($existing !== null) {
+            throw new ValidationException(
+                lang('Api.validationFailed'),
+                ['language_id' => lang('Api.invalidTranslation')]
+            );
+        }
+
+        return $data;
     }
 
     /**
