@@ -1632,6 +1632,55 @@
                 }
             }
         },
+        "/api/v1/diagnostics/public-read": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Public-read capacity diagnostics",
+                "description": "Internal application diagnostics. Requires the X-App-Key header and never returns credentials or SQL text.",
+                "operationId": "458fd0fd6b45a531a83dc31176002334",
+                "responses": {
+                    "200": {
+                        "description": "Diagnostics collected",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "schema": {
+                                            "type": "string",
+                                            "example": "public-read-diagnostics.v1"
+                                        },
+                                        "generated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "application": {
+                                            "type": "object"
+                                        },
+                                        "database": {
+                                            "type": "object"
+                                        },
+                                        "cache": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid X-App-Key"
+                    }
+                },
+                "security": [
+                    {
+                        "appKeyAuth": []
+                    }
+                ]
+            }
+        },
         "/health": {
             "get": {
                 "tags": [

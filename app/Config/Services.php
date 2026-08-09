@@ -21,6 +21,18 @@ class Services extends BaseService
     use SystemMonitoringServices;
     use RepositoryModelServices;
 
+    public static function publicReadDiagnostics(bool $getShared = true): \App\Services\PublicReadDiagnosticsService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicReadDiagnostics');
+        }
+
+        return new \App\Services\PublicReadDiagnosticsService(
+            \Config\Database::connect(),
+            \Config\Services::cache(),
+        );
+    }
+
     public static function hubClient(bool $getShared = true): \App\Libraries\Hub\HubClient
     {
         if ($getShared) {

@@ -22,4 +22,5 @@ return [
     'diskUsage' => 'Uso de disco: {0}%',
     'writableFoldersAccessible' => 'Todas las carpetas de escritura son accesibles',
     'writableFoldersNotAccessible' => 'Algunas carpetas no tienen permisos de escritura',
+    'diagnosticsQueryNoResult' => 'La consulta de diagnóstico de la base de datos no devolvió resultado',
 ];

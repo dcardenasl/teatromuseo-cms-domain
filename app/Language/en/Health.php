@@ -22,4 +22,5 @@ return [
     'diskUsage' => 'Disk usage: {0}%',
     'writableFoldersAccessible' => 'All writable folders are accessible',
     'writableFoldersNotAccessible' => 'Some folders are not writable',
+    'diagnosticsQueryNoResult' => 'Database diagnostics query returned no result',
 ];
