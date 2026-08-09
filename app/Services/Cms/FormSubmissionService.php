@@ -40,9 +40,12 @@ class FormSubmissionService
         // where two sequential import()+list() calls against the same
         // (test-process-shared) service singleton silently filtered list()
         // down to just the last imported row.
-        $this->model->builder()->resetQuery();
-
-        $builder = $this->model->orderBy('created_at', 'DESC');
+        // Use a short-lived model for the read path. The injected model is
+        // also used by create/import/get and CodeIgniter keeps its builder
+        // state on that instance; a clean builder prevents a previous
+        // primary-key lookup from narrowing the listing unexpectedly.
+        $listModel = new FormSubmissionModel();
+        $builder = $listModel->builder()->select('*')->orderBy('created_at', 'DESC');
 
         if ($dto->status !== null) {
             $builder->where('status', $dto->status);
@@ -54,8 +57,11 @@ class FormSubmissionService
 
         $total  = (int) $builder->countAllResults(false);
         $offset = ($dto->page - 1) * $dto->per_page;
-        /** @var list<FormSubmissionEntity> */
-        $rows   = $builder->findAll($dto->per_page, $offset);
+        $queryResult = $builder
+            ->limit($dto->per_page, $offset)
+            ->get();
+        /** @var list<FormSubmissionEntity> $rows */
+        $rows = $queryResult === false ? [] : $queryResult->getResult(FormSubmissionEntity::class);
 
         $data = array_map(
             fn (FormSubmissionEntity $e) => FormSubmissionResponseDTO::fromArray($e->toArray())->toArray(),
