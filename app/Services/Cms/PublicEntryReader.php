@@ -299,7 +299,9 @@ class PublicEntryReader
             }
         }
 
-        $entryTransMap  = $this->batchResolveEntryTranslations($entryIds, $langId, $defaultLangId);
+        $entryTranslations = $this->batchResolveEntryTranslations($entryIds, $langId, $defaultLangId);
+        $entryTransMap = $entryTranslations['translations'];
+        $entryMediaMap = $entryTranslations['media'];
         $categoriesMap  = $this->taxonomyPivotResolver->resolveLocalizedCategories($entryIds, $langId, $defaultLangId);
         $tagsMap        = $this->taxonomyPivotResolver->resolveLocalizedTags($entryIds, $langId, $defaultLangId);
 
@@ -314,7 +316,7 @@ class PublicEntryReader
             $item['tags']       = $tagsMap[$entryId] ?? [];
             unset($item['entry_title_order']);
             // Normalize featured/OG images into canonical nested objects.
-            $item = $this->normalizeEntryMedia($item);
+            $item = $this->normalizeEntryMedia($item, $entryMediaMap);
             if ($dto->listing_field !== null) {
                 $item['display_date'] = $listingFieldValues[$entryId] ?? null;
             }
@@ -564,7 +566,9 @@ class PublicEntryReader
             throw new NotFoundException(lang('Entries.not_found'));
         }
 
-        $entryTransMap = $this->batchResolveEntryTranslations([$entryId], $langId, $defaultLangId);
+        $entryTranslations = $this->batchResolveEntryTranslations([$entryId], $langId, $defaultLangId);
+        $entryTransMap = $entryTranslations['translations'];
+        $entryMediaMap = $entryTranslations['media'];
         $categoriesMap = $this->taxonomyPivotResolver->resolveLocalizedCategories([$entryId], $langId, $defaultLangId);
         $tagsMap       = $this->taxonomyPivotResolver->resolveLocalizedTags([$entryId], $langId, $defaultLangId);
 
@@ -573,7 +577,7 @@ class PublicEntryReader
         $data['tags']       = $tagsMap[$entryId] ?? [];
 
         // Normalize featured/OG images into canonical nested objects.
-        $data = $this->normalizeEntryMedia($data);
+        $data = $this->normalizeEntryMedia($data, $entryMediaMap);
 
         $blocks = $this->blockInstanceSerializer->forContent('entry', $entryId, $dto->lang);
         $data['blocks'] = $this->composeNewsGallery(
@@ -648,12 +652,12 @@ class PublicEntryReader
 
     /**
      * @param  list<int>  $entryIds
-     * @return array<int, array<string, mixed>>
+     * @return array{translations: array<int, array<string, mixed>>, media: array<int, array<string, mixed>>}
      */
     private function batchResolveEntryTranslations(array $entryIds, int $langId, int $defaultLangId): array
     {
         if (empty($entryIds)) {
-            return [];
+            return ['translations' => [], 'media' => []];
         }
 
         /** @var list<\App\Entities\LanguageEntity> $activeLanguages */
@@ -671,13 +675,34 @@ class PublicEntryReader
         }
 
         if ($activeLanguageIds === []) {
-            return [];
+            return ['translations' => [], 'media' => []];
         }
 
         $rows = $this->entryTranslationModel()
             ->whereIn('entry_id', $entryIds)
             ->whereIn('language_id', $activeLanguageIds)
             ->findAll();
+
+        $fileIds = [];
+        foreach ($rows as $row) {
+            if (! $row instanceof \App\Entities\EntryTranslationEntity) {
+                continue;
+            }
+
+            foreach (['featured_file_id', 'og_image_file_id'] as $field) {
+                $id = $row->{$field} ?? null;
+                if (is_numeric($id) && (int) $id > 0) {
+                    $fileIds[] = (int) $id;
+                }
+            }
+            foreach (['featured_image', 'og_image'] as $field) {
+                $id = $this->fileUrlResolver->resolveMediaReferenceFileId($row->{$field} ?? null);
+                if ($id !== null) {
+                    $fileIds[] = $id;
+                }
+            }
+        }
+        $mediaMap = $this->fileUrlResolver->resolveManyMeta(array_values(array_unique($fileIds)), 'public');
 
         $grouped = [];
         foreach ($rows as $row) {
@@ -696,7 +721,7 @@ class PublicEntryReader
                 'og_image' => $row->og_image ?? null,
                 'og_image_file_id' => $row->og_image_file_id !== null ? (int) $row->og_image_file_id : null,
                 'og_image_url' => $row->og_image_url ?? null,
-            ]);
+            ], 'public', $mediaMap);
 
             $grouped[$entryId]['translations'][$languageId] = [
                 'slug'               => $slug,
@@ -760,16 +785,17 @@ class PublicEntryReader
             ];
         }
 
-        return $map;
+        return ['translations' => $map, 'media' => $mediaMap];
     }
 
     /**
      * Normalize entry-level media references into canonical nested objects.
      *
      * @param array<string, mixed> $item
+     * @param array<int, array<string, mixed>> $mediaMap
      * @return array<string, mixed>
      */
-    private function normalizeEntryMedia(array $item): array
+    private function normalizeEntryMedia(array $item, array $mediaMap): array
     {
         $featuredImage = $item['featured_image'] ?? null;
         if (!is_array($featuredImage) || $featuredImage === []) {
@@ -777,7 +803,7 @@ class PublicEntryReader
                 'featured_image' => $item['featured_image'] ?? null,
                 'featured_file_id' => $item['featured_file_id'] ?? null,
                 'featured_image_url' => $item['featured_image_url'] ?? null,
-            ]);
+            ], 'public', $mediaMap);
 
             $featuredImage = $normalized['featured_image'] ?? null;
         }
@@ -788,7 +814,7 @@ class PublicEntryReader
                 'og_image' => $item['og_image'] ?? null,
                 'og_image_file_id' => $item['og_image_file_id'] ?? null,
                 'og_image_url' => $item['og_image_url'] ?? null,
-            ]);
+            ], 'public', $mediaMap);
 
             $ogImage = $normalized['og_image'] ?? null;
         }

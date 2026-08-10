@@ -118,6 +118,32 @@ final class FileUrlResolverTest extends CIUnitTestCase
         $this->assertSame(['md' => ['url' => 'http://localhost:8180/uploads/2026/06/28/logo_md.gif']], $reference['variants']);
     }
 
+    public function testNormalizeEntryTranslationUsesProvidedBatchMetadata(): void
+    {
+        $hubClient = $this->createMock(HubClient::class);
+        $hubClient->expects($this->never())->method('resolvePublicFileMeta');
+
+        $resolver = new FileUrlResolver($hubClient);
+        $translation = $resolver->normalizeEntryTranslation([
+            'featured_file_id' => 20,
+            'featured_image_url' => null,
+            'og_image_file_id' => 21,
+            'og_image_url' => null,
+        ], 'public', [
+            20 => [
+                'url' => 'https://cdn.example.com/featured-md.jpg',
+                'variants' => ['md' => ['url' => 'https://cdn.example.com/featured-md.jpg']],
+            ],
+            21 => [
+                'url' => 'https://cdn.example.com/og.jpg',
+                'variants' => null,
+            ],
+        ]);
+
+        $this->assertSame('https://cdn.example.com/featured-md.jpg', $translation['featured_image']['url']);
+        $this->assertSame('https://cdn.example.com/og.jpg', $translation['og_image']['url']);
+    }
+
     public function testResolveManyMetaReturnsUrlsAndVariants(): void
     {
         $hubClient = $this->createMock(HubClient::class);

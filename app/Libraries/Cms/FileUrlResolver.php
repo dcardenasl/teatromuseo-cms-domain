@@ -168,29 +168,30 @@ class FileUrlResolver
      *
      * Relational persistence columns are projected into one public contract.
      *
-     * @param  array<string, mixed> $translation
+     * @param array<string, mixed> $translation
+     * @param array<int, array<string, mixed>>|null $metaMap
      * @return array<string, mixed>
      */
-    public function normalizeEntryTranslation(array $translation, string $context = 'public'): array
+    public function normalizeEntryTranslation(array $translation, string $context = 'public', ?array $metaMap = null): array
     {
         $featuredImage = $translation['featured_image'] ?? null;
         if (is_array($featuredImage) && $featuredImage !== []) {
-            $translation['featured_image'] = $this->normalizeMediaReference($featuredImage, $context);
+            $translation['featured_image'] = $this->normalizeMediaReference($featuredImage, $context, $metaMap);
         } else {
             $translation['featured_image'] = $this->normalizeMediaReference([
                 'file_id' => $translation['featured_file_id'] ?? null,
                 'url'     => isset($translation['featured_image_url']) ? (string) $translation['featured_image_url'] : null,
-            ], $context);
+            ], $context, $metaMap);
         }
 
         $ogImage = $translation['og_image'] ?? null;
         if (is_array($ogImage) && $ogImage !== []) {
-            $translation['og_image'] = $this->normalizeMediaReference($ogImage, $context);
+            $translation['og_image'] = $this->normalizeMediaReference($ogImage, $context, $metaMap);
         } else {
             $translation['og_image'] = $this->normalizeMediaReference([
                 'file_id' => $translation['og_image_file_id'] ?? null,
                 'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
-            ], $context);
+            ], $context, $metaMap);
         }
 
         unset(
@@ -334,10 +335,11 @@ class FileUrlResolver
     /**
      * Normalize a media_reference payload into the canonical nested array.
      *
-     * @param  mixed $reference
+     * @param mixed $reference
+     * @param array<int, array<string, mixed>>|null $metaMap
      * @return array{source_kind: string, file_id: int|null, url: string|null, variants: array<string, mixed>|null}
      */
-    public function normalizeMediaReference(mixed $reference, string $context = 'public'): array
+    public function normalizeMediaReference(mixed $reference, string $context = 'public', ?array $metaMap = null): array
     {
         if (is_string($reference) || is_int($reference)) {
             $reference = ['url' => (string) $reference];
@@ -371,8 +373,11 @@ class FileUrlResolver
 
         if ($sourceKindRaw === 'hub_file' || $fileId !== null) {
             if ($context !== 'storage' && $variants === null && $fileId !== null) {
-                $map = $this->hubClient->resolvePublicFileMeta([$fileId]);
+                $map = $metaMap ?? $this->hubClient->resolvePublicFileMeta([$fileId]);
                 $row = $map[$fileId] ?? null;
+                if ($row !== null && isset($row['url']) && is_string($row['url'])) {
+                    $url = $row['url'];
+                }
                 if ($row !== null && isset($row['variants'])) {
                     $variants = is_string($row['variants']) ? json_decode($row['variants'], true) : $row['variants'];
                     if (is_array($variants)) {
@@ -384,7 +389,7 @@ class FileUrlResolver
             return [
                 'source_kind' => 'hub_file',
                 'file_id' => $fileId,
-                'url' => $this->resolveUrlValue($fileId, $url, $context),
+                'url' => $metaMap === null ? $this->resolveUrlValue($fileId, $url, $context) : $url,
                 'variants' => $variants,
             ];
         }
