@@ -1,0 +1,248 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Cms;
+
+use App\Interfaces\Cms\PublicReadNavigationReaderInterface;
+use App\Modules\PublicRead\Support\PublicReadEnvelope;
+use CodeIgniter\Database\BaseConnection;
+use dcardenasl\Ci4ApiCore\Support\ApiResult;
+
+/** Set-based public navigation reader for all menu locations. */
+final class PublicReadNavigationReader implements PublicReadNavigationReaderInterface
+{
+    private const FALLBACK_LOCALE = 'es';
+
+    /** @param BaseConnection<mixed, mixed> $db */
+    public function __construct(
+        private readonly BaseConnection $db,
+        private readonly string $fallbackLocale = self::FALLBACK_LOCALE,
+    ) {
+    }
+
+    public function show(string $locale): ApiResult
+    {
+        $languagesQuery = $this->db->table('cms_languages')
+            ->select('id, code, is_default')
+            ->where('is_active', 1)
+            ->get();
+        $languages = $languagesQuery !== false ? $languagesQuery->getResultArray() : [];
+        $codeById = [];
+        $default = strtolower($this->fallbackLocale);
+        foreach ($languages as $language) {
+            $code = strtolower((string) $language['code']);
+            $codeById[(int) $language['id']] = $code;
+            if ((int) $language['is_default'] === 1) {
+                $default = $code;
+            }
+        }
+
+        $menuQuery = $this->db->table('cms_menus')
+            ->select('id, menu_key, location, updated_at')
+            ->where('is_active', 1)
+            ->where('deleted_at', null)
+            ->whereIn('location', ['header', 'main', 'footer', 'legal'])
+            ->orderBy('id', 'ASC')
+            ->get();
+        $menus = $menuQuery !== false ? $menuQuery->getResultArray() : [];
+        $menuIds = array_map(static fn (array $row): int => (int) $row['id'], $menus);
+        if ($menuIds === []) {
+            return PublicReadEnvelope::success($locale, ['main' => null, 'footer' => null, 'legal' => null], 'cms-navigation:empty', meta: ['fields' => []]);
+        }
+
+        $languageIds = $this->languageIds($languages, $locale, $default);
+        $menuTranslations = $this->rowsByLanguage(
+            $this->db->table('cms_menu_translations')->select('menu_id, language_id, name')->whereIn('menu_id', $menuIds)->whereIn('language_id', $languageIds)->get(),
+            $codeById,
+            'menu_id',
+        );
+
+        $itemQuery = $this->db->table('cms_menu_items mi')
+            ->select('mi.id, mi.menu_id, mi.parent_id, mi.link_type, mi.page_id, mi.entry_id, mi.collection_id, mi.link_target, mi.icon, mi.css_class, mi.sort_order, mi.updated_at, p.page_type')
+            ->join('cms_pages p', 'p.id = mi.page_id', 'left')
+            ->whereIn('mi.menu_id', $menuIds)
+            ->where('mi.is_active', 1)
+            ->orderBy('mi.menu_id', 'ASC')->orderBy('mi.sort_order', 'ASC')->orderBy('mi.id', 'ASC')
+            ->get();
+        $items = $itemQuery !== false ? $itemQuery->getResultArray() : [];
+        $itemIds = array_map(static fn (array $row): int => (int) $row['id'], $items);
+        $itemTranslations = $itemIds === [] ? [] : $this->rowsByLanguage(
+            $this->db->table('cms_menu_item_translations')->select('menu_item_id, language_id, label, custom_url')->whereIn('menu_item_id', $itemIds)->whereIn('language_id', $languageIds)->get(),
+            $codeById,
+            'menu_item_id',
+        );
+
+        $pageIds = array_values(array_unique(array_filter(array_map(static fn (array $row): int => (int) ($row['page_id'] ?? 0), $items))));
+        $pageSlugs = $pageIds === [] ? [] : $this->slugMap('cms_page_translations', 'page_id', $pageIds, $languageIds, $codeById);
+        $entryIds = array_values(array_unique(array_filter(array_map(static fn (array $row): int => (int) ($row['entry_id'] ?? 0), $items))));
+        $entrySlugs = $entryIds === [] ? [] : $this->slugMap('cms_entry_translations', 'entry_id', $entryIds, $languageIds, $codeById);
+
+        $result = ['main' => null, 'footer' => null, 'legal' => null];
+        foreach ($menus as $menu) {
+            $menuId = (int) $menu['id'];
+            $location = match ((string) $menu['location']) {
+                'header', 'main' => 'main',
+                'footer' => 'footer',
+                'legal' => 'legal',
+                default => null,
+            };
+            if ($location === null || $result[$location] !== null) {
+                continue;
+            }
+
+            $flat = [];
+            foreach ($items as $item) {
+                if ((int) $item['menu_id'] !== $menuId) {
+                    continue;
+                }
+                $itemId = (int) $item['id'];
+                $translation = $this->pick($itemTranslations[$itemId] ?? [], $locale, $default);
+                $pageId = (int) ($item['page_id'] ?? 0);
+                $entryId = (int) ($item['entry_id'] ?? 0);
+                $linkType = (string) $item['link_type'];
+                $slug = $linkType === 'page'
+                    ? ($pageSlugs[$pageId][$locale] ?? $pageSlugs[$pageId][$default] ?? null)
+                    : ($entrySlugs[$entryId][$locale] ?? $entrySlugs[$entryId][$default] ?? null);
+                $flat[] = [
+                    'id' => $itemId,
+                    'label' => (string) ($translation['label'] ?? ''),
+                    'link_type' => $linkType,
+                    'url' => $linkType === 'custom_url' ? ($translation['custom_url'] ?? null) : null,
+                    'link_target' => (string) $item['link_target'],
+                    'icon' => $item['icon'],
+                    'css_class' => $item['css_class'],
+                    'sort_order' => (int) $item['sort_order'],
+                    'parent_id' => $item['parent_id'] !== null ? (int) $item['parent_id'] : null,
+                    'navigation' => $this->navigation($item, $slug),
+                    'is_fallback' => ! isset($itemTranslations[$itemId][$locale]),
+                    'children' => [],
+                ];
+            }
+            $result[$location] = [
+                'menu_key' => (string) $menu['menu_key'],
+                'location' => (string) $menu['location'],
+                'name' => (string) ($this->pick($menuTranslations[$menuId] ?? [], $locale, $default)['name'] ?? $menu['menu_key']),
+                'items' => $this->tree($flat),
+            ];
+        }
+
+        $revision = 'cms-navigation:' . $this->revision($menus, $items);
+        return PublicReadEnvelope::success($locale, $result, $revision, meta: ['fields' => [], 'query' => ['resource' => 'navigation']]);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $languages
+     * @return list<int>
+     */
+    private function languageIds(array $languages, string $locale, string $default): array
+    {
+        $ids = [];
+        foreach ($languages as $language) {
+            if (in_array(strtolower((string) $language['code']), [$locale, $default], true)) {
+                $ids[] = (int) $language['id'];
+            }
+        }
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @param array<int, string> $codeById
+     * @return array<int, array<string, array<string, mixed>>>
+     */
+    private function rowsByLanguage(mixed $query, array $codeById, string $key): array
+    {
+        $rows = $query !== false && $query !== null ? $query->getResultArray() : [];
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(int) $row[$key]][$codeById[(int) $row['language_id']] ?? ''] = $row;
+        }
+        return $result;
+    }
+
+    /**
+     * @param list<int> $ids
+     * @param list<int> $languageIds
+     * @param array<int, string> $codeById
+     * @return array<int, array<string, string>>
+     */
+    private function slugMap(string $table, string $idColumn, array $ids, array $languageIds, array $codeById): array
+    {
+        $query = $this->db->table($table)->select($idColumn . ', language_id, slug')->whereIn($idColumn, $ids)->whereIn('language_id', $languageIds)->get();
+        $rows = $query !== false ? $query->getResultArray() : [];
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(int) $row[$idColumn]][$codeById[(int) $row['language_id']] ?? ''] = (string) $row['slug'];
+        }
+        return $result;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $translations
+     * @return array<string, mixed>
+     */
+    private function pick(array $translations, string $locale, string $default): array
+    {
+        return $translations[$locale] ?? $translations[$default] ?? [];
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @return array<string, mixed>
+     */
+    private function navigation(array $item, ?string $slug): array
+    {
+        $type = (string) $item['link_type'];
+        $pageType = (string) ($item['page_type'] ?? '');
+        $route = match (true) {
+            $type === 'event_listing' || $pageType === 'events' => 'events',
+            $type === 'collection_listing' || $pageType === 'catalog_listing' => 'catalog',
+            $type === 'entry' => 'entries',
+            $type === 'page' => 'pages',
+            default => null,
+        };
+        return [
+            'route_key' => $route,
+            'target_type' => $type,
+            'target_id' => $item['page_id'] ?? $item['entry_id'] ?? $item['collection_id'] ?? null,
+            'slug' => $slug,
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $items
+     * @return list<array<string, mixed>>
+     */
+    private function tree(array $items): array
+    {
+        $byParent = [];
+        foreach ($items as $item) {
+            $key = $item['parent_id'] === null ? 'root' : (string) $item['parent_id'];
+            $byParent[$key][] = $item;
+        }
+        $build = function (string $parent) use (&$build, $byParent): array {
+            $branch = [];
+            foreach ($byParent[$parent] ?? [] as $item) {
+                $item['children'] = $build((string) $item['id']);
+                $branch[] = $item;
+            }
+            return $branch;
+        };
+        return $build('root');
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $menus
+     * @param array<int, array<string, mixed>> $items
+     */
+    private function revision(array $menus, array $items): string
+    {
+        $updated = '';
+        $maxId = 0;
+        foreach (array_merge($menus, $items) as $row) {
+            $updated = max($updated, (string) ($row['updated_at'] ?? ''));
+            $maxId = max($maxId, (int) ($row['id'] ?? 0));
+        }
+        return ($updated !== '' ? $updated : 'empty') . ':' . $maxId;
+    }
+}

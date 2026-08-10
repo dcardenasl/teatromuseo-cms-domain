@@ -1308,6 +1308,357 @@
                 }
             }
         },
+        "/api/v1/public-read/{locale}/pages": {
+            "get": {
+                "tags": [
+                    "Public Read - CMS"
+                ],
+                "summary": "List published pages in sitemap order",
+                "operationId": "aa718fd3bbf6709f1abbfc31b64206e6",
+                "parameters": [
+                    {
+                        "name": "locale",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "fields",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PublicRead envelope"
+                    },
+                    "401": {
+                        "description": "Missing or invalid X-App-Key"
+                    },
+                    "422": {
+                        "description": "Invalid query"
+                    }
+                }
+            }
+        },
+        "/api/v1/public-read/{locale}/pages/{path}": {
+            "get": {
+                "tags": [
+                    "Public Read - CMS"
+                ],
+                "summary": "Get one published page by hierarchical path",
+                "operationId": "e4779f4f69afbe3588688270e4f83da1",
+                "parameters": [
+                    {
+                        "name": "locale",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "path",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "fields",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PublicRead envelope"
+                    },
+                    "401": {
+                        "description": "Missing or invalid X-App-Key"
+                    },
+                    "404": {
+                        "description": "Not found or not published"
+                    }
+                }
+            }
+        },
+        "/api/v1/public-read/{locale}/navigation": {
+            "get": {
+                "tags": [
+                    "Public Read - CMS"
+                ],
+                "summary": "Get main, footer and legal navigation trees",
+                "operationId": "0baa5b224783e2c5e40bc47c88853092",
+                "parameters": [
+                    {
+                        "name": "locale",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PublicRead envelope"
+                    },
+                    "401": {
+                        "description": "Missing or invalid X-App-Key"
+                    }
+                }
+            }
+        },
+        "/api/v1/public-read/{locale}/settings": {
+            "get": {
+                "tags": [
+                    "Public Read - CMS"
+                ],
+                "summary": "Get public settings and media metadata",
+                "operationId": "8bb58994ccec41b819c23ddc5aa87f09",
+                "parameters": [
+                    {
+                        "name": "locale",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PublicRead envelope"
+                    },
+                    "401": {
+                        "description": "Missing or invalid X-App-Key"
+                    }
+                }
+            }
+        },
+        "/api/v1/public-read/{locale}/entries/{collection}": {
+            "get": {
+                "tags": [
+                    "Public Read - CMS"
+                ],
+                "summary": "List published entries from a collection",
+                "operationId": "b45e67b4f94c3577a5de61f3bf85d46d",
+                "parameters": [
+                    {
+                        "name": "locale",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "collection",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "tag",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "order_by",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "order_direction",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc",
+                                "ASC",
+                                "DESC"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter_by",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filter_value",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filter_operator",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "equals",
+                                "contains"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "listing_content"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "fields",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PublicRead envelope"
+                    },
+                    "401": {
+                        "description": "Missing or invalid X-App-Key"
+                    },
+                    "422": {
+                        "description": "Invalid query"
+                    }
+                }
+            }
+        },
+        "/api/v1/public-read/{locale}/entries/{collection}/{slug}": {
+            "get": {
+                "tags": [
+                    "Public Read - CMS"
+                ],
+                "summary": "Get one published entry by collection and slug",
+                "operationId": "50b405f93b69893dc96f61454af358c9",
+                "parameters": [
+                    {
+                        "name": "locale",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "collection",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "fields",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PublicRead envelope"
+                    },
+                    "401": {
+                        "description": "Missing or invalid X-App-Key"
+                    },
+                    "404": {
+                        "description": "Not found or not published"
+                    }
+                }
+            }
+        },
         "/api/v1/cms/redirects": {
             "get": {
                 "tags": [
@@ -4415,6 +4766,10 @@
         {
             "name": "Cms",
             "description": "Cms"
+        },
+        {
+            "name": "Public Read - CMS",
+            "description": "Public Read - CMS"
         }
     ]
 }

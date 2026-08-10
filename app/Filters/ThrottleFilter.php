@@ -48,6 +48,7 @@ class ThrottleFilter extends AbstractThrottleFilter
         $path = $request->getUri()->getPath();
 
         return str_contains($path, '/api/v1/public/')
-            || str_contains($path, '/api/v1/cms/public/');
+            || str_contains($path, '/api/v1/cms/public/')
+            || str_contains($path, '/api/v1/public-read/');
     }
 }

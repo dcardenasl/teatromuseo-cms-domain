@@ -6,6 +6,53 @@ namespace Config;
 
 trait CmsDomainServices
 {
+    public static function publicReadNavigationReader(bool $getShared = true): \App\Interfaces\Cms\PublicReadNavigationReaderInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicReadNavigationReader');
+        }
+
+        return new \App\Services\Cms\PublicReadNavigationReader(
+            \Config\Database::connect(),
+            (string) config('Localization')->legacyFallbackLocale,
+        );
+    }
+
+    public static function publicReadSettingsReader(bool $getShared = true): \App\Interfaces\Cms\PublicReadSettingsReaderInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicReadSettingsReader');
+        }
+
+        return new \App\Services\Cms\PublicReadSettingsReader(
+            \Config\Database::connect(),
+            static::fileUrlResolver(),
+            (string) config('Localization')->legacyFallbackLocale,
+        );
+    }
+
+    public static function publicReadEntryReader(bool $getShared = true): \App\Interfaces\Cms\PublicReadEntryReaderInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicReadEntryReader');
+        }
+
+        return new \App\Services\Cms\PublicReadEntryReader(static::publicEntryReader(), static::requestDtoFactory());
+    }
+
+    public static function publicReadPageReader(bool $getShared = true): \App\Interfaces\Cms\PublicReadPageReaderInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicReadPageReader');
+        }
+
+        return new \App\Services\Cms\PublicReadPageReader(
+            \Config\Database::connect(),
+            static::blockInstanceSerializer(),
+            (string) config('Localization')->legacyFallbackLocale,
+        );
+    }
+
     public static function languageResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
         if ($getShared) {

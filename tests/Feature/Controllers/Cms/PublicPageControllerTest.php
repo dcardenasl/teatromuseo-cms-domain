@@ -74,6 +74,39 @@ final class PublicPageControllerTest extends CIUnitTestCase
         $this->assertSame('external_url', $body['data']['og_image']['source_kind']);
     }
 
+    public function testPublicReadPageUsesVersionedEnvelope(): void
+    {
+        $translation = $this->pageTranslation(0);
+        $this->fixtures->page([$translation]);
+
+        $result = $this->get('/api/v1/public-read/' . $this->languages[0]['code'] . '/pages/' . $translation['slug']);
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertTrue($body['ok'] ?? false);
+        $this->assertSame(1, $body['version'] ?? null);
+        $this->assertSame('cms', $body['source']['domain'] ?? null);
+        $this->assertSame($translation['title'], $body['data']['title'] ?? null);
+        $this->assertArrayHasKey('blocks', $body['data'] ?? []);
+    }
+
+    public function testPublicReadNavigationRequiresWebAppKey(): void
+    {
+        $result = $this->withHeaders([])->get('/api/v1/public-read/' . $this->languages[0]['code'] . '/navigation');
+
+        $result->assertStatus(401);
+    }
+
+    public function testPublicReadPageRejectsUnknownSparseFields(): void
+    {
+        $translation = $this->pageTranslation(0);
+        $this->fixtures->page([$translation]);
+
+        $result = $this->get('/api/v1/public-read/' . $this->languages[0]['code'] . '/pages/' . $translation['slug'] . '?fields=unknown');
+
+        $result->assertStatus(400);
+    }
+
     public function testGetPublicPageNotFound(): void
     {
         $result = $this->get($this->pagePath($this->fixtures->slug('missing')));

@@ -10,6 +10,8 @@ return [
     'resourceUpdated' => 'Recurso actualizado correctamente.',
     'resourceDeleted' => 'Recurso eliminado correctamente.',
     'noFieldsToUpdate' => 'No se proporcionaron campos válidos para actualizar.',
+    'invalidFields' => 'Se solicitaron campos inválidos.',
+    'unsupportedField' => 'Campo no soportado: {0}.',
     'jwtSecretTooShort' => 'JWT_SECRET_KEY debe tener al menos 32 caracteres.',
     'unauthorized' => 'Acceso no autorizado.',
     'forbidden' => 'Permisos insuficientes.',
