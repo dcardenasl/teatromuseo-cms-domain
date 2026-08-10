@@ -1351,7 +1351,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "PublicRead envelope"
+                        "description": "PublicRead envelope",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicReadEnvelope"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Missing or invalid X-App-Key"
@@ -1359,7 +1366,12 @@
                     "422": {
                         "description": "Invalid query"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "appKeyAuth": []
+                    }
+                ]
             }
         },
         "/api/v1/public-read/{locale}/pages/{path}": {
@@ -1396,7 +1408,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "PublicRead envelope"
+                        "description": "PublicRead envelope",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicReadEnvelope"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Missing or invalid X-App-Key"
@@ -1404,7 +1423,12 @@
                     "404": {
                         "description": "Not found or not published"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "appKeyAuth": []
+                    }
+                ]
             }
         },
         "/api/v1/public-read/{locale}/navigation": {
@@ -1426,12 +1450,24 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "PublicRead envelope"
+                        "description": "PublicRead envelope",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicReadEnvelope"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Missing or invalid X-App-Key"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "appKeyAuth": []
+                    }
+                ]
             }
         },
         "/api/v1/public-read/{locale}/settings": {
@@ -1453,12 +1489,24 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "PublicRead envelope"
+                        "description": "PublicRead envelope",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicReadEnvelope"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Missing or invalid X-App-Key"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "appKeyAuth": []
+                    }
+                ]
             }
         },
         "/api/v1/public-read/{locale}/entries/{collection}": {
@@ -1595,7 +1643,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "PublicRead envelope"
+                        "description": "PublicRead envelope",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicReadEnvelope"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Missing or invalid X-App-Key"
@@ -1603,7 +1658,12 @@
                     "422": {
                         "description": "Invalid query"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "appKeyAuth": []
+                    }
+                ]
             }
         },
         "/api/v1/public-read/{locale}/entries/{collection}/{slug}": {
@@ -1648,7 +1708,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "PublicRead envelope"
+                        "description": "PublicRead envelope",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicReadEnvelope"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Missing or invalid X-App-Key"
@@ -1656,7 +1723,12 @@
                     "404": {
                         "description": "Not found or not published"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "appKeyAuth": []
+                    }
+                ]
             }
         },
         "/api/v1/cms/redirects": {
@@ -2171,6 +2243,64 @@
     },
     "components": {
         "schemas": {
+            "PublicReadEnvelope": {
+                "required": [
+                    "version",
+                    "ok",
+                    "data",
+                    "meta",
+                    "source",
+                    "messages"
+                ],
+                "properties": {
+                    "version": {
+                        "description": "Machine-readable minimum envelope shared by CMS PublicRead responses.",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "ok": {
+                        "type": "boolean"
+                    },
+                    "data": {
+                        "nullable": true
+                    },
+                    "meta": {
+                        "type": "object"
+                    },
+                    "source": {
+                        "required": [
+                            "domain",
+                            "state",
+                            "stale"
+                        ],
+                        "properties": {
+                            "domain": {
+                                "type": "string",
+                                "example": "cms"
+                            },
+                            "state": {
+                                "type": "string",
+                                "enum": [
+                                    "fresh",
+                                    "stale",
+                                    "unavailable"
+                                ]
+                            },
+                            "stale": {
+                                "type": "boolean"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "type": "object"
+            },
             "BlockInstanceCreateRequest": {
                 "properties": {
                     "block_id": {

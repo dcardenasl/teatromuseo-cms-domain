@@ -13,6 +13,7 @@ final class PublicReadEndpoints
         path: '/api/v1/public-read/{locale}/pages',
         tags: ['Public Read - CMS'],
         summary: 'List published pages in sitemap order',
+        security: [['appKeyAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'locale', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', minimum: 1)),
@@ -20,7 +21,11 @@ final class PublicReadEndpoints
             new OA\Parameter(name: 'fields', in: 'query', schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'PublicRead envelope'),
+            new OA\Response(
+                response: 200,
+                description: 'PublicRead envelope',
+                content: new OA\JsonContent(ref: '#/components/schemas/PublicReadEnvelope'),
+            ),
             new OA\Response(response: 401, description: 'Missing or invalid X-App-Key'),
             new OA\Response(response: 422, description: 'Invalid query'),
         ]
@@ -33,13 +38,18 @@ final class PublicReadEndpoints
         path: '/api/v1/public-read/{locale}/pages/{path}',
         tags: ['Public Read - CMS'],
         summary: 'Get one published page by hierarchical path',
+        security: [['appKeyAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'locale', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'path', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'fields', in: 'query', schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'PublicRead envelope'),
+            new OA\Response(
+                response: 200,
+                description: 'PublicRead envelope',
+                content: new OA\JsonContent(ref: '#/components/schemas/PublicReadEnvelope'),
+            ),
             new OA\Response(response: 401, description: 'Missing or invalid X-App-Key'),
             new OA\Response(response: 404, description: 'Not found or not published'),
         ]
@@ -52,11 +62,16 @@ final class PublicReadEndpoints
         path: '/api/v1/public-read/{locale}/navigation',
         tags: ['Public Read - CMS'],
         summary: 'Get main, footer and legal navigation trees',
+        security: [['appKeyAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'locale', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'PublicRead envelope'),
+            new OA\Response(
+                response: 200,
+                description: 'PublicRead envelope',
+                content: new OA\JsonContent(ref: '#/components/schemas/PublicReadEnvelope'),
+            ),
             new OA\Response(response: 401, description: 'Missing or invalid X-App-Key'),
         ]
     )]
@@ -68,11 +83,16 @@ final class PublicReadEndpoints
         path: '/api/v1/public-read/{locale}/settings',
         tags: ['Public Read - CMS'],
         summary: 'Get public settings and media metadata',
+        security: [['appKeyAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'locale', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'PublicRead envelope'),
+            new OA\Response(
+                response: 200,
+                description: 'PublicRead envelope',
+                content: new OA\JsonContent(ref: '#/components/schemas/PublicReadEnvelope'),
+            ),
             new OA\Response(response: 401, description: 'Missing or invalid X-App-Key'),
         ]
     )]
@@ -84,6 +104,7 @@ final class PublicReadEndpoints
         path: '/api/v1/public-read/{locale}/entries/{collection}',
         tags: ['Public Read - CMS'],
         summary: 'List published entries from a collection',
+        security: [['appKeyAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'locale', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'collection', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
@@ -102,7 +123,11 @@ final class PublicReadEndpoints
             new OA\Parameter(name: 'fields', in: 'query', schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'PublicRead envelope'),
+            new OA\Response(
+                response: 200,
+                description: 'PublicRead envelope',
+                content: new OA\JsonContent(ref: '#/components/schemas/PublicReadEnvelope'),
+            ),
             new OA\Response(response: 401, description: 'Missing or invalid X-App-Key'),
             new OA\Response(response: 422, description: 'Invalid query'),
         ]
@@ -115,6 +140,7 @@ final class PublicReadEndpoints
         path: '/api/v1/public-read/{locale}/entries/{collection}/{slug}',
         tags: ['Public Read - CMS'],
         summary: 'Get one published entry by collection and slug',
+        security: [['appKeyAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'locale', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'collection', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
@@ -122,7 +148,11 @@ final class PublicReadEndpoints
             new OA\Parameter(name: 'fields', in: 'query', schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'PublicRead envelope'),
+            new OA\Response(
+                response: 200,
+                description: 'PublicRead envelope',
+                content: new OA\JsonContent(ref: '#/components/schemas/PublicReadEnvelope'),
+            ),
             new OA\Response(response: 401, description: 'Missing or invalid X-App-Key'),
             new OA\Response(response: 404, description: 'Not found or not published'),
         ]
