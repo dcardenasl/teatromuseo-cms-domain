@@ -83,11 +83,23 @@ final class PublicPageControllerTest extends CIUnitTestCase
 
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
-        $this->assertTrue($body['ok'] ?? false);
-        $this->assertSame(1, $body['version'] ?? null);
-        $this->assertSame('cms', $body['source']['domain'] ?? null);
+        $this->assertPublicReadEnvelope($body, 'cms');
+        $this->assertSame($this->languages[0]['code'], $body['meta']['locale'] ?? null);
         $this->assertSame($translation['title'], $body['data']['title'] ?? null);
         $this->assertArrayHasKey('blocks', $body['data'] ?? []);
+    }
+
+    public function testPublicReadPageFallsBackToTheDefaultLocale(): void
+    {
+        $translation = $this->pageTranslation(0);
+        $this->fixtures->page([$translation]);
+
+        $result = $this->get('/api/v1/public-read/' . $this->languages[1]['code'] . '/pages/' . $translation['slug']);
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertPublicReadEnvelope($body, 'cms');
+        $this->assertSame($translation['title'], $body['data']['title'] ?? null);
     }
 
     public function testPublicReadNavigationRequiresWebAppKey(): void
@@ -276,5 +288,18 @@ final class PublicPageControllerTest extends CIUnitTestCase
     private function pagePath(string $slug): string
     {
         return '/api/v1/public/' . $this->languages[0]['code'] . '/pages/' . $slug;
+    }
+
+    /** @param array<string, mixed> $body */
+    private function assertPublicReadEnvelope(array $body, string $domain): void
+    {
+        $this->assertTrue($body['ok'] ?? false);
+        $this->assertSame(1, $body['version'] ?? null);
+        $this->assertArrayHasKey('data', $body);
+        $this->assertIsArray($body['meta'] ?? null);
+        $this->assertSame($domain, $body['source']['domain'] ?? null);
+        $this->assertSame('fresh', $body['source']['state'] ?? null);
+        $this->assertFalse($body['source']['stale'] ?? true);
+        $this->assertIsArray($body['messages'] ?? null);
     }
 }
