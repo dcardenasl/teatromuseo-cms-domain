@@ -131,6 +131,51 @@ class HubClientTest extends CIUnitTestCase
         $this->assertSame('hub_unreachable', $result->error);
     }
 
+    public function testPublicFileMetaChunksHubRequestsAtTheEndpointLimit(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn(null);
+        $cache->expects($this->exactly(4))->method('save');
+
+        $batchSizes = [];
+        $http = $this->createMock(CURLRequest::class);
+        $http->expects($this->exactly(2))
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $url, array $options) use (&$batchSizes): ResponseInterface {
+                $ids = $options['query']['ids'] ?? [];
+                $batchSizes[] = count($ids);
+                $id = (int) ($ids[0] ?? 0);
+
+                return $this->jsonResponse(200, ['data' => [$id => ['id' => $id, 'url' => 'https://cdn.test/' . $id . '.jpg']]]);
+            });
+
+        $client = new HubClient($this->makeConfig(), $http, $cache);
+        $result = $client->resolvePublicFileMeta(range(1, 201));
+
+        $this->assertSame([200, 1], $batchSizes);
+        $this->assertSame('https://cdn.test/1.jpg', $result[1]['url']);
+        $this->assertSame('https://cdn.test/201.jpg', $result[201]['url']);
+    }
+
+    public function testPublicFileMetaReturnsStaleCacheWhenHubFails(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturnCallback(static function (string $key): ?array {
+            return str_contains($key, '_stale_') ? ['id' => 7, 'url' => 'https://cdn.test/stale.jpg'] : null;
+        });
+        $cache->expects($this->never())->method('save');
+
+        $http = $this->createMock(CURLRequest::class);
+        $http->expects($this->once())->method('request')->willReturn($this->jsonResponse(503, []));
+
+        $client = new HubClient($this->makeConfig(), $http, $cache);
+
+        $this->assertSame(
+            ['id' => 7, 'url' => 'https://cdn.test/stale.jpg'],
+            $client->resolvePublicFileMeta([7])[7],
+        );
+    }
+
     public function testRegisterPermissionReturnsTrueOn201(): void
     {
         $http = $this->createMock(CURLRequest::class);

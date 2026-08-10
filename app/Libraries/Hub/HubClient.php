@@ -68,13 +68,19 @@ class HubClient extends CoreHubClient
      */
     public function resolvePublicFileMeta(array $fileIds, int $cacheTtl = 300): array
     {
-        if (empty($fileIds)) {
+        $fileIds = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $id): int => (int) $id, $fileIds),
+            static fn (int $id): bool => $id > 0,
+        )));
+        if ($fileIds === []) {
             return [];
         }
 
-        $cache  = \Config\Services::cache();
+        $cache = $this->cache;
         $result = [];
-        $miss   = [];
+        $miss = [];
+        $staleKeyById = [];
+        $staleTtl = max(1, (int) env('PUBLIC_READ_HUB_STALE_TTL', 900));
 
         foreach ($fileIds as $id) {
             $cached = $cache->get($this->fileMetaCacheKey($id));
@@ -82,31 +88,64 @@ class HubClient extends CoreHubClient
                 $result[$id] = $cached;
             } else {
                 $miss[] = $id;
+                $staleKeyById[$id] = $this->fileMetaStaleCacheKey($id);
+                $stale = $cache->get($staleKeyById[$id]);
+                if (is_array($stale)) {
+                    $result[$id] = $stale;
+                }
             }
         }
 
-        if (empty($miss)) {
+        if ($miss === []) {
             return $result;
         }
 
-        try {
-            $data = $this->request('GET', '/api/v1/internal/files/batch-meta', [
-                'headers' => $this->appKeyHeaders(),
-                'query'   => ['ids' => $miss],
-            ]);
-
-            $items = is_array($data['data'] ?? null) ? $data['data'] : $data;
-
-            foreach ($items as $fileId => $meta) {
-                if (! is_array($meta)) {
+        foreach (array_chunk($miss, 200) as $batch) {
+            $startedAt = microtime(true);
+            $status = null;
+            $url = rtrim($this->config->url, '/') . '/api/v1/internal/files/batch-meta';
+            try {
+                $headers = array_merge($this->appKeyHeaders(), ['Accept' => 'application/json']);
+                $requestId = \dcardenasl\Ci4ApiCore\Http\RequestIdHolder::get();
+                if ($requestId !== null) {
+                    $headers['X-Request-Id'] = $requestId;
+                }
+                $response = $this->http->request('GET', $url, [
+                    'headers' => $headers,
+                    'query'   => ['ids' => $batch],
+                    'connect_timeout' => max(0.1, (float) env('PUBLIC_READ_HUB_CONNECT_TIMEOUT', 0.25)),
+                    'timeout' => max(0.25, (float) env('PUBLIC_READ_HUB_TIMEOUT', 1.0)),
+                    'http_errors' => false,
+                ]);
+                $status = $response->getStatusCode();
+                $this->recordBreadcrumb('GET', $url, $status, (microtime(true) - $startedAt) * 1000, 1);
+                if ($status < 200 || $status >= 300) {
                     continue;
                 }
-                $id          = (int) $fileId;
-                $result[$id] = $meta;
-                $cache->save($this->fileMetaCacheKey($id), $meta, $cacheTtl);
+
+                $decoded = json_decode((string) $response->getBody(), true);
+                $data = is_array($decoded) && is_array($decoded['data'] ?? null) ? $decoded['data'] : $decoded;
+                if (! is_array($data)) {
+                    continue;
+                }
+
+                foreach ($data as $fileId => $meta) {
+                    if (! is_array($meta)) {
+                        continue;
+                    }
+                    $id = isset($meta['id']) && is_numeric($meta['id']) ? (int) $meta['id'] : (int) $fileId;
+                    if ($id <= 0) {
+                        continue;
+                    }
+                    $result[$id] = $meta;
+                    $freshTtl = max(1, $cacheTtl);
+                    $cache->save($this->fileMetaCacheKey($id), $meta, $freshTtl);
+                    $cache->save($this->fileMetaStaleCacheKey($id), $meta, $staleTtl);
+                }
+            } catch (\Throwable $e) {
+                $this->recordBreadcrumb('GET', $url, $status, (microtime(true) - $startedAt) * 1000, 1);
+                log_message('error', '[HubClient] resolvePublicFileMeta failed: ' . $e->getMessage());
             }
-        } catch (\Throwable $e) {
-            log_message('error', '[HubClient] resolvePublicFileMeta failed: ' . $e->getMessage());
         }
 
         return $result;
@@ -118,12 +157,19 @@ class HubClient extends CoreHubClient
      */
     public function invalidateFileMetaCache(int $fileId): void
     {
-        \Config\Services::cache()->delete($this->fileMetaCacheKey($fileId));
+        $cache = \Config\Services::cache();
+        $cache->delete($this->fileMetaCacheKey($fileId));
+        $cache->delete($this->fileMetaStaleCacheKey($fileId));
     }
 
     private function fileMetaCacheKey(int $fileId): string
     {
-        return 'hub_file_meta_v2_' . $fileId;
+        return 'hub_file_meta_v3_' . $fileId;
+    }
+
+    private function fileMetaStaleCacheKey(int $fileId): string
+    {
+        return 'hub_file_meta_v3_stale_' . $fileId;
     }
 
     /**
