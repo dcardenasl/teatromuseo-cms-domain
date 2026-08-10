@@ -589,8 +589,28 @@ trait CmsDomainServices
         }
 
         return new \App\Libraries\Cms\CacheInvalidationClient(
-            queueManager: static::cacheQueueManager(),
-            queueName: config('Queue')->defaultQueue,
+            outbox: static::cacheInvalidationOutbox(),
+        );
+    }
+
+    public static function cacheInvalidationOutbox(bool $getShared = true): \App\Libraries\Cms\CacheInvalidationOutbox
+    {
+        if ($getShared) {
+            return static::getSharedInstance('cacheInvalidationOutbox');
+        }
+
+        return new \App\Libraries\Cms\CacheInvalidationOutbox(\Config\Database::connect());
+    }
+
+    public static function cacheInvalidationOutboxDispatcher(bool $getShared = true): \App\Libraries\Cms\CacheInvalidationOutboxDispatcher
+    {
+        if ($getShared) {
+            return static::getSharedInstance('cacheInvalidationOutboxDispatcher');
+        }
+
+        return new \App\Libraries\Cms\CacheInvalidationOutboxDispatcher(
+            static::cacheInvalidationOutbox(),
+            new \App\Libraries\Cms\CacheInvalidationClient(dispatch: false),
         );
     }
 
