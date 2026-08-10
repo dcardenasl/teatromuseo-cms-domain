@@ -3,6 +3,19 @@
 > Historial de tareas completadas. Movido desde TASKS.md para mantener el tracker activo liviano.
 > Última actualización: 2026-05-07
 
+## ✅ QA-01 — PublicRead y OpenAPI — cerrado 2026-08-10
+
+Envelope versionado, `X-App-Key`, fallback, regresión CRUD y documentación
+OpenAPI del CMS verificados. Evidencia cross-repo en
+[`../docs/audits/2026-08-10-qa-01-contractos-openapi.md`](../docs/audits/2026-08-10-qa-01-contractos-openapi.md).
+
+## ✅ QA-02 — EXPLAIN, índices y budgets SQL — cerrado 2026-08-10
+
+Listing CMS medido con fixtures MySQL volumétricos, presupuesto de queries y
+duración, EXPLAIN sobre la query real y regresión contra N+1. El índice
+`idx_page_status` existente cubre el filtro público.
+Evidencia en [`../docs/audits/2026-08-10-qa-02-explain-indexes.md`](../docs/audits/2026-08-10-qa-02-explain-indexes.md).
+
 ---
 
 ## ✅ Scaffold inicial + integración hub (Milestone domain-starter v0.1, 2026-05-07)
@@ -113,3 +126,18 @@ Sin ID de tarea — trabajo derivado del runtime decoupling de ci4-api-core:
 
 El tracker local queda sin backlog propio; las decisiones de producto y tareas cross-repo se
 mantienen en `../TASKS.md`.
+
+---
+
+## ✅ Cierres 2026-08-05..09 — saneamiento y PublicRead
+
+- `CFG-02`, `CFG-03`, `CFG-05`, `CORE-02` (filtros), `CORE-03` y `CORE-05` se
+  verificaron y se retiraron del tracker activo.
+- `LAYER-01..07`, `MIG-01..03`, `HYG-01`, `DOC-01` y la deuda de tests de la
+  auditoría quedaron reconciliados según la verificación cross-repo del
+  2026-08-07; los residuos explícitos siguen abiertos en `TASKS.md`.
+- `PUB-00`, `PUB-01/02`, `CMS-01..05`, `SHARED-01` y `CACHE-03` se completaron
+  dentro del plan de entrega pública; la fase de QA continúa abierta.
+
+Evidencia y criterios: [`../docs/plan/2026-08-05-saneamiento-arquitectonico.md`](../docs/plan/2026-08-05-saneamiento-arquitectonico.md)
+ y [`../docs/plan/2026-08-09-entrega-publica-read-model-page-delivery.md`](../docs/plan/2026-08-09-entrega-publica-read-model-page-delivery.md).
