@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`/api/v1/public-read/{locale}/...` endpoints** — versioned envelope read model covering
+  pages, navigation, settings, and collection entries (listing + detail), gated by a dedicated
+  public-read throttle bucket and served through set-based queries with batched media resolution.
+- **`HubClient::resolvePublicFileMeta()`** — chunks batches to the Hub's 200-id limit and falls
+  back to a bounded stale cache when the Hub is unreachable, instead of dropping the miss set.
 - **Declarative public listing projections** — public entries now expose schema-declared fields,
   date metadata, ordering, filtering, and projection values for configurable collection cards.
 - **Editorial route canonicalization** — Editorial now owns the canonical collection index and
@@ -78,6 +83,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`PublicEntryReader` translation media** — featured/OG images are now resolved in one batched
+  Hub call per request instead of one call per image, matching the N+1-safe pattern already used
+  elsewhere in the read path.
 - **Stored media URLs** — CMS content now persists portable, host-less `/uploads/...` paths
   instead of baking in the Hub's deployment host at save time; `FileUrlResolver` resolves the
   public delivery URL (via the new `hub.publicUrl`) only when content is served, and a

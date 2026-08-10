@@ -7,7 +7,9 @@
 
 ## 🔴 En progreso
 
-*(vacío)*
+- [ ] **QA-01/QA-02** — Contract tests, OpenAPI, EXPLAIN, índices y budgets SQL.
+  La implementación de CMS PublicRead y SHARED-01 quedó completada; esta
+  verificación cross-repo permanece pendiente.
 
 ## 🟡 Próximo
 
@@ -21,12 +23,12 @@ la sección 8 del plan antes de implementar.
   métricas del hosting (PHP-FPM, MySQL, caché y upstream 508) en el tracker raíz.
 - [x] **PUB-01/PUB-02** — Contratos, gobierno, observabilidad y budgets completados
   en el tracker raíz.
-- [ ] **CMS-01** — Estructura del módulo CMS PublicRead.
-- [ ] **CMS-02** — Lectura set-based de páginas.
-- [ ] **CMS-03** — Lectura unificada de navegación.
-- [ ] **CMS-04** — Lectura unificada de settings y medios.
-- [ ] **CMS-05** — Lecturas públicas de entries.
-- [ ] **SHARED-01** — Cliente de medios batch y policy foreground.
+- [x] **CMS-01** — Estructura del módulo CMS PublicRead.
+- [x] **CMS-02** — Lectura set-based de páginas.
+- [x] **CMS-03** — Lectura unificada de navegación.
+- [x] **CMS-04** — Lectura unificada de settings y medios.
+- [x] **CMS-05** — Lecturas públicas de entries.
+- [x] **SHARED-01** — Cliente de medios batch y policy foreground.
 - [ ] **QA-01/QA-02** — Contract tests, OpenAPI, EXPLAIN, índices y budgets SQL.
 - [ ] **CACHE-03** — Invalidación y regeneración asíncrona cuando el dominio
   participe en el evento/outbox de publicación.
