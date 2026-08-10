@@ -141,25 +141,38 @@ final class PublicReadDiagnosticsService
             }
 
             $maxConnections = (int) ($versionRow['max_connections'] ?? 0);
+            $currentConnections = $status['Threads_connected'] ?? 0;
             $maxUsed = $status['Max_used_connections'] ?? 0;
-            $capacityStatus = $maxConnections > 0 && $maxUsed >= $maxConnections
-                ? 'degraded'
-                : 'healthy';
+            $capacityStatus = match (true) {
+                $maxConnections <= 0 => 'unknown',
+                $currentConnections >= $maxConnections => 'critical',
+                $currentConnections >= (int) ceil($maxConnections * 0.9) => 'degraded',
+                default => 'healthy',
+            };
+            $peakReached = $maxConnections > 0 && $maxUsed >= $maxConnections;
 
             return [
                 'status'                  => $capacityStatus,
                 'response_time_ms'        => $this->elapsedMilliseconds($startedAt),
                 'server_version'          => (string) ($versionRow['server_version'] ?? 'unknown'),
                 'max_connections'        => $maxConnections,
+                'current_connections'    => $currentConnections,
                 'max_used_connections'   => $maxUsed,
                 'connection_utilization_pct' => $maxConnections > 0
+                    ? round(($currentConnections / $maxConnections) * 100, 2)
+                    : null,
+                'current_connection_utilization_pct' => $maxConnections > 0
+                    ? round(($currentConnections / $maxConnections) * 100, 2)
+                    : null,
+                'peak_connection_utilization_pct' => $maxConnections > 0
                     ? round(($maxUsed / $maxConnections) * 100, 2)
                     : null,
                 'global_status'           => $status,
                 'metrics_available'       => true,
-                'capacity_reason'         => $capacityStatus === 'degraded'
-                    ? 'max_connections_peak_reached'
-                    : null,
+                'historical_peak'         => $peakReached ? 'limit_reached' : 'below_limit',
+                'capacity_reason'         => $capacityStatus === 'critical'
+                    ? 'current_connections_at_limit'
+                    : ($capacityStatus === 'degraded' ? 'current_connections_near_limit' : null),
             ];
         } catch (\Throwable) {
             return [

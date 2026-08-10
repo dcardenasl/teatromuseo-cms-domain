@@ -53,6 +53,8 @@ final class DiagnosticsControllerTest extends CIUnitTestCase
         $this->assertArrayHasKey('application', $data);
         $this->assertArrayHasKey('database', $data);
         $this->assertArrayHasKey('cache', $data);
+        $this->assertArrayHasKey('current_connections', $data['database']);
+        $this->assertArrayHasKey('historical_peak', $data['database']);
         $this->assertArrayNotHasKey('password', $data);
     }
 }
