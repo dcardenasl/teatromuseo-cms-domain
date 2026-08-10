@@ -27,12 +27,15 @@ class CacheInvalidationClient
 
     private string $queueName;
 
+    private int $timeout;
+
     public function __construct(
         string $webUrl = '',
         string $invalidateKey = '',
         ?QueueManagerInterface $queueManager = null,
         bool $dispatch = true,
         string $queueName = 'default',
+        ?int $timeout = null,
         ?CacheInvalidationOutbox $outbox = null,
     ) {
         $this->webUrl        = rtrim($webUrl ?: (string) env('WEB_CACHE_INVALIDATE_URL', ''), '/');
@@ -40,6 +43,7 @@ class CacheInvalidationClient
         $this->queueManager = $queueManager;
         $this->dispatch     = $dispatch;
         $this->queueName    = $queueName;
+        $this->timeout      = max(1, $timeout ?? (int) env('WEB_CACHE_INVALIDATE_TIMEOUT', 5));
         $this->outbox       = $outbox;
     }
 
@@ -106,7 +110,7 @@ class CacheInvalidationClient
 
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_TIMEOUT        => $this->timeout,
             CURLOPT_CUSTOMREQUEST  => 'POST',
             CURLOPT_POSTFIELDS     => $payload,
             CURLOPT_HTTPHEADER     => [
