@@ -30,8 +30,10 @@ la sección 8 del plan antes de implementar.
 - [x] **CMS-05** — Lecturas públicas de entries.
 - [x] **SHARED-01** — Cliente de medios batch y policy foreground.
 - [ ] **QA-01/QA-02** — Contract tests, OpenAPI, EXPLAIN, índices y budgets SQL.
-- [ ] **CACHE-03** — Invalidación y regeneración asíncrona cuando el dominio
-  participe en el evento/outbox de publicación.
+- [x] **CACHE-03** — Invalidación y regeneración asíncrona completada (2026-08-09).
+  Las mutaciones CMS registran el evento en outbox dentro de la transacción;
+  `cache:dispatch-outbox` entrega a Web con lease, reintentos e idempotencia.
+  No se hace HTTP durante el request de escritura.
 
 > Saneamiento arquitectónico — auditoría del 2026-08-05.
 > **Contexto, evidencia y rutas exactas:** [`../docs/plan/2026-08-05-saneamiento-arquitectonico.md`](../docs/plan/2026-08-05-saneamiento-arquitectonico.md)
