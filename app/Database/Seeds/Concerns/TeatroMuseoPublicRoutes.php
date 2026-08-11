@@ -16,6 +16,24 @@ final class TeatroMuseoPublicRoutes
     public static function pageSlugs(string $pageType): array
     {
         return match ($pageType) {
+            'about' => [
+                'es' => 'nosotros',
+                'en' => 'about',
+                'fr' => 'a-propos',
+                'pt' => 'sobre-nos',
+            ],
+            'history' => [
+                'es' => 'historia',
+                'en' => 'history',
+                'fr' => 'histoire',
+                'pt' => 'nossa-historia',
+            ],
+            'contact' => [
+                'es' => 'contacto',
+                'en' => 'contact',
+                'fr' => 'contact',
+                'pt' => 'contato',
+            ],
             'events' => [
                 'es' => 'cartelera',
                 'en' => 'programming',
@@ -28,6 +46,18 @@ final class TeatroMuseoPublicRoutes
                 'fr' => 'musee/collection',
                 'pt' => 'museu/colecao',
             ],
+            'press' => [
+                'es' => 'prensa',
+                'en' => 'press',
+                'fr' => 'presse',
+                'pt' => 'imprensa',
+            ],
+            'transparency' => [
+                'es' => 'transparencia',
+                'en' => 'transparency',
+                'fr' => 'transparence',
+                'pt' => 'transparencia',
+            ],
             default => throw new \InvalidArgumentException('Unsupported public page type: ' . $pageType),
         };
     }
@@ -36,11 +66,71 @@ final class TeatroMuseoPublicRoutes
     public static function collectionSlugs(string $collectionKey): array
     {
         return match ($collectionKey) {
+            'noticias' => [
+                'es' => 'noticias',
+                'en' => 'news',
+                'fr' => 'actualites',
+                'pt' => 'noticias',
+            ],
+            'companias' => [
+                'es' => 'companias',
+                'en' => 'companies',
+                'fr' => 'compagnies',
+                'pt' => 'companhias',
+            ],
+            'personas' => [
+                'es' => 'personas',
+                'en' => 'people',
+                'fr' => 'personnes',
+                'pt' => 'pessoas',
+            ],
+            'obras' => [
+                'es' => 'obras',
+                'en' => 'works',
+                'fr' => 'oeuvres',
+                'pt' => 'obras',
+            ],
+            'videos' => [
+                'es' => 'videos',
+                'en' => 'videos',
+                'fr' => 'videos',
+                'pt' => 'videos',
+            ],
+            'festivales' => [
+                'es' => 'festivales',
+                'en' => 'festivals',
+                'fr' => 'festivals',
+                'pt' => 'festivais',
+            ],
+            'exposiciones' => [
+                'es' => 'exposiciones',
+                'en' => 'exhibitions',
+                'fr' => 'expositions',
+                'pt' => 'exposicoes',
+            ],
             'teatroescuela' => [
                 'es' => 'teatroescuela',
                 'en' => 'theaterschool',
                 'fr' => 'theatreecole',
                 'pt' => 'escola-de-teatro',
+            ],
+            'editoriales' => [
+                'es' => 'editorial',
+                'en' => 'editorial',
+                'fr' => 'editorial',
+                'pt' => 'editorial',
+            ],
+            'prensa' => [
+                'es' => 'prensa',
+                'en' => 'press',
+                'fr' => 'presse',
+                'pt' => 'imprensa',
+            ],
+            'transparencia' => [
+                'es' => 'transparencia',
+                'en' => 'transparency',
+                'fr' => 'transparence',
+                'pt' => 'transparencia',
             ],
             default => [
                 'es' => $collectionKey,
