@@ -4480,6 +4480,10 @@
                             "type": "object"
                         },
                         "nullable": true
+                    },
+                    "items_count": {
+                        "description": "Number of menu items",
+                        "type": "integer"
                     }
                 },
                 "type": "object"

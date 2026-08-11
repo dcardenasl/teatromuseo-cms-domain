@@ -7,6 +7,7 @@ return [
     'not_found_or_inactive'  => 'Form not found or inactive.',
     'create_failed_db'       => 'Failed to create form.',
     'update_failed_db'       => 'Failed to update form.',
+    'list_projection_failed' => 'Unable to execute the form list projection.',
     'field_not_found'        => 'Field not found.',
     'field_create_failed_db' => 'Failed to create form field.',
     'field_update_failed_db' => 'Failed to update form field.',

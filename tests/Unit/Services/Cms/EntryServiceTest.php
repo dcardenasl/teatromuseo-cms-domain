@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Cms;
 
+use App\DTO\Request\Cms\EntryIndexRequestDTO;
 use App\DTO\Request\Cms\EntrySyncTaxonomyRequestDTO;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
@@ -91,6 +92,88 @@ final class EntryServiceTest extends CIUnitTestCase
         $this->assertSame([
             ['id' => $tagId],
         ], $payload['tags']);
+    }
+
+    public function testAdminListProjectionReturnsTranslationsFromTheDatabaseQuery(): void
+    {
+        $db = Database::connect();
+        $db->table('cms_languages')->insert([
+            'code' => 'es',
+            'name' => 'Español',
+            'native_name' => 'Español',
+            'is_default' => 1,
+            'is_active' => 1,
+            'sort_order' => 0,
+        ]);
+        $spanishId = (int) $db->insertID();
+        $db->table('cms_languages')->insert([
+            'code' => 'en',
+            'name' => 'English',
+            'native_name' => 'English',
+            'is_default' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+        $englishId = (int) $db->insertID();
+
+        $collectionId = $this->insertCollection(['collection_key' => 'news']);
+        $entryId = $this->insertEntry($collectionId);
+        $db->table('cms_entry_translations')->insertBatch([
+            [
+                'entry_id' => $entryId,
+                'language_id' => $spanishId,
+                'slug' => 'entrada-es',
+                'title' => 'Entrada en español',
+            ],
+            [
+                'entry_id' => $entryId,
+                'language_id' => $englishId,
+                'slug' => 'entry-en',
+                'title' => 'Entry in English',
+            ],
+        ]);
+
+        $service = Services::entryService(false);
+        $request = new EntryIndexRequestDTO([
+            'projection' => 'list',
+            'page' => 1,
+            'per_page' => 25,
+            'sort' => '-created_at',
+            'collection_id' => $collectionId,
+        ], Services::validation());
+
+        $payload = $service->index($request)->toArray();
+        $entry = $payload['data'][0]->toArray();
+
+        $this->assertSame(1, $payload['total']);
+        $this->assertCount(1, $payload['data']);
+        $this->assertSame($entryId, $entry['id']);
+        $this->assertSame('Entrada en español', $entry['title']);
+        $this->assertSame('news', $entry['collection_key']);
+        usort(
+            $entry['translations'],
+            static fn (array $left, array $right): int => $left['language_id'] <=> $right['language_id']
+        );
+        $entry['translations'] = array_map(
+            static fn (array $translation): array => [
+                'language_id' => $translation['language_id'],
+                'title' => $translation['title'],
+                'slug' => $translation['slug'],
+            ],
+            $entry['translations']
+        );
+        $this->assertSame([
+            [
+                'language_id' => $spanishId,
+                'title' => 'Entrada en español',
+                'slug' => 'entrada-es',
+            ],
+            [
+                'language_id' => $englishId,
+                'title' => 'Entry in English',
+                'slug' => 'entry-en',
+            ],
+        ], $entry['translations']);
     }
 
     /**

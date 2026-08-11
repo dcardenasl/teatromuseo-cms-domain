@@ -7,6 +7,7 @@ return [
     'not_found_or_inactive'  => 'Formulario no encontrado o inactivo.',
     'create_failed_db'       => 'Error al crear el formulario.',
     'update_failed_db'       => 'Error al actualizar el formulario.',
+    'list_projection_failed' => 'No se pudo ejecutar la proyección del listado de formularios.',
     'field_not_found'        => 'Campo no encontrado.',
     'field_create_failed_db' => 'Error al crear el campo del formulario.',
     'field_update_failed_db' => 'Error al actualizar el campo del formulario.',

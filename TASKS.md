@@ -6,6 +6,11 @@
 
 ## ✅ Completadas
 
+- [x] **ADM-DASH-02 — Proyección CMS alineada al esquema real** — cerrada
+  2026-08-11. La consulta de traducciones usa únicamente title y slug,
+  recibe permisos antes de contar/leer y cuenta con prueba de integración
+  contra cms_page_translations.
+
 - [x] **QA-01 — Contract tests y OpenAPI** — cerrada 2026-08-10. Contrato
   PublicRead CMS, OpenAPI, auth, envelope, fallback, regresión CRUD y estados
   verificados. Evidencia en [`../docs/audits/2026-08-10-qa-01-contractos-openapi.md`](../docs/audits/2026-08-10-qa-01-contractos-openapi.md).
@@ -19,6 +24,9 @@
 - [x] **QA-04 — Paridad y shadow comparison** — cerrada 2026-08-10 como tarea
   raíz cross-repo; evidencia en
   [`../docs/audits/2026-08-10-qa-04-paridad-shadow.md`](../docs/audits/2026-08-10-qa-04-paridad-shadow.md).
+- [x] **ADM-DASH-01 — Resumen agregado del dashboard administrativo** — cerrada
+  2026-08-11. Lectura autenticada y permission-aware para datos propiedad del
+  CMS, con contrato y smoke de autenticación.
 
 ## 🔴 En progreso
 
