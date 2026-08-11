@@ -30,6 +30,7 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(AnalyticsSeeder::class);
         $this->call(SiteSocialLinksSeeder::class);
         $this->call(CmsBlockTypeSeeder::class);
+        $this->call(CmsPageTypeSeeder::class);
         $this->call(CmsCollectionGridSourceSeeder::class);
         $this->call(TeatroMuseoBlockTypeSeeder::class);
         $this->call(CmsTeatroMuseoCollectionSeeder::class);
@@ -38,6 +39,7 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(CmsTeatroMuseoInstitutionalPagesSeeder::class);
         $this->call(CmsTeatroMuseoLegalPagesSeeder::class);
         $this->call(CmsTeatroMuseoPublicListingPagesSeeder::class);
+        $this->call(CmsTeatroMuseoRouteAlignmentSeeder::class);
         $this->call(CmsPageBlockSeeder::class);
         $this->call(CmsTeatroMuseoNavigationSeeder::class);
         $this->call(CmsTeatroMuseoRedirectSeeder::class);
