@@ -53,7 +53,13 @@ final class EntryListingContentResolverTest extends CIUnitTestCase
                 'schema_data' => [
                     'listing' => [
                         'rich_text' => '<p>Schema</p>',
-                        'image' => ['url' => '/schema.jpg', 'alt' => 'Schema imagen'],
+                        'image' => [
+                            'url' => '/schema.jpg',
+                            'alt' => 'Schema imagen',
+                            'variants' => [
+                                'sd' => ['url' => '/schema_sd.webp', 'width' => 640, 'height' => 480],
+                            ],
+                        ],
                         'secondary_action' => ['label' => 'Schema CTA', 'url' => '/schema'],
                     ],
                 ],
@@ -63,6 +69,7 @@ final class EntryListingContentResolverTest extends CIUnitTestCase
 
         $this->assertSame('<p>Schema</p>', $content[10]['rich_text']);
         $this->assertSame('/schema.jpg', $content[10]['image']['url']);
+        $this->assertSame('/schema_sd.webp', $content[10]['image']['variants']['sd']['url']);
         $this->assertSame('Schema CTA', $content[10]['secondary_action']['label']);
         $this->assertSame(['provider' => 'youtube', 'id' => 'abc123', 'url' => 'https://www.youtube.com/watch?v=abc123'], $content[10]['video']);
         $this->assertSame('<p>Fallback</p>', $content[11]['rich_text']);

@@ -19,7 +19,7 @@ final class EntryListingContentResolver
     /**
      * @param list<array<string, mixed>> $entries
      * @param list<string> $projectionFields
-     * @return array<int, array{rich_text: string, image: array{url: string, alt: string}|null, hover_image: array{url: string, alt: string}|null, secondary_action: array{label: string, url: string}|null, documents: list<array{url: string, title: string, description: string, file_id: int|null}>, publication_date: string, date_fields: array<string, string>, fields: array<string, mixed>, video: array{provider: string, id: string, url: string}|null}>
+     * @return array<int, array{rich_text: string, image: array<string, mixed>|null, hover_image: array<string, mixed>|null, secondary_action: array{label: string, url: string}|null, documents: list<array{url: string, title: string, description: string, file_id: int|null}>, publication_date: string, date_fields: array<string, string>, fields: array<string, mixed>, video: array{provider: string, id: string, url: string}|null}>
      */
     public function resolveBatch(array $entries, string $langCode, array $projectionFields = []): array
     {
@@ -173,7 +173,7 @@ final class EntryListingContentResolver
 
     /**
      * @param list<array<string, mixed>> $blocks
-     * @return array{url: string, alt: string}|null
+     * @return array<string, mixed>|null
      */
     private function imageFromBlock(array $blocks): ?array
     {
@@ -197,7 +197,7 @@ final class EntryListingContentResolver
 
     /**
      * @param list<array<string, mixed>> $blocks
-     * @return array{url: string, alt: string}|null
+     * @return array<string, mixed>|null
      */
     private function hoverImageFromBlock(array $blocks): ?array
     {
@@ -422,7 +422,7 @@ final class EntryListingContentResolver
         return [];
     }
 
-    /** @return array{url: string, alt: string}|null */
+    /** @return array<string, mixed>|null */
     private function imageFromSchema(mixed $value): ?array
     {
         if (is_string($value)) {
@@ -440,7 +440,22 @@ final class EntryListingContentResolver
             return null;
         }
 
-        return ['url' => $url, 'alt' => $this->stringValue($value['alt'] ?? null)];
+        $image = [
+            'url' => $url,
+            'alt' => $this->stringValue($value['alt'] ?? null),
+        ];
+
+        if (is_string($value['source_kind'] ?? null) && trim($value['source_kind']) !== '') {
+            $image['source_kind'] = strtolower(trim($value['source_kind']));
+        }
+        if (is_numeric($value['file_id'] ?? null) && (int) $value['file_id'] > 0) {
+            $image['file_id'] = (int) $value['file_id'];
+        }
+        if (is_array($value['variants'] ?? null) && $value['variants'] !== []) {
+            $image['variants'] = $value['variants'];
+        }
+
+        return $image;
     }
 
     /** @return array{label: string, url: string}|null */
