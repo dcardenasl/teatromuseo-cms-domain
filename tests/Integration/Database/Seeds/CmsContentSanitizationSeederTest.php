@@ -79,6 +79,130 @@ final class CmsContentSanitizationSeederTest extends CIUnitTestCase
         $this->assertSiteSettingsNormalized();
     }
 
+    public function testNormalizePublicNavigationSlugsRepairsTheatreSchoolCollectionAndIndexPage(): void
+    {
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
+
+        $collection = $this->db->table('cms_collections')
+            ->where('collection_key', 'teatroescuela')
+            ->get()
+            ->getRowArray();
+        $this->assertIsArray($collection);
+
+        $page = $this->db->table('cms_pages')
+            ->where('collection_id', (int) $collection['id'])
+            ->where('page_type', 'collection_index')
+            ->get()
+            ->getRowArray();
+        $this->assertIsArray($page);
+
+        // Reproduce the stale state found in the imported database: the
+        // collection slugs and page-index slugs all point to the Spanish key.
+        $this->db->table('cms_collection_translations')
+            ->where('collection_id', (int) $collection['id'])
+            ->update(['slug' => 'teatroescuela']);
+        $this->db->table('cms_page_translations')
+            ->where('page_id', (int) $page['id'])
+            ->update(['slug' => 'teatroescuela']);
+
+        $seeder->call(\App\Database\Seeds\CmsContentSanitizationSeeder::class);
+
+        $expected = [
+            'en' => 'theaterschool',
+            'es' => 'teatroescuela',
+            'fr' => 'theatreecole',
+            'pt' => 'escola-de-teatro',
+        ];
+        $this->assertSame($expected, $this->localizedSlugs('cms_collection_translations', 'collection_id', (int) $collection['id']));
+        $this->assertSame($expected, $this->localizedSlugs('cms_page_translations', 'page_id', (int) $page['id']));
+
+        // Deployment may invoke the sanitizer repeatedly; it must remain
+        // idempotent after the repair has been applied.
+        $seeder->call(\App\Database\Seeds\CmsContentSanitizationSeeder::class);
+        $this->assertSame($expected, $this->localizedSlugs('cms_page_translations', 'page_id', (int) $page['id']));
+    }
+
+    public function testRouteAlignmentRepairsExistingLocalizedPageSlugs(): void
+    {
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
+
+        $eventsPage = $this->db->table('cms_pages')
+            ->where('page_type', 'events')
+            ->get()
+            ->getRowArray();
+        $aboutPage = $this->db->table('cms_pages p')
+            ->select('p.id')
+            ->join('cms_page_translations pt', 'pt.page_id = p.id')
+            ->where('p.deleted_at IS NULL', null, false)
+            ->where('pt.slug', 'about')
+            ->get()
+            ->getRowArray();
+        $this->assertIsArray($eventsPage);
+        $this->assertIsArray($aboutPage);
+
+        // Reproduce the mixed beta state: the page rows exist, but localized
+        // URL translations were written with one legacy slug per language.
+        $this->db->table('cms_page_translations')
+            ->where('page_id', (int) $eventsPage['id'])
+            ->update(['slug' => 'events']);
+        $this->db->table('cms_page_translations')
+            ->where('page_id', (int) $aboutPage['id'])
+            ->update(['slug' => 'about-us']);
+
+        $seeder->call(\App\Database\Seeds\CmsTeatroMuseoRouteAlignmentSeeder::class);
+
+        $this->assertSame(
+            ['en' => 'programming', 'es' => 'cartelera', 'fr' => 'programmation', 'pt' => 'programacao'],
+            $this->localizedSlugs('cms_page_translations', 'page_id', (int) $eventsPage['id'])
+        );
+        $this->assertSame(
+            ['en' => 'about', 'es' => 'nosotros', 'fr' => 'a-propos', 'pt' => 'sobre-nos'],
+            $this->localizedSlugs('cms_page_translations', 'page_id', (int) $aboutPage['id'])
+        );
+    }
+
+    public function testRemovePeopleNavigationRetiresStaleGenericLocalizedIndexPages(): void
+    {
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
+
+        $language = $this->db->table('cms_languages')
+            ->where('code', 'es')
+            ->get()
+            ->getRowArray();
+        $this->assertIsArray($language);
+
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 999,
+            'is_in_sitemap' => 1,
+        ]);
+        $pageId = (int) $this->db->insertID();
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => (int) $language['id'],
+            'slug' => 'personas',
+            'title' => 'Personas',
+        ]);
+
+        $seeder->call(\App\Database\Seeds\CmsContentSanitizationSeeder::class);
+
+        $page = $this->db->table('cms_pages')->where('id', $pageId)->get()->getRowArray();
+        $this->assertIsArray($page);
+        $this->assertSame('draft', $page['status']);
+        $this->assertNotNull($page['deleted_at']);
+
+        $peopleCollection = $this->db->table('cms_collections')
+            ->where('collection_key', 'personas')
+            ->get()
+            ->getRowArray();
+        $this->assertIsArray($peopleCollection);
+        $this->assertSame(0, (int) $peopleCollection['is_active']);
+    }
+
     private function assertSiteSettingsNormalized(): void
     {
         $candidateKeys = [...self::RETIRED_SETTING_KEYS, 'analytics_provider', 'site_name'];
@@ -126,5 +250,24 @@ final class CmsContentSanitizationSeederTest extends CIUnitTestCase
             'is_active'       => 1,
             'sort_order'      => 0,
         ], $overrides));
+    }
+
+    /** @return array<string, string> */
+    private function localizedSlugs(string $table, string $foreignKey, int $id): array
+    {
+        $rows = $this->db->table($table . ' t')
+            ->select('l.code, t.slug')
+            ->join('cms_languages l', 'l.id = t.language_id')
+            ->where('t.' . $foreignKey, $id)
+            ->get()
+            ->getResultArray();
+
+        $slugs = [];
+        foreach ($rows as $row) {
+            $slugs[(string) $row['code']] = (string) $row['slug'];
+        }
+        ksort($slugs);
+
+        return $slugs;
     }
 }

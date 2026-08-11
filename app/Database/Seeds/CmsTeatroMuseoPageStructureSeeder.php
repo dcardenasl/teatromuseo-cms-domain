@@ -464,7 +464,20 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
         ];
     }
 
-    /** @return list<array{collection_key: string, es_name: string, en_name: string, es_slug: string, en_slug: string, sort_order: int}> */
+    /**
+     * @return list<array{
+     *     collection_key: string,
+     *     es_name: string,
+     *     en_name: string,
+     *     fr_name: string,
+     *     pt_name: string,
+     *     es_slug: string,
+     *     en_slug: string,
+     *     fr_slug: string,
+     *     pt_slug: string,
+     *     sort_order: int
+     * }>
+     */
     private function definitions(): array
     {
         return [

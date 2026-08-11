@@ -18,7 +18,6 @@ class CmsContentSanitizationSeeder extends Seeder
     {
         $this->sanitize_NormalizeBlockNavigationSchemas();
         $this->sanitize_SyncBlockInstanceNavigationSchemas();
-        $this->sanitize_NormalizePublicNavigationSlugs();
         $this->sanitize_NormalizeTheatreSchoolLabels();
         $this->sanitize_NormalizeTheatreSchoolPageTitles();
         $this->sanitize_NormalizeTheatreSchoolCollectionKey();
@@ -26,7 +25,6 @@ class CmsContentSanitizationSeeder extends Seeder
         $this->sanitize_NormalizeNewsCoverGallery();
         $this->sanitize_NormalizeHomeHeroSliderNavigation();
         $this->sanitize_AlignHomeHeroSliderWithPublishedEventSlugs();
-        $this->sanitize_AddPublicationPageTypes();
         $this->sanitize_SplitPublicationCollections();
         $this->sanitize_NormalizePublicationPageBindings();
         $this->sanitize_LabelPressDocumentSemesters();
@@ -35,6 +33,10 @@ class CmsContentSanitizationSeeder extends Seeder
         $this->sanitize_BindPressGalleryToHubFiles();
         $this->sanitize_IntroduceSemanticSlideNavigation();
         $this->sanitize_NormalizeTeatroEscuelaIdentifiers();
+        // Apply canonical localized URLs after legacy collection identifiers
+        // have been merged. This keeps fresh and upgraded databases aligned
+        // before public-read consumers build their URL index.
+        $this->sanitize_NormalizePublicNavigationSlugs();
         $this->sanitize_UnifyAboutPageLocales();
         $this->sanitize_PersistAboutSpanishEditorialContent();
         $this->sanitize_CreateAboutTeamChildren();
@@ -332,19 +334,6 @@ class CmsContentSanitizationSeeder extends Seeder
         $this->Sanitize_NormalizePublicNavigationSlugs_normalizeCourseSlugs();
     }
 
-    // Helpers/properties from class:
-    /** @var array<string, string> */
-    private const Sanitize_NormalizePublicNavigationSlugs_COURSE_SLUGS = [
-        'es' => 'teatroescuela',
-        'en' => 'theaterschool',
-        'fr' => 'theatreecole',
-        'pt' => 'escola-de-teatro',
-    ];
-
-
-
-
-
     private function Sanitize_NormalizePublicNavigationSlugs_normalizePageSlugs(): void
     {
         foreach (['events', 'catalog_listing'] as $pageType) {
@@ -364,14 +353,25 @@ class CmsContentSanitizationSeeder extends Seeder
 
     private function Sanitize_NormalizePublicNavigationSlugs_normalizeCourseSlugs(): void
     {
-        foreach (self::Sanitize_NormalizePublicNavigationSlugs_COURSE_SLUGS as $languageCode => $slug) {
+        foreach (TeatroMuseoPublicRoutes::collectionSlugs('teatroescuela') as $languageCode => $slug) {
             $this->db->query(
                 'UPDATE cms_collection_translations t '
-                . 'INNER JOIN cms_collections c ON c.id = t.collection_id '
-                . 'INNER JOIN cms_languages l ON l.id = t.language_id '
-                . 'SET t.slug = ? '
-                . 'WHERE c.collection_key = ? AND l.code = ?',
-                [$slug, 'cursos', $languageCode],
+                    . 'INNER JOIN cms_collections c ON c.id = t.collection_id '
+                    . 'INNER JOIN cms_languages l ON l.id = t.language_id '
+                    . 'SET t.slug = ? '
+                    . 'WHERE c.collection_key = ? AND l.code = ?',
+                [$slug, 'teatroescuela', $languageCode],
+            );
+
+            $this->db->query(
+                'UPDATE cms_page_translations t '
+                    . 'INNER JOIN cms_pages p ON p.id = t.page_id '
+                    . 'INNER JOIN cms_collections c ON c.id = p.collection_id '
+                    . 'INNER JOIN cms_languages l ON l.id = t.language_id '
+                    . 'SET t.slug = ? '
+                    . 'WHERE p.page_type = ? AND p.deleted_at IS NULL '
+                    . 'AND c.collection_key = ? AND l.code = ?',
+                [$slug, 'collection_index', 'teatroescuela', $languageCode],
             );
         }
     }
@@ -689,14 +689,6 @@ class CmsContentSanitizationSeeder extends Seeder
             'programming', 'programmation', 'programacao',
         ], true);
     }
-
-    private function sanitize_AddPublicationPageTypes(): void
-    {
-        $this->db->query("ALTER TABLE cms_pages MODIFY page_type ENUM(" . self::Sanitize_AddPublicationPageTypes_PAGE_TYPES . ") NOT NULL DEFAULT 'generic'");
-    }
-
-    // Helpers/properties from class:
-    private const Sanitize_AddPublicationPageTypes_PAGE_TYPES = "'home','generic','contact','privacy','terms','404','500','maintenance','about','history','events','catalog_listing','collection_index','template_catalog_item','template_event_item','press','publications','transparency'";
 
     private function sanitize_SplitPublicationCollections(): void
     {
@@ -1818,6 +1810,7 @@ class CmsContentSanitizationSeeder extends Seeder
 
     private function Sanitize_CreateAboutTeamChildren_createChild(int $parentId, int $typeId, ?int $ownerId, int $sort, string $photo, array $extra, string $name, string $excerpt): void
     {
+        $photo = $this->Sanitize_CreateAboutTeamChildren_portableImageUrl($photo);
         $hover = $this->Sanitize_CreateAboutTeamChildren_hoverUrl($name);
         $this->db->table('cms_block_instances')->insert([
             'block_id' => $typeId,
@@ -1859,7 +1852,7 @@ class CmsContentSanitizationSeeder extends Seeder
 
     private function Sanitize_CreateAboutTeamChildren_hoverUrl(string $name): string
     {
-        $base = 'https://teatromuseo.cl/images/team/';
+        $base = '/images/team/';
         $files = [
             'Víctor Quiroga' => 'victor-quiroga-01.png', 'Diego Zuñiga' => '6713f9c476bd5.png',
             'Paulina Beltrán' => 'paulina-beltran-01.png', 'Constanza Valenzuela' => 'constanza-valenzuela-01.png',
@@ -1868,6 +1861,14 @@ class CmsContentSanitizationSeeder extends Seeder
             'Javiera Silva' => '67128c39380a9.png', 'Tomás Arce' => '6713faca5094d.png',
         ];
         return $base . ($files[$name] ?? '');
+    }
+
+    private function Sanitize_CreateAboutTeamChildren_portableImageUrl(string $url): string
+    {
+        $url = trim($url);
+        $path = parse_url($url, PHP_URL_PATH);
+
+        return is_string($path) && str_starts_with($path, '/images/team/') ? $path : $url;
     }
 
     private function Sanitize_CreateAboutTeamChildren_pageId(): ?int
@@ -1961,11 +1962,11 @@ class CmsContentSanitizationSeeder extends Seeder
     // Helpers/properties from class:
     /** @var array<string, string> */
     private const Sanitize_CompleteAboutTeamPrimaryMedia_PRIMARY_MEDIA = [
-        'Víctor Quiroga' => 'https://teatromuseo.cl/images/team/victor-quiroga.png',
-        'Paulina Beltrán' => 'https://teatromuseo.cl/images/team/paulina-beltran.png',
-        'Tomás Arce' => 'https://teatromuseo.cl/images/team/6713faca50701.png',
-        'Kevin Zamora' => 'https://teatromuseo.cl/images/team/6713f9d87ce79.png',
-        'Javiera Silva' => 'https://teatromuseo.cl/images/team/67128c3937d9c.png',
+        'Víctor Quiroga' => '/images/team/victor-quiroga.png',
+        'Paulina Beltrán' => '/images/team/paulina-beltran.png',
+        'Tomás Arce' => '/images/team/6713faca50701.png',
+        'Kevin Zamora' => '/images/team/6713f9d87ce79.png',
+        'Javiera Silva' => '/images/team/67128c3937d9c.png',
     ];
 
 
@@ -2475,6 +2476,31 @@ class CmsContentSanitizationSeeder extends Seeder
 
     private function sanitize_RemovePeoplePublicNavigation(): void
     {
+        // People remains an internal editorial collection. Remove stale
+        // generic index pages left by earlier bootstrap versions as well as
+        // collection-bound indexes, otherwise an old localized shell can win
+        // public page resolution even after the navigation item is removed.
+        $peopleSlugs = array_values(TeatroMuseoPublicRoutes::collectionSlugs('personas'));
+        $genericPages = $this->db->table('cms_pages p')
+            ->select('p.id')
+            ->join('cms_page_translations pt', 'pt.page_id = p.id')
+            ->where('p.page_type', 'generic')
+            ->whereIn('pt.slug', $peopleSlugs)
+            ->where('p.deleted_at IS NULL', null, false)
+            ->get()
+            ->getResultArray();
+
+        foreach ($genericPages as $page) {
+            $pageId = (int) ($page['id'] ?? 0);
+            if ($pageId <= 0) {
+                continue;
+            }
+            $this->db->table('cms_pages')->where('id', $pageId)->update([
+                'status' => 'draft',
+                'deleted_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
         $collection = $this->db->table('cms_collections')
                     ->select('id')
                     ->where('collection_key', 'personas')
@@ -2486,6 +2512,12 @@ class CmsContentSanitizationSeeder extends Seeder
         }
 
         $collectionId = (int) $collection['id'];
+        // Keep the editorial data and relations available to the admin while
+        // preventing the web fallback resolver from exposing a collection
+        // index when the dedicated CMS page is intentionally unpublished.
+        $this->db->table('cms_collections')->where('id', $collectionId)->update([
+            'is_active' => 0,
+        ]);
         $menuItems = $this->db->table('cms_menu_items mi')
             ->select('mi.id')
             ->join('cms_menus m', 'm.id = mi.menu_id')

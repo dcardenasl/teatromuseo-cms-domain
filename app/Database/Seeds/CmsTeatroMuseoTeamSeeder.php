@@ -54,7 +54,9 @@ final class CmsTeatroMuseoTeamSeeder extends Seeder
     /** @return list<array{name: string, slug: string, role: string, primary: string, hover: string}> */
     private function team(): array
     {
-        $base = 'https://teatromuseo.cl/images/team/';
+        // Keep legacy seed data portable. When the Hub file library has the
+        // portraits, editorial content should use file IDs instead.
+        $base = '/images/team/';
 
         return [
             ['name' => 'Víctor Quiroga', 'slug' => 'victor-quiroga', 'role' => 'Payaso · Presidente fundación', 'primary' => $base . 'victor-quiroga.png', 'hover' => $base . 'victor-quiroga-01.png'],

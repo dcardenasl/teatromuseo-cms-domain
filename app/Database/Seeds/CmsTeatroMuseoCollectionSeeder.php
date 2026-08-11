@@ -38,10 +38,11 @@ final class CmsTeatroMuseoCollectionSeeder extends Seeder
                 'collection_key' => $definition['collection_key'],
             ], [
                 'collection_type' => $type,
-                // Obras is a retired legacy collection. Its historical rows
-                // remain available for recovery, but Cartelera is now owned
-                // by the canonical events page.
-                'is_active' => $definition['collection_key'] === 'obras' ? 0 : 1,
+                // People is an internal editorial collection and Works is a
+                // retired legacy collection. Their historical rows remain
+                // available for recovery and references, but neither should
+                // be exposed as a public collection index.
+                'is_active' => in_array($definition['collection_key'], ['personas', 'obras'], true) ? 0 : 1,
                 'requires_approval' => $definition['requires_approval'],
                 'enables_categories' => 1,
                 'enables_tags' => 1,
@@ -159,18 +160,7 @@ final class CmsTeatroMuseoCollectionSeeder extends Seeder
     /** @return array{es: string, en: string, fr: string, pt: string} */
     private function slugs(string $key): array
     {
-        return match ($key) {
-            'noticias' => ['es' => 'noticias', 'en' => 'news', 'fr' => 'actualites', 'pt' => 'noticias'],
-            'companias' => ['es' => 'companias', 'en' => 'companies', 'fr' => 'compagnies', 'pt' => 'companhias'],
-            'personas' => ['es' => 'personas', 'en' => 'people', 'fr' => 'personnes', 'pt' => 'pessoas'],
-            'obras' => ['es' => 'obras', 'en' => 'works', 'fr' => 'oeuvres', 'pt' => 'obras'],
-            'videos' => ['es' => 'videos', 'en' => 'videos', 'fr' => 'videos', 'pt' => 'videos'],
-            'festivales' => ['es' => 'festivales', 'en' => 'festivals', 'fr' => 'festivals', 'pt' => 'festivais'],
-            'exposiciones' => ['es' => 'exposiciones', 'en' => 'exhibitions', 'fr' => 'expositions', 'pt' => 'exposicoes'],
-            'teatroescuela' => TeatroMuseoPublicRoutes::collectionSlugs('teatroescuela'),
-            'editoriales' => ['es' => 'editorial', 'en' => 'editorial', 'fr' => 'editorial', 'pt' => 'editorial'],
-            default => TeatroMuseoPublicRoutes::collectionSlugs($key),
-        };
+        return TeatroMuseoPublicRoutes::collectionSlugs($key);
     }
 
     /** @param list<string> $codes @return array<string, int> */

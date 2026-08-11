@@ -142,6 +142,21 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
 
         $this->assertSame(['en' => 'programming', 'es' => 'cartelera', 'fr' => 'programmation', 'pt' => 'programacao'], $this->localizedSlugsForPageType('events'));
         $this->assertSame(['en' => 'museum/collection', 'es' => 'museo/coleccion', 'fr' => 'musee/collection', 'pt' => 'museu/colecao'], $this->localizedSlugsForPageType('catalog_listing'));
+        $this->assertSame(['en' => 'contact', 'es' => 'contacto', 'fr' => 'contact', 'pt' => 'contato'], $this->localizedSlugsForPageType('contact'));
+        $this->assertSame(['en' => 'press', 'es' => 'prensa', 'fr' => 'presse', 'pt' => 'imprensa'], $this->localizedSlugsForPageType('press'));
+        $this->assertSame(['en' => 'transparency', 'es' => 'transparencia', 'fr' => 'transparence', 'pt' => 'transparencia'], $this->localizedSlugsForPageType('transparency'));
+
+        $legacyRedirects = $this->db->table('cms_redirects')
+            ->select('old_path, new_url, redirect_type, is_active')
+            ->whereIn('old_path', ['obras', 'works', 'oeuvres'])
+            ->orderBy('old_path', 'ASC')
+            ->get()
+            ->getResultArray();
+        $this->assertSame([
+            ['old_path' => 'obras', 'new_url' => '/cartelera', 'redirect_type' => '301', 'is_active' => '1'],
+            ['old_path' => 'oeuvres', 'new_url' => '/cartelera', 'redirect_type' => '301', 'is_active' => '1'],
+            ['old_path' => 'works', 'new_url' => '/cartelera', 'redirect_type' => '301', 'is_active' => '1'],
+        ], $legacyRedirects);
 
         $courseCollection = $this->db->table('cms_collections')
             ->where('collection_key', 'teatroescuela')
@@ -165,6 +180,10 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
             ->where('collection_id', (int) $courseCollection['id'])
             ->get()->getRowArray();
         $this->assertNotNull($coursePage);
+        $this->assertSame(
+            ['en' => 'theaterschool', 'es' => 'teatroescuela', 'fr' => 'theatreecole', 'pt' => 'escola-de-teatro'],
+            $this->localizedSlugsForPage((int) $coursePage['id'])
+        );
         $coursePageTranslations = $this->db->table('cms_page_translations')
             ->select('title, meta_title')
             ->where('page_id', (int) $coursePage['id'])
@@ -204,10 +223,18 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
 
         $aboutPage = $this->pageBySlug(['nosotros', 'about', 'a-propos', 'sobre-nos']);
         $this->assertNotNull($aboutPage);
+        $this->assertSame(
+            ['en' => 'about', 'es' => 'nosotros', 'fr' => 'a-propos', 'pt' => 'sobre-nos'],
+            $this->localizedSlugsForPage((int) $aboutPage['id'])
+        );
         $this->assertSame(['page_header', 'hero_slider', 'rich_text', 'cards_grid', 'team_grid', 'cta'], $this->pageBlockKeys((int) $aboutPage['id']));
 
         $historyPage = $this->pageBySlug(['historia', 'history', 'histoire', 'nossa-historia']);
         $this->assertNotNull($historyPage);
+        $this->assertSame(
+            ['en' => 'history', 'es' => 'historia', 'fr' => 'histoire', 'pt' => 'nossa-historia'],
+            $this->localizedSlugsForPage((int) $historyPage['id'])
+        );
         $this->assertSame(['page_header', 'hero_slider', 'rich_text', 'image', 'timeline', 'metrics_grid', 'cta'], $this->pageBlockKeys((int) $historyPage['id']));
 
         $historyText = $this->db->table('cms_block_instance_translations bit')
@@ -359,6 +386,25 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
             ->select('l.code, ct.slug')
             ->join('cms_languages l', 'l.id = ct.language_id')
             ->where('ct.collection_id', $collectionId)
+            ->get()
+            ->getResultArray();
+
+        $slugs = [];
+        foreach ($rows as $row) {
+            $slugs[(string) $row['code']] = (string) $row['slug'];
+        }
+        ksort($slugs);
+
+        return $slugs;
+    }
+
+    /** @return array<string, string> */
+    private function localizedSlugsForPage(int $pageId): array
+    {
+        $rows = $this->db->table('cms_page_translations pt')
+            ->select('l.code, pt.slug')
+            ->join('cms_languages l', 'l.id = pt.language_id')
+            ->where('pt.page_id', $pageId)
             ->get()
             ->getResultArray();
 

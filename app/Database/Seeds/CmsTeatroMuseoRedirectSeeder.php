@@ -16,16 +16,18 @@ final class CmsTeatroMuseoRedirectSeeder extends Seeder
 
     public function run(): void
     {
-        $this->upsertRecord('cms_redirects', [
-            'old_path' => 'obras',
-        ], [
-            'new_url' => config(\Config\Cms::class)->eventListingPath,
-            'redirect_type' => 301,
-            'is_active' => 1,
-            'hit_count' => 0,
-            'last_hit_at' => null,
-            'note' => 'Legacy works slug now resolves to the event listing.',
-        ]);
+        foreach (['obras', 'works', 'oeuvres'] as $oldPath) {
+            $this->upsertRecord('cms_redirects', [
+                'old_path' => $oldPath,
+            ], [
+                'new_url' => config(\Config\Cms::class)->eventListingPath,
+                'redirect_type' => 301,
+                'is_active' => 1,
+                'hit_count' => 0,
+                'last_hit_at' => null,
+                'note' => 'Legacy works slug now resolves to the event listing.',
+            ]);
+        }
 
         foreach (['publicaciones', 'publications', 'publicacoes'] as $oldPath) {
             $this->upsertRecord('cms_redirects', [
