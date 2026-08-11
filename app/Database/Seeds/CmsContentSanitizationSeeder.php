@@ -25,6 +25,7 @@ class CmsContentSanitizationSeeder extends Seeder
         $this->sanitize_NormalizeNewsCoverGallery();
         $this->sanitize_NormalizeHomeHeroSliderNavigation();
         $this->sanitize_AlignHomeHeroSliderWithPublishedEventSlugs();
+        $this->sanitize_AddPublicationPageTypes();
         $this->sanitize_SplitPublicationCollections();
         $this->sanitize_NormalizePublicationPageBindings();
         $this->sanitize_LabelPressDocumentSemesters();
@@ -688,6 +689,18 @@ class CmsContentSanitizationSeeder extends Seeder
             'cartelera', 'events', 'programme', 'eventos',
             'programming', 'programmation', 'programacao',
         ], true);
+    }
+
+    /**
+     * The page-type enum is prepared before bootstrap listing seeders by
+     * CmsPageTypeSeeder. Keep this traceable sanitizer step for the migrated
+     * content operation without repeating the schema alteration here.
+     */
+    private function sanitize_AddPublicationPageTypes(): void
+    {
+        if (! $this->db->tableExists('cms_pages')) {
+            return;
+        }
     }
 
     private function sanitize_SplitPublicationCollections(): void
