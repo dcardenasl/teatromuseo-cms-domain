@@ -109,6 +109,80 @@ final class PublicPageControllerTest extends CIUnitTestCase
         $result->assertStatus(401);
     }
 
+    public function testPublicReadNavigationIncludesCollectionSlugsForCollectionAndEntryItems(): void
+    {
+        $locale = $this->languages[0]['code'];
+        $languageId = $this->languages[0]['id'];
+        $collectionSlug = $this->fixtures->slug('navigation-collection', $locale);
+        $entrySlug = $this->fixtures->slug('navigation-entry', $locale);
+        $collection = $this->fixtures->collection([[
+            'language_id' => $languageId,
+            'slug' => $collectionSlug,
+            'name' => $this->fixtures->text('navigation-collection', $locale),
+        ]]);
+        $indexPageSlug = $this->fixtures->slug('navigation-collection-index', $locale);
+        $this->fixtures->page([[
+            'language_id' => $languageId,
+            'slug' => $indexPageSlug,
+            'title' => $this->fixtures->text('navigation-collection-index', $locale),
+        ]], [
+            'page_type' => 'collection_index',
+            'collection_id' => $collection['id'],
+        ]);
+        $entry = $this->fixtures->entry($collection['id'], [[
+            'language_id' => $languageId,
+            'slug' => $entrySlug,
+            'title' => $this->fixtures->text('navigation-entry', $locale),
+        ]]);
+        $menu = $this->fixtures->menu([[
+            'language_id' => $languageId,
+            'name' => $this->fixtures->text('navigation-menu', $locale),
+        ]], ['menu_key' => 'main', 'location' => 'header']);
+
+        $this->db->table('cms_menu_items')->insert([
+            'menu_id' => $menu['id'],
+            'link_type' => 'collection_listing',
+            'collection_id' => $collection['id'],
+            'link_target' => '_self',
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $this->db->table('cms_menu_items')->insert([
+            'menu_id' => $menu['id'],
+            'link_type' => 'entry',
+            'entry_id' => $entry['id'],
+            'link_target' => '_self',
+            'sort_order' => 2,
+            'is_active' => 1,
+        ]);
+
+        $items = $this->db->table('cms_menu_items')
+            ->select('id')
+            ->where('menu_id', $menu['id'])
+            ->orderBy('sort_order', 'ASC')
+            ->get()
+            ->getResultArray();
+        foreach ($items as $index => $item) {
+            $this->db->table('cms_menu_item_translations')->insert([
+                'menu_item_id' => $item['id'],
+                'language_id' => $languageId,
+                'label' => $this->fixtures->text('navigation-item-' . $index, $locale),
+            ]);
+        }
+
+        $result = $this->withHeaders($this->webAppKeyHeader())
+            ->get('/api/v1/public-read/' . $locale . '/navigation');
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $navigationItems = $body['data']['main']['items'] ?? [];
+
+        $this->assertSame($indexPageSlug, $navigationItems[0]['navigation']['slug']);
+        $this->assertSame($indexPageSlug, $navigationItems[0]['navigation']['collection_slug']);
+        $this->assertSame($entrySlug, $navigationItems[1]['navigation']['slug']);
+        $this->assertSame($indexPageSlug, $navigationItems[1]['navigation']['collection_slug']);
+    }
+
     public function testPublicReadPageRejectsUnknownSparseFields(): void
     {
         $translation = $this->pageTranslation(0);

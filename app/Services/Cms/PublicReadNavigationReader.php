@@ -59,8 +59,9 @@ final class PublicReadNavigationReader implements PublicReadNavigationReaderInte
         );
 
         $itemQuery = $this->db->table('cms_menu_items mi')
-            ->select('mi.id, mi.menu_id, mi.parent_id, mi.link_type, mi.page_id, mi.entry_id, mi.collection_id, mi.link_target, mi.icon, mi.css_class, mi.sort_order, mi.updated_at, p.page_type')
+            ->select('mi.id, mi.menu_id, mi.parent_id, mi.link_type, mi.page_id, mi.entry_id, mi.collection_id, mi.link_target, mi.icon, mi.css_class, mi.sort_order, mi.updated_at, p.page_type, e.collection_id AS entry_collection_id')
             ->join('cms_pages p', 'p.id = mi.page_id', 'left')
+            ->join('cms_entries e', 'e.id = mi.entry_id', 'left')
             ->whereIn('mi.menu_id', $menuIds)
             ->where('mi.is_active', 1)
             ->orderBy('mi.menu_id', 'ASC')->orderBy('mi.sort_order', 'ASC')->orderBy('mi.id', 'ASC')
@@ -77,6 +78,22 @@ final class PublicReadNavigationReader implements PublicReadNavigationReaderInte
         $pageSlugs = $pageIds === [] ? [] : $this->slugMap('cms_page_translations', 'page_id', $pageIds, $languageIds, $codeById);
         $entryIds = array_values(array_unique(array_filter(array_map(static fn (array $row): int => (int) ($row['entry_id'] ?? 0), $items))));
         $entrySlugs = $entryIds === [] ? [] : $this->slugMap('cms_entry_translations', 'entry_id', $entryIds, $languageIds, $codeById);
+        $collectionIds = array_values(array_unique(array_filter(array_map(
+            static fn (array $row): int => (int) ($row['collection_id'] ?? $row['entry_collection_id'] ?? 0),
+            $items,
+        ))));
+        $collectionSlugs = $collectionIds === [] ? [] : $this->slugMap(
+            'cms_collection_translations',
+            'collection_id',
+            $collectionIds,
+            $languageIds,
+            $codeById,
+        );
+        $collectionIndexSlugs = $collectionIds === [] ? [] : $this->collectionIndexSlugMap(
+            $collectionIds,
+            $languageIds,
+            $codeById,
+        );
 
         $result = ['main' => null, 'footer' => null, 'legal' => null];
         foreach ($menus as $menu) {
@@ -101,9 +118,19 @@ final class PublicReadNavigationReader implements PublicReadNavigationReaderInte
                 $pageId = (int) ($item['page_id'] ?? 0);
                 $entryId = (int) ($item['entry_id'] ?? 0);
                 $linkType = (string) $item['link_type'];
-                $slug = $linkType === 'page'
-                    ? ($pageSlugs[$pageId][$locale] ?? $pageSlugs[$pageId][$default] ?? null)
-                    : ($entrySlugs[$entryId][$locale] ?? $entrySlugs[$entryId][$default] ?? null);
+                $collectionId = (int) ($item['collection_id'] ?? $item['entry_collection_id'] ?? 0);
+                $collectionSlug = $collectionIndexSlugs[$collectionId][$locale]
+                    ?? $collectionIndexSlugs[$collectionId][$default]
+                    ?? $collectionSlugs[$collectionId][$locale]
+                    ?? $collectionSlugs[$collectionId][$default]
+                    ?? null;
+                if ($linkType === 'page') {
+                    $slug = $pageSlugs[$pageId][$locale] ?? $pageSlugs[$pageId][$default] ?? null;
+                } elseif ($linkType === 'entry') {
+                    $slug = $entrySlugs[$entryId][$locale] ?? $entrySlugs[$entryId][$default] ?? null;
+                } else {
+                    $slug = $collectionSlug;
+                }
                 $flat[] = [
                     'id' => $itemId,
                     'label' => (string) ($translation['label'] ?? ''),
@@ -114,7 +141,7 @@ final class PublicReadNavigationReader implements PublicReadNavigationReaderInte
                     'css_class' => $item['css_class'],
                     'sort_order' => (int) $item['sort_order'],
                     'parent_id' => $item['parent_id'] !== null ? (int) $item['parent_id'] : null,
-                    'navigation' => $this->navigation($item, $slug),
+                    'navigation' => $this->navigation($item, $slug, $collectionSlug),
                     'is_fallback' => ! isset($itemTranslations[$itemId][$locale]),
                     'children' => [],
                 ];
@@ -178,6 +205,43 @@ final class PublicReadNavigationReader implements PublicReadNavigationReaderInte
     }
 
     /**
+     * Resolve published collection index page slugs in one set-based query.
+     *
+     * Legacy menu links prefer the public collection index page over the
+     * collection translation slug, so the consolidated navigation contract
+     * must preserve that precedence for both collection and entry items.
+     *
+     * @param list<int> $collectionIds
+     * @param list<int> $languageIds
+     * @param array<int, string> $codeById
+     * @return array<int, array<string, string>>
+     */
+    private function collectionIndexSlugMap(array $collectionIds, array $languageIds, array $codeById): array
+    {
+        $query = $this->db->table('cms_pages p')
+            ->select('p.collection_id, pt.language_id, pt.slug')
+            ->join('cms_page_translations pt', 'pt.page_id = p.id')
+            ->whereIn('p.collection_id', $collectionIds)
+            ->where('p.page_type', 'collection_index')
+            ->where('p.status', 'published')
+            ->where('p.deleted_at', null)
+            ->whereIn('pt.language_id', $languageIds)
+            ->get();
+        $rows = $query !== false ? $query->getResultArray() : [];
+        $result = [];
+        foreach ($rows as $row) {
+            $collectionId = (int) ($row['collection_id'] ?? 0);
+            $language = $codeById[(int) ($row['language_id'] ?? 0)] ?? '';
+            $slug = trim((string) ($row['slug'] ?? ''), '/');
+            if ($collectionId > 0 && $language !== '' && $slug !== '') {
+                $result[$collectionId][$language] = $slug;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * @param array<string, array<string, mixed>> $translations
      * @return array<string, mixed>
      */
@@ -190,7 +254,7 @@ final class PublicReadNavigationReader implements PublicReadNavigationReaderInte
      * @param array<string, mixed> $item
      * @return array<string, mixed>
      */
-    private function navigation(array $item, ?string $slug): array
+    private function navigation(array $item, ?string $slug, ?string $collectionSlug): array
     {
         $type = (string) $item['link_type'];
         $pageType = (string) ($item['page_type'] ?? '');
@@ -206,6 +270,7 @@ final class PublicReadNavigationReader implements PublicReadNavigationReaderInte
             'target_type' => $type,
             'target_id' => $item['page_id'] ?? $item['entry_id'] ?? $item['collection_id'] ?? null,
             'slug' => $slug,
+            'collection_slug' => $collectionSlug,
         ];
     }
 
