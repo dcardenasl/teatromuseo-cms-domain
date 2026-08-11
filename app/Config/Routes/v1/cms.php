@@ -10,6 +10,9 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
 
     // Auth & Admin Protected Group
     $routes->group('', ['filter' => ['domainauth', 'throttle']], function ($routes): void {
+        // Bounded read projection for the authenticated Admin dashboard.
+        $routes->get('dashboard/summary', 'DashboardSummaryController::index');
+
         // Wizard Config (must be before any (:segment) routes)
         $routes->get('wizard/config', 'WizardConfigController::config', ['filter' => 'permission:cms.entries.read']);
 

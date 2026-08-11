@@ -6,6 +6,17 @@ namespace Config;
 
 trait CmsDomainServices
 {
+    public static function dashboardSummaryService(bool $getShared = true): \App\Services\Admin\DashboardSummaryService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('dashboardSummaryService');
+        }
+
+        return new \App\Services\Admin\DashboardSummaryService(
+            static::dashboardSummaryRepository()
+        );
+    }
+
     public static function publicReadNavigationReader(bool $getShared = true): \App\Interfaces\Cms\PublicReadNavigationReaderInterface
     {
         if ($getShared) {
