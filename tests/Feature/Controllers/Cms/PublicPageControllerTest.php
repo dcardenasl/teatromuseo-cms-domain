@@ -89,6 +89,25 @@ final class PublicPageControllerTest extends CIUnitTestCase
         $this->assertArrayHasKey('blocks', $body['data'] ?? []);
     }
 
+    public function testPublicReadPageAcceptsHierarchicalPublicPaths(): void
+    {
+        $translation = $this->pageTranslation(0);
+        $translation['slug'] = 'museo/coleccion';
+        $this->fixtures->page([$translation]);
+
+        $result = $this->get(
+            '/api/v1/public-read/' . $this->languages[0]['code'] . '/pages/' . $translation['slug']
+        );
+
+        $result->assertStatus(200);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertPublicReadEnvelope($body, 'cms');
+        $this->assertSame($translation['title'], $body['data']['title'] ?? null);
+        $this->assertSame('museo/coleccion', $body['data']['localized_slugs']['aa'] ?? null);
+        $this->assertSame('generic', $body['data']['page_type'] ?? null);
+    }
+
     public function testPublicReadPageFallsBackToTheDefaultLocale(): void
     {
         $translation = $this->pageTranslation(0);

@@ -108,12 +108,11 @@ class Routing extends BaseRouting
     public bool $prioritize = false;
 
     /**
-     * For Defined Routes.
-     * If TRUE, matched multiple URI segments will be passed as one parameter.
-     *
-     * Default: false
+     * For Defined Routes. PublicRead page and entry slugs may contain
+     * hierarchical paths such as `museo/coleccion`; keep a matched wildcard
+     * path as one controller argument.
      */
-    public bool $multipleSegmentsOneParam = false;
+    public bool $multipleSegmentsOneParam = true;
 
     /**
      * For Auto Routing (Improved).
