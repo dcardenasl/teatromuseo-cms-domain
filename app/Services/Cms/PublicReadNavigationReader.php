@@ -59,14 +59,17 @@ final class PublicReadNavigationReader implements PublicReadNavigationReaderInte
         );
 
         $itemQuery = $this->db->table('cms_menu_items mi')
-            ->select('mi.id, mi.menu_id, mi.parent_id, mi.link_type, mi.page_id, mi.entry_id, mi.collection_id, mi.link_target, mi.icon, mi.css_class, mi.sort_order, mi.updated_at, p.page_type, e.collection_id AS entry_collection_id')
+            ->select('mi.id, mi.menu_id, mi.parent_id, mi.link_type, mi.page_id, mi.entry_id, mi.collection_id, mi.link_target, mi.icon, mi.css_class, mi.sort_order, mi.updated_at, p.page_type, p.status AS page_status, p.deleted_at AS page_deleted_at, p.published_at AS page_published_at, p.scheduled_at AS page_scheduled_at, e.collection_id AS entry_collection_id, e.workflow_status AS entry_status, e.deleted_at AS entry_deleted_at, e.published_at AS entry_published_at, e.scheduled_at AS entry_scheduled_at, c.is_active AS collection_active, ec.is_active AS entry_collection_active')
             ->join('cms_pages p', 'p.id = mi.page_id', 'left')
             ->join('cms_entries e', 'e.id = mi.entry_id', 'left')
+            ->join('cms_collections c', 'c.id = mi.collection_id', 'left')
+            ->join('cms_collections ec', 'ec.id = e.collection_id', 'left')
             ->whereIn('mi.menu_id', $menuIds)
             ->where('mi.is_active', 1)
             ->orderBy('mi.menu_id', 'ASC')->orderBy('mi.sort_order', 'ASC')->orderBy('mi.id', 'ASC')
             ->get();
         $items = $itemQuery !== false ? $itemQuery->getResultArray() : [];
+        $items = array_values(array_filter($items, fn (array $item): bool => $this->isPublicNavigationTarget($item)));
         $itemIds = array_map(static fn (array $row): int => (int) $row['id'], $items);
         $itemTranslations = $itemIds === [] ? [] : $this->rowsByLanguage(
             $this->db->table('cms_menu_item_translations')->select('menu_item_id, language_id, label, custom_url')->whereIn('menu_item_id', $itemIds)->whereIn('language_id', $languageIds)->get(),
@@ -225,6 +228,14 @@ final class PublicReadNavigationReader implements PublicReadNavigationReaderInte
             ->where('p.page_type', 'collection_index')
             ->where('p.status', 'published')
             ->where('p.deleted_at', null)
+            ->groupStart()
+                ->where('p.published_at IS NULL', null, false)
+                ->orWhere('p.published_at <=', date('Y-m-d H:i:s'))
+            ->groupEnd()
+            ->groupStart()
+                ->where('p.scheduled_at IS NULL', null, false)
+                ->orWhere('p.scheduled_at <=', date('Y-m-d H:i:s'))
+            ->groupEnd()
             ->whereIn('pt.language_id', $languageIds)
             ->get();
         $rows = $query !== false ? $query->getResultArray() : [];
@@ -239,6 +250,49 @@ final class PublicReadNavigationReader implements PublicReadNavigationReaderInte
         }
 
         return $result;
+    }
+
+    /** @param array<string, mixed> $item */
+    private function isPublicNavigationTarget(array $item): bool
+    {
+        return match ((string) ($item['link_type'] ?? '')) {
+            'page' => $this->isPublicPage($item),
+            'entry' => $this->isPublicEntry($item),
+            'collection_listing' => (int) ($item['collection_active'] ?? 0) === 1,
+            default => true,
+        };
+    }
+
+    /** @param array<string, mixed> $row */
+    private function isPublicPage(array $row): bool
+    {
+        return ($row['page_deleted_at'] ?? null) === null
+            && (
+                (int) ($row['page_status'] ?? 0) === 1
+                || (string) ($row['page_status'] ?? '') === 'published'
+            )
+            && $this->isDue($row['page_published_at'] ?? null, $row['page_scheduled_at'] ?? null);
+    }
+
+    /** @param array<string, mixed> $row */
+    private function isPublicEntry(array $row): bool
+    {
+        return ((int) ($row['entry_status'] ?? 0) === 1 || (string) ($row['entry_status'] ?? '') === 'published')
+            && ($row['entry_deleted_at'] ?? null) === null
+            && (int) ($row['entry_collection_active'] ?? 0) === 1
+            && $this->isDue($row['entry_published_at'] ?? null, $row['entry_scheduled_at'] ?? null);
+    }
+
+    private function isDue(mixed $publishedAt, mixed $scheduledAt): bool
+    {
+        $now = time();
+        foreach ([$publishedAt, $scheduledAt] as $value) {
+            if ($value !== null && $value !== '' && strtotime((string) $value) > $now) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

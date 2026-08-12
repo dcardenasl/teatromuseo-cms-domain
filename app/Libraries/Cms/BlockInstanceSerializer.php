@@ -447,6 +447,7 @@ class BlockInstanceSerializer
         $result = $db->table('cms_block_instance_translations')
             ->whereIn('instance_id', $instanceIds)
             ->whereIn('language_id', $langIds)
+            ->where('is_published', 1)
             ->get();
         $rows = $result ? $result->getResultArray() : [];
 
