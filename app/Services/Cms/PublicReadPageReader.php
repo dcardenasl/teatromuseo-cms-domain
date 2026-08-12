@@ -8,6 +8,7 @@ use App\DTO\Request\Cms\PublicReadPageRequestDTO;
 use App\Interfaces\Cms\PublicReadPageReaderInterface;
 use App\Libraries\Cms\BlockInstanceSerializer;
 use App\Modules\PublicRead\Support\PublicReadEnvelope;
+use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Database\BaseConnection;
 use dcardenasl\Ci4ApiCore\Support\ApiResult;
 
@@ -70,35 +71,89 @@ final class PublicReadPageReader implements PublicReadPageReaderInterface
     /** @param list<string> $fields */
     public function show(string $locale, string $path, array $fields): ApiResult
     {
-        [$pages, $translations, $languages, $defaultLocale] = $this->loadPublicGraph();
-        $pathMap = $this->buildPathMap($pages, $translations, $languages, $locale, $defaultLocale);
         $normalized = trim($path, '/');
         if ($normalized === '') {
             $normalized = 'home';
         }
 
+        [$languages, $codeById, $defaultLocale] = $this->loadPublicLanguages();
+        $languageIds = array_keys($codeById);
+        $segments = array_values(array_filter(explode('/', $normalized), static fn (string $segment): bool => $segment !== ''));
+        if ($languageIds === [] || $segments === []) {
+            return $this->notFound($locale);
+        }
+
+        $candidateBuilder = $this->db->table('cms_pages p')
+            ->select('p.id, p.parent_id, p.collection_id, p.page_type, p.published_at, p.sort_order, p.sitemap_priority, p.sitemap_changefreq, p.is_in_sitemap, p.updated_at, pt.language_id, pt.slug, pt.title, pt.excerpt, pt.meta_title, pt.meta_description, pt.canonical_url, pt.robots')
+            ->join('cms_page_translations pt', 'pt.page_id = p.id')
+            ->where('p.status', 'published')
+            ->where('p.deleted_at', null)
+            ->whereIn('pt.language_id', $languageIds)
+            ->groupStart()
+                ->whereIn('pt.slug', $segments)
+                ->orWhere('pt.slug', $normalized)
+            ->groupEnd();
+        $this->applyEffectivePublication($candidateBuilder, 'p.');
+        $candidateQuery = $candidateBuilder->get();
+        $candidateRows = $candidateQuery !== false ? $candidateQuery->getResultArray() : [];
+        if ($candidateRows === []) {
+            return $this->notFound($locale);
+        }
+
+        $pages = [];
+        $translations = [];
+        $codeById = array_map('strval', $codeById);
+        foreach ($candidateRows as $row) {
+            $pageId = (int) $row['id'];
+            $pages[$pageId] ??= [
+                'id' => $pageId,
+                'parent_id' => $row['parent_id'],
+                'collection_id' => $row['collection_id'],
+                'page_type' => $row['page_type'],
+                'published_at' => $row['published_at'],
+                'sort_order' => $row['sort_order'],
+                'sitemap_priority' => $row['sitemap_priority'],
+                'sitemap_changefreq' => $row['sitemap_changefreq'],
+                'is_in_sitemap' => $row['is_in_sitemap'],
+                'updated_at' => $row['updated_at'],
+            ];
+            $language = $codeById[(int) $row['language_id']] ?? '';
+            if ($language !== '') {
+                $translations[$pageId][$language] = $row;
+            }
+        }
+
+        $pathMap = $this->buildPathMap(array_values($pages), $translations, $languages, $locale, $defaultLocale);
         $pageId = null;
-        foreach ($pathMap as $id => $pathData) {
+        foreach ($pathMap as $candidateId => $pathData) {
             if ($pathData['path'] === $normalized) {
-                $pageId = $id;
+                $pageId = (int) $candidateId;
                 break;
             }
         }
-        if ($pageId === null) {
+        if ($pageId === null || !isset($pages[$pageId])) {
             return $this->notFound($locale);
         }
 
-        $page = null;
-        foreach ($pages as $candidate) {
-            if ((int) $candidate['id'] === $pageId) {
-                $page = $candidate;
-                break;
+        // The matching query only needs path segments. Fetch all translations
+        // for the resolved ancestor chain once so localized_slugs stays
+        // complete without reopening the full public graph.
+        $ancestorIds = $this->ancestorIds($pageId, $pages);
+        $localizedQuery = $this->db->table('cms_page_translations')
+            ->select('page_id, language_id, slug, title, excerpt, meta_title, meta_description, canonical_url, robots, updated_at')
+            ->whereIn('page_id', $ancestorIds)
+            ->whereIn('language_id', $languageIds)
+            ->get();
+        $localizedRows = $localizedQuery !== false ? $localizedQuery->getResultArray() : [];
+        foreach ($localizedRows as $row) {
+            $id = (int) $row['page_id'];
+            $language = $codeById[(int) $row['language_id']] ?? '';
+            if ($language !== '') {
+                $translations[$id][$language] = $row;
             }
         }
-        if ($page === null) {
-            return $this->notFound($locale);
-        }
-
+        $pathMap = $this->buildPathMap(array_values($pages), $translations, $languages, $locale, $defaultLocale);
+        $page = $pages[$pageId];
         $translation = $this->resolveTranslation($translations[$pageId] ?? [], $locale, $defaultLocale);
         $payload = [
             'id' => $pageId,
@@ -117,9 +172,11 @@ final class PublicReadPageReader implements PublicReadPageReaderInterface
             'canonical_url' => $translation['canonical_url'] ?? null,
             'robots' => $translation['robots'] ?? null,
             'localized_slugs' => $pathMap[$pageId]['localized'] ?? [],
-            'blocks' => $this->blockSerializer->forContent('page', (int) $pageId, $locale),
             'updated_at' => $page['updated_at'],
         ];
+        if ($fields === [] || in_array('blocks', $fields, true)) {
+            $payload['blocks'] = $this->blockSerializer->forContent('page', (int) $pageId, $locale);
+        }
 
         return PublicReadEnvelope::success(
             locale: $locale,
@@ -145,10 +202,12 @@ final class PublicReadPageReader implements PublicReadPageReaderInterface
             }
         }
         $languageIds = array_values(array_map(static fn (array $language): int => (int) $language['id'], $languageRows));
-        $pageQuery = $this->db->table('cms_pages')
+        $pageBuilder = $this->db->table('cms_pages')
             ->select('id, parent_id, collection_id, page_type, status, published_at, sort_order, sitemap_priority, sitemap_changefreq, is_in_sitemap, created_at, updated_at')
             ->where('status', 'published')->where('deleted_at', null)
-            ->orderBy('sort_order', 'ASC')->orderBy('id', 'ASC')->get();
+            ->orderBy('sort_order', 'ASC')->orderBy('id', 'ASC');
+        $this->applyEffectivePublication($pageBuilder);
+        $pageQuery = $pageBuilder->get();
         $pages = $pageQuery !== false ? array_values($pageQuery->getResultArray()) : [];
         if ($pages === []) {
             return [[], [], $languageRows, $defaultLocale];
@@ -174,6 +233,57 @@ final class PublicReadPageReader implements PublicReadPageReaderInterface
         }
 
         return [$pages, $translations, $languageRows, $defaultLocale];
+    }
+
+    /** @return array{0: list<array<string, mixed>>, 1: array<int, string>, 2: string} */
+    private function loadPublicLanguages(): array
+    {
+        $query = $this->db->table('cms_languages')
+            ->select('id, code, is_default')
+            ->where('is_active', 1)
+            ->get();
+        $rows = $query !== false ? array_values($query->getResultArray()) : [];
+        $codeById = [];
+        $defaultLocale = strtolower($this->fallbackLocale);
+        foreach ($rows as $row) {
+            $code = strtolower((string) $row['code']);
+            $codeById[(int) $row['id']] = $code;
+            if ((int) $row['is_default'] === 1) {
+                $defaultLocale = $code;
+            }
+        }
+
+        return [$rows, $codeById, $defaultLocale];
+    }
+
+    private function applyEffectivePublication(BaseBuilder $builder, string $prefix = ''): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $builder->groupStart()
+            ->where($prefix . 'published_at IS NULL', null, false)
+            ->orWhere($prefix . 'published_at <=', $now)
+        ->groupEnd()
+            ->groupStart()
+            ->where($prefix . 'scheduled_at IS NULL', null, false)
+            ->orWhere($prefix . 'scheduled_at <=', $now)
+        ->groupEnd();
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $pages
+     * @return list<int>
+     */
+    private function ancestorIds(int $pageId, array $pages): array
+    {
+        $ids = [];
+        $current = $pageId;
+        while ($current > 0 && !in_array($current, $ids, true)) {
+            $ids[] = $current;
+            $parentId = $pages[$current]['parent_id'] ?? null;
+            $current = $parentId === null ? 0 : (int) $parentId;
+        }
+
+        return $ids;
     }
 
     /**
