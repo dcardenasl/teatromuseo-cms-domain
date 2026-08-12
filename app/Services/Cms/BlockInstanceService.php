@@ -113,7 +113,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         $instance = null;
 
         $this->validateSlideNavigation($data, $id, $instance);
-        $data = $this->normalizeBlockConfig($data);
+        $data = $this->normalizeBlockConfig($data, $instance !== null ? (int) ($instance->block_id ?? 0) : null);
         $data = $this->normalizeEntryReferencesFromPayload($data, $id, $instance);
 
         return $this->deferTranslationsFromUpdate($data);
@@ -343,7 +343,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    private function normalizeBlockConfig(array $data): array
+    private function normalizeBlockConfig(array $data, ?int $persistedBlockId = null): array
     {
         if (! array_key_exists('block_config', $data)) {
             return $data;
@@ -358,7 +358,9 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         }
 
         if (is_array($blockConfig)) {
-            $blockId = isset($data['block_id']) ? (int) $data['block_id'] : 0;
+            $blockId = isset($data['block_id'])
+                ? (int) $data['block_id']
+                : (int) ($persistedBlockId ?? 0);
             if ($blockId > 0) {
                 $schemaDefinition = $this->blockSchemaDefinition($blockId);
                 $configFields = is_array($schemaDefinition['config_fields'] ?? null)
@@ -372,6 +374,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
                     );
                 }
             }
+            $blockConfig = $this->decodeJsonConfigFields($blockConfig, $configFields ?? []);
 
             $data['block_config'] = json_encode($blockConfig);
         } elseif ($blockConfig === null || $blockConfig === '') {
@@ -379,6 +382,43 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         }
 
         return $data;
+    }
+
+    /**
+     * Admin forms submit schema fields of type json through hidden inputs.
+     * Decode those values at the domain boundary so every writer persists the
+     * same structured contract, regardless of which Admin client submitted it.
+     *
+     * @param array<string, mixed> $blockConfig
+     * @param array<string, mixed> $configFields
+     * @return array<string, mixed>
+     */
+    private function decodeJsonConfigFields(array $blockConfig, array $configFields): array
+    {
+        $jsonFields = $configFields;
+        // `listing_projection` was introduced as a hidden JSON form field
+        // before every deployed block schema exposed its `json` definition.
+        // Keep accepting that transport shape while normalizing it to the
+        // same structured value as newer schema-driven clients.
+        $jsonFields['listing_projection'] ??= ['type' => 'json'];
+
+        foreach ($jsonFields as $fieldKey => $fieldDefinition) {
+            if (! is_array($fieldDefinition) || strtolower((string) ($fieldDefinition['type'] ?? '')) !== 'json') {
+                continue;
+            }
+
+            $value = $blockConfig[$fieldKey] ?? null;
+            if (! is_string($value) || trim($value) === '') {
+                continue;
+            }
+
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $blockConfig[$fieldKey] = $decoded;
+            }
+        }
+
+        return $blockConfig;
     }
 
     /** @param array<string, mixed> $data */

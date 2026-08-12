@@ -71,6 +71,66 @@ final class BlockInstanceServiceTest extends CIUnitTestCase
         $this->assertSame(['theme' => 'dark'], json_decode((string) $stored, true));
     }
 
+    public function testUpdateDecodesJsonConfigFieldsBeforePersisting(): void
+    {
+        $db = Database::connect();
+
+        $db->query('SET FOREIGN_KEY_CHECKS = 0');
+        $db->query("DELETE FROM `cms_block_instance_translations`");
+        $db->query("DELETE FROM `cms_block_instances`");
+        $db->query("DELETE FROM `cms_content_blocks`");
+        $db->query('SET FOREIGN_KEY_CHECKS = 1');
+
+        $db->table('cms_content_blocks')->insert([
+            'id' => 5,
+            'block_key' => 'collection_grid',
+            'name' => 'Collection grid',
+            'schema_definition' => json_encode([
+                'fields' => [],
+                'config_fields' => [
+                    'listing_projection' => ['type' => 'json'],
+                ],
+            ]),
+            'supports_pages' => 1,
+            'supports_entries' => 0,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+
+        $db->table('cms_block_instances')->insert([
+            'id' => 10,
+            'block_id' => 5,
+            'owner_type' => 'page',
+            'owner_id' => 21,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+
+        $projection = [
+            'version' => 2,
+            'order' => [
+                'field' => 'block.teatroescuela_ficha.start_date',
+                'direction' => 'upcoming',
+            ],
+        ];
+        $dto = $this->hydrateDto(BlockInstanceUpdateRequestDTO::class, [
+            'block_id' => 5,
+            'block_config' => [
+                'listing_projection' => json_encode($projection, JSON_THROW_ON_ERROR),
+            ],
+        ]);
+
+        $service = Services::blockInstanceService(false);
+        $service->update(10, $dto, null);
+
+        $stored = $db->table('cms_block_instances')->getWhere(['id' => 10])->getRowArray()['block_config'];
+        $config = json_decode((string) $stored, true);
+        $this->assertIsArray($config['listing_projection'] ?? null);
+        $this->assertSame('upcoming', $config['listing_projection']['order']['direction']);
+        $this->assertSame('block.teatroescuela_ficha.start_date', $config['listing_projection']['order']['field']);
+    }
+
     public function testIndexDefaultsToSortOrderBySortOrderAsc(): void
     {
         $db = Database::connect();
