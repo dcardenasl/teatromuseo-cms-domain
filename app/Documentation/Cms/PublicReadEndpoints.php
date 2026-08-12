@@ -115,7 +115,7 @@ final class PublicReadEndpoints
             new OA\Parameter(name: 'category_id', in: 'query', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'tag', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'order_by', in: 'query', schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'order_direction', in: 'query', schema: new OA\Schema(type: 'string', enum: ['asc', 'desc', 'ASC', 'DESC'])),
+            new OA\Parameter(name: 'order_direction', in: 'query', schema: new OA\Schema(type: 'string', enum: ['asc', 'desc', 'upcoming', 'ASC', 'DESC', 'UPCOMING'])),
             new OA\Parameter(name: 'filter_by', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'filter_value', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'filter_operator', in: 'query', schema: new OA\Schema(type: 'string', enum: ['equals', 'contains'])),

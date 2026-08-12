@@ -2059,9 +2059,43 @@ class CmsContentSanitizationSeeder extends Seeder
             if (! in_array($collectionKey, ['teatroescuela', 'cursos'], true)) {
                 continue;
             }
-            $config['date_field'] = 'listing.start_date';
-            $config['order_by'] = 'field:start_date';
-            $config['order_direction'] = 'asc';
+
+            $projection = $this->Sanitize_ListingProjectionFromConfig($config);
+            $projectionVersion = (int) ($projection['version'] ?? 0);
+            $configuredDirection = strtolower(trim((string) ($config['order_direction'] ?? '')));
+            $projectionOrder = is_array($projection['order'] ?? null) ? $projection['order'] : [];
+            $projectionDirection = strtolower(trim((string) ($projectionOrder['direction'] ?? '')));
+            $legacyAgendaConfiguration = $projectionVersion < 2
+                && in_array($configuredDirection, ['', 'asc'], true)
+                && in_array($projectionDirection, ['', 'asc'], true);
+
+            // This is a one-time upgrade from the original ascending date
+            // default. Once projection version 2 exists, editors can choose
+            // asc/desc/upcoming without the bootstrap seeder overwriting it.
+            if ($projectionVersion < 2 && ($legacyAgendaConfiguration || $configuredDirection === '')) {
+                $config['date_field'] = 'listing.start_date';
+                $config['order_by'] = 'field:start_date';
+                $config['order_direction'] = 'upcoming';
+            }
+            if ($projection !== null) {
+                $projection['version'] = max(2, $projectionVersion);
+                $projection['order'] = $projectionOrder;
+                if (in_array($collectionKey, ['teatroescuela', 'cursos'], true)) {
+                    $projection['slots'] = is_array($projection['slots'] ?? null) ? $projection['slots'] : [];
+                    $projection['order'] = is_array($projection['order'] ?? null) ? $projection['order'] : [];
+                    $projection['slots']['date'] = $this->Sanitize_NormalizeTheatreSchoolProjectionField(
+                        (string) ($projection['slots']['date'] ?? '')
+                    );
+                    $projection['order']['field'] = $this->Sanitize_NormalizeTheatreSchoolProjectionField(
+                        (string) ($projection['order']['field'] ?? '')
+                    );
+                }
+                if ($legacyAgendaConfiguration || $projectionDirection === '') {
+                    $projection['order']['field'] = 'block.teatroescuela_ficha.start_date';
+                    $projection['order']['direction'] = 'upcoming';
+                }
+                $config['listing_projection'] = $projection;
+            }
             $this->db->table('cms_block_instances')->where('id', (int) $instance['id'])->update([
                 'block_config' => json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             ]);
@@ -2084,7 +2118,7 @@ class CmsContentSanitizationSeeder extends Seeder
         }
 
         $instances = $this->db->table('cms_block_instances i')
-            ->select('i.id, i.block_config, c.block_template')
+            ->select('i.id, i.block_config, c.block_template, c.collection_key')
             ->join('cms_collections c', "c.id = JSON_UNQUOTE(JSON_EXTRACT(i.block_config, '$.collection_id'))", 'left', false)
             ->whereIn('i.block_id', $blockIds)
             ->get()
@@ -2092,19 +2126,30 @@ class CmsContentSanitizationSeeder extends Seeder
 
         foreach ($instances as $instance) {
             $config = json_decode((string) ($instance['block_config'] ?? '{}'), true);
-            if (! is_array($config) || is_array($config['listing_projection'] ?? null)) {
+            if (! is_array($config)) {
+                continue;
+            }
+            $existingProjection = $this->Sanitize_ListingProjectionFromConfig($config);
+            if ($existingProjection !== null) {
+                if (is_string($config['listing_projection'] ?? null)) {
+                    $config['listing_projection'] = $existingProjection;
+                    $this->db->table('cms_block_instances')->where('id', (int) $instance['id'])->update([
+                        'block_config' => json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    ]);
+                }
                 continue;
             }
 
             $template = json_decode((string) ($instance['block_template'] ?? '{}'), true);
             $primaryBlockKey = $this->Sanitize_BackfillListingProjections_primaryBlockKey($template);
+            $collectionKey = strtolower(trim((string) ($config['collection_key'] ?? $instance['collection_key'] ?? '')));
             $dateField = trim((string) ($config['date_field'] ?? ''));
             $orderField = trim((string) ($config['order_by'] ?? ''));
             $dateSource = $this->Sanitize_BackfillListingProjections_canonicalSource($dateField, $primaryBlockKey);
             $orderSource = $this->Sanitize_BackfillListingProjections_canonicalSource(str_starts_with($orderField, 'field:') ? substr($orderField, 6) : $orderField, $primaryBlockKey);
 
             $config['listing_projection'] = [
-                'version' => 1,
+                'version' => in_array($collectionKey, ['teatroescuela', 'cursos'], true) ? 2 : 1,
                 'slots' => [
                     'title' => 'entry.title',
                     'subtitle' => '',
@@ -2115,7 +2160,10 @@ class CmsContentSanitizationSeeder extends Seeder
                 'extras' => [],
                 'order' => [
                     'field' => $orderSource,
-                    'direction' => strtolower((string) ($config['order_direction'] ?? 'desc')) === 'asc' ? 'asc' : 'desc',
+                    'direction' => match (strtolower((string) ($config['order_direction'] ?? 'desc'))) {
+                        'asc', 'desc', 'upcoming' => strtolower((string) $config['order_direction']),
+                        default => 'desc',
+                    },
                 ],
                 'filters' => [],
             ];
@@ -2131,6 +2179,35 @@ class CmsContentSanitizationSeeder extends Seeder
     {
         $rows = $this->db->table('cms_content_blocks')->select('id')->whereIn('block_key', $keys)->get()->getResultArray();
         return array_values(array_map(static fn (array $row): int => (int) $row['id'], $rows));
+    }
+
+    private function Sanitize_NormalizeTheatreSchoolProjectionField(string $field): string
+    {
+        return in_array($field, ['start_date', 'listing.start_date', 'field:start_date'], true)
+            ? 'block.teatroescuela_ficha.start_date'
+            : $field;
+    }
+
+    /**
+     * Decode the JSON projection emitted by older Admin clients before the
+     * idempotent content pass decides whether a projection needs backfilling.
+     *
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>|null
+     */
+    private function Sanitize_ListingProjectionFromConfig(array $config): ?array
+    {
+        $projection = $config['listing_projection'] ?? null;
+        if (is_array($projection)) {
+            return $projection;
+        }
+        if (! is_string($projection) || trim($projection) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($projection, true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 
     private function Sanitize_BackfillListingProjections_primaryBlockKey(mixed $template): string

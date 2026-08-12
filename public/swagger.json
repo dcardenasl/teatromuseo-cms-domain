@@ -1593,8 +1593,10 @@
                             "enum": [
                                 "asc",
                                 "desc",
+                                "upcoming",
                                 "ASC",
-                                "DESC"
+                                "DESC",
+                                "UPCOMING"
                             ]
                         }
                     },

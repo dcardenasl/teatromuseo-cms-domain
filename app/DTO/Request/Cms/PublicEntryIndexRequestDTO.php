@@ -40,7 +40,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'tag'            => 'permit_empty|string|max_length[100]',
             'q'              => 'permit_empty|string|max_length[255]',
             'order_by'       => 'permit_empty|regex_match[/^(published_at|sort_order|created_at|title|field:[a-z][a-z0-9_]{0,49}|field:(entry|block|taxonomy)\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)?)$/]',
-            'order_direction' => 'permit_empty|in_list[asc,desc,ASC,DESC]',
+            'order_direction' => 'permit_empty|in_list[asc,desc,upcoming,ASC,DESC,UPCOMING]',
             'include'         => 'permit_empty|in_list[listing_content]',
             'fields'          => 'permit_empty|string|max_length[2000]',
             'filter_by'       => 'permit_empty|string|max_length[100]',
@@ -64,8 +64,12 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
         $rawOrderBy           = (string) ($data['order_by'] ?? 'sort_order');
         $this->listing_field  = str_starts_with($rawOrderBy, 'field:') ? substr($rawOrderBy, 6) : null;
         $this->order_by       = $this->listing_field !== null ? 'listing_field' : $rawOrderBy;
-        $direction            = strtoupper((string) ($data['order_direction'] ?? 'ASC'));
-        $this->order_direction = $direction === 'DESC' ? 'DESC' : 'ASC';
+        $direction = strtoupper((string) ($data['order_direction'] ?? 'ASC'));
+        $this->order_direction = match ($direction) {
+            'DESC' => 'DESC',
+            'UPCOMING' => 'UPCOMING',
+            default => 'ASC',
+        };
         $this->include_listing_content = (string) ($data['include'] ?? '') === 'listing_content';
         $rawFields = is_string($data['fields'] ?? null) ? explode(',', (string) $data['fields']) : [];
         $this->projection_fields = array_values(array_filter(array_map(

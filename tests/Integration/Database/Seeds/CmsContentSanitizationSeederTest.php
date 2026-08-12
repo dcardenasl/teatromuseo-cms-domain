@@ -203,6 +203,65 @@ final class CmsContentSanitizationSeederTest extends CIUnitTestCase
         $this->assertSame(0, (int) $peopleCollection['is_active']);
     }
 
+    public function testTeatroEscuelaOrderingIsMigratedOnceAndRemainsConfigurable(): void
+    {
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
+
+        $row = $this->db->table('cms_block_instances')
+            ->select('id, block_config')
+            ->where('owner_type', 'page')
+            ->like('block_config', 'teatroescuela')
+            ->get()
+            ->getRowArray();
+        $this->assertIsArray($row);
+
+        $config = json_decode((string) $row['block_config'], true);
+        $this->assertIsArray($config);
+        $this->assertSame('upcoming', $config['order_direction']);
+        $this->assertSame('upcoming', $config['listing_projection']['order']['direction']);
+        $this->assertSame('block.teatroescuela_ficha.start_date', $config['listing_projection']['order']['field']);
+        $this->assertSame(2, (int) $config['listing_projection']['version']);
+
+        // Older Admin clients submitted the nested projection as a JSON
+        // string. The sanitizer must decode it instead of rebuilding a
+        // lossy legacy projection from the top-level fields.
+        $config['listing_projection'] = json_encode($config['listing_projection'], JSON_THROW_ON_ERROR);
+        $this->db->table('cms_block_instances')
+            ->where('id', (int) $row['id'])
+            ->update(['block_config' => json_encode($config, JSON_THROW_ON_ERROR)]);
+
+        $seeder->call(\App\Database\Seeds\CmsContentSanitizationSeeder::class);
+
+        $normalized = $this->db->table('cms_block_instances')
+            ->select('block_config')
+            ->where('id', (int) $row['id'])
+            ->get()
+            ->getRowArray();
+        $normalizedConfig = json_decode((string) ($normalized['block_config'] ?? '{}'), true);
+        $this->assertIsArray($normalizedConfig['listing_projection'] ?? null);
+        $this->assertSame('block.teatroescuela_ficha.start_date', $normalizedConfig['listing_projection']['order']['field']);
+
+        // A later editor change is configuration, not legacy state. The
+        // idempotent sanitizer must preserve it on the next bootstrap.
+        $normalizedConfig['order_direction'] = 'desc';
+        $normalizedConfig['listing_projection']['order']['direction'] = 'desc';
+        $this->db->table('cms_block_instances')
+            ->where('id', (int) $row['id'])
+            ->update(['block_config' => json_encode($normalizedConfig, JSON_THROW_ON_ERROR)]);
+
+        $seeder->call(\App\Database\Seeds\CmsContentSanitizationSeeder::class);
+
+        $updated = $this->db->table('cms_block_instances')
+            ->select('block_config')
+            ->where('id', (int) $row['id'])
+            ->get()
+            ->getRowArray();
+        $updatedConfig = json_decode((string) ($updated['block_config'] ?? '{}'), true);
+        $this->assertSame('desc', $updatedConfig['order_direction']);
+        $this->assertSame('desc', $updatedConfig['listing_projection']['order']['direction']);
+    }
+
     private function assertSiteSettingsNormalized(): void
     {
         $candidateKeys = [...self::RETIRED_SETTING_KEYS, 'analytics_provider', 'site_name'];

@@ -427,13 +427,13 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             ]);
         }
 
-        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/entries/cursos?per_page=10&order_by=field:start_date&order_direction=asc');
+        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/entries/cursos?per_page=10&order_by=field:start_date&order_direction=upcoming');
 
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
         $slugs = array_column($body['data'], 'slug');
 
-        $this->assertSame(['hace-un-ano', 'hace-una-semana', 'ayer', 'manana', 'en-un-mes'], $slugs);
+        $this->assertSame(['manana', 'en-un-mes', 'ayer', 'hace-una-semana', 'hace-un-ano'], $slugs);
 
         // The listing template shows/sorts by the course's real start_date, not
         // published_at — exposed as `display_date` through the generic contract.

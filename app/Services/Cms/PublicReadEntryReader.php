@@ -40,7 +40,7 @@ final class PublicReadEntryReader implements PublicReadEntryReaderInterface
                 'filter_operator' => $request->filterOperator,
                 'include' => $request->includeListingContent ? 'listing_content' : null,
             ]);
-            $result = $this->reader->listPublic($legacy)->toArray();
+            $result = $this->reader->listPublic($legacy, ['fields' => $fields])->toArray();
             $items = is_array($result['data'] ?? null) ? $result['data'] : [];
             $items = array_map(fn (mixed $item): array => $this->filter(is_array($item) ? $item : (array) $item, $fields), $items);
             $facets = $this->facets($result['data'] ?? []);
@@ -71,7 +71,7 @@ final class PublicReadEntryReader implements PublicReadEntryReaderInterface
                 'collection_key' => $request->collection,
                 'slug' => $request->slug,
             ]);
-            $data = $this->reader->showPublic($legacy)->toArray();
+            $data = $this->reader->showPublic($legacy, ['fields' => $fields])->toArray();
             return PublicReadEnvelope::success(
                 $request->locale,
                 $this->filter($data, $fields),

@@ -125,7 +125,8 @@ class PublicEntryReader
         return $this->languageModel;
     }
 
-    public function listPublic(PublicEntryIndexRequestDTO $dto): DataTransferObjectInterface
+    /** @param array<string, mixed> $options */
+    public function listPublic(PublicEntryIndexRequestDTO $dto, array $options = []): DataTransferObjectInterface
     {
         $collection = $this->collectionModel()
             ->where('collection_key', $dto->collection_key)
@@ -238,11 +239,17 @@ class PublicEntryReader
 
         if ($filteredEntries !== null) {
             if ($dto->listing_field !== null) {
-                $descending = strtoupper($dto->order_direction) === 'DESC';
-                usort($filteredEntries, static function (EntryEntity $a, EntryEntity $b) use ($filteredFieldValues, $descending): int {
-                    $comparison = (string) ($filteredFieldValues[(int) $a->id] ?? '') <=> (string) ($filteredFieldValues[(int) $b->id] ?? '');
-                    return $descending ? -$comparison : $comparison;
-                });
+                $filteredOrderValues = $this->batchResolveListingField(
+                    array_map(static fn (EntryEntity $entry): int => (int) $entry->id, $filteredEntries),
+                    $langId,
+                    $defaultLangId,
+                    $dto->listing_field,
+                );
+                $filteredEntries = $this->sortEntriesByListingField(
+                    $filteredEntries,
+                    $filteredOrderValues,
+                    $dto->order_direction,
+                );
             }
             $entries = array_slice($filteredEntries, $offset, $dto->per_page);
         } elseif ($dto->listing_field !== null) {
@@ -277,8 +284,9 @@ class PublicEntryReader
                     ->select('title_trans.title AS entry_title_order', false);
             }
 
+            $databaseDirection = $dto->order_direction === 'DESC' ? 'DESC' : 'ASC';
             $entries = $builder
-                ->orderBy($orderColumn, $dto->order_direction)
+                ->orderBy($orderColumn, $databaseDirection)
                 ->orderBy('cms_entries.created_at', 'DESC')
                 ->findAll($dto->per_page, $offset);
         }
@@ -299,11 +307,21 @@ class PublicEntryReader
             }
         }
 
-        $entryTranslations = $this->batchResolveEntryTranslations($entryIds, $langId, $defaultLangId);
+        $fields = $this->projectionFields($options['fields'] ?? null);
+        $fullProjection = $fields === [];
+        $needsTranslationBundle = $fullProjection || $dto->order_by === 'title' || $this->hasAnyField($fields, [
+            'title', 'slug', 'excerpt', 'featured_image', 'og_image', 'meta_title',
+            'meta_description', 'canonical_url', 'robots', 'schema_data', 'localized_slugs', 'translations',
+        ]);
+        $needsMedia = $fullProjection || $this->hasAnyField($fields, ['featured_image', 'og_image']);
+        $entryTranslations = $needsTranslationBundle
+            ? $this->batchResolveEntryTranslations($entryIds, $langId, $defaultLangId, $needsMedia)
+            : ['translations' => [], 'media' => []];
         $entryTransMap = $entryTranslations['translations'];
         $entryMediaMap = $entryTranslations['media'];
-        $categoriesMap  = $this->taxonomyPivotResolver->resolveLocalizedCategories($entryIds, $langId, $defaultLangId);
-        $tagsMap        = $this->taxonomyPivotResolver->resolveLocalizedTags($entryIds, $langId, $defaultLangId);
+        $needsTaxonomy = $fullProjection || $this->hasAnyField($fields, ['categories', 'tags']);
+        $categoriesMap  = $needsTaxonomy ? $this->taxonomyPivotResolver->resolveLocalizedCategories($entryIds, $langId, $defaultLangId) : [];
+        $tagsMap        = $needsTaxonomy ? $this->taxonomyPivotResolver->resolveLocalizedTags($entryIds, $langId, $defaultLangId) : [];
 
         $data = [];
         foreach ($entries as $entry) {
@@ -316,7 +334,9 @@ class PublicEntryReader
             $item['tags']       = $tagsMap[$entryId] ?? [];
             unset($item['entry_title_order']);
             // Normalize featured/OG images into canonical nested objects.
-            $item = $this->normalizeEntryMedia($item, $entryMediaMap);
+            if ($needsMedia) {
+                $item = $this->normalizeEntryMedia($item, $entryMediaMap);
+            }
             if ($dto->listing_field !== null) {
                 $item['display_date'] = $listingFieldValues[$entryId] ?? null;
             }
@@ -364,24 +384,110 @@ class PublicEntryReader
 
         $fieldValues = $this->batchResolveListingField($entryIds, $langId, $defaultLangId, $field);
         $fieldValuesOut = $fieldValues;
-        $descending = strtoupper($direction) === 'DESC';
-
-        usort($allEntries, static function (EntryEntity $a, EntryEntity $b) use ($fieldValues, $descending): int {
-            $aValue = $fieldValues[(int) $a->id] ?? '';
-            $bValue = $fieldValues[(int) $b->id] ?? '';
-            if ($aValue === '' || $bValue === '') {
-                return match (true) {
-                    $aValue === '' && $bValue === '' => 0,
-                    $aValue === '' => 1,
-                    default => -1,
-                };
-            }
-
-            $comparison = $aValue <=> $bValue;
-            return $descending ? -$comparison : $comparison;
-        });
+        $allEntries = $this->sortEntriesByListingField($allEntries, $fieldValues, $direction);
 
         return array_slice($allEntries, ($page - 1) * $perPage, $perPage);
+    }
+
+    /**
+     * Sort a resolved listing field while keeping the ordering stable across
+     * pages and database engines. `UPCOMING` is a two-bucket date order:
+     * future/today ascending, then past descending, then entries without a
+     * valid date.
+     *
+     * @param list<EntryEntity> $entries
+     * @param array<int, string> $fieldValues
+     * @return list<EntryEntity>
+     */
+    private function sortEntriesByListingField(array $entries, array $fieldValues, string $direction): array
+    {
+        $direction = strtoupper($direction);
+        $descending = $direction === 'DESC';
+        $upcomingFirst = $direction === 'UPCOMING';
+        $today = (new \DateTimeImmutable('today'))->getTimestamp();
+
+        usort($entries, function (EntryEntity $left, EntryEntity $right) use ($fieldValues, $descending, $upcomingFirst, $today): int {
+            $leftValue = trim((string) ($fieldValues[(int) $left->id] ?? ''));
+            $rightValue = trim((string) ($fieldValues[(int) $right->id] ?? ''));
+            $leftTimestamp = $this->listingDateTimestamp($leftValue);
+            $rightTimestamp = $this->listingDateTimestamp($rightValue);
+
+            if ($upcomingFirst) {
+                $comparison = $this->compareUpcomingDates($leftTimestamp, $rightTimestamp, $today);
+            } else {
+                $comparison = $this->compareNullableValues($leftValue, $rightValue);
+                if ($leftValue !== '' && $rightValue !== '' && $descending) {
+                    $comparison = -$comparison;
+                }
+            }
+
+            return $comparison !== 0
+                ? $comparison
+                : $this->compareEntryTieBreakers($left, $right);
+        });
+
+        return $entries;
+    }
+
+    private function compareUpcomingDates(?int $left, ?int $right, int $today): int
+    {
+        if ($left === null || $right === null) {
+            return match (true) {
+                $left === null && $right === null => 0,
+                $left === null => 1,
+                default => -1,
+            };
+        }
+
+        $leftUpcoming = $left >= $today;
+        $rightUpcoming = $right >= $today;
+        if ($leftUpcoming !== $rightUpcoming) {
+            return $leftUpcoming ? -1 : 1;
+        }
+
+        return $leftUpcoming ? $left <=> $right : $right <=> $left;
+    }
+
+    private function compareNullableValues(string $left, string $right): int
+    {
+        if ($left === '' || $right === '') {
+            return match (true) {
+                $left === '' && $right === '' => 0,
+                $left === '' => 1,
+                default => -1,
+            };
+        }
+
+        return $left <=> $right;
+    }
+
+    private function compareEntryTieBreakers(EntryEntity $left, EntryEntity $right): int
+    {
+        $leftPublished = $this->listingDateTimestamp((string) ($left->published_at ?? ''));
+        $rightPublished = $this->listingDateTimestamp((string) ($right->published_at ?? ''));
+        if ($leftPublished !== $rightPublished) {
+            return ($rightPublished ?? PHP_INT_MIN) <=> ($leftPublished ?? PHP_INT_MIN);
+        }
+
+        $leftCreated = $this->listingDateTimestamp((string) ($left->created_at ?? ''));
+        $rightCreated = $this->listingDateTimestamp((string) ($right->created_at ?? ''));
+        if ($leftCreated !== $rightCreated) {
+            return ($rightCreated ?? PHP_INT_MIN) <=> ($leftCreated ?? PHP_INT_MIN);
+        }
+
+        return (int) $right->id <=> (int) $left->id;
+    }
+
+    private function listingDateTimestamp(string $value): ?int
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        $timestamp = strtotime($value);
+
+        return $timestamp === false ? null : $timestamp;
     }
 
     /**
@@ -495,7 +601,8 @@ class PublicEntryReader
         return $map;
     }
 
-    public function showPublic(PublicEntryShowRequestDTO $dto): DataTransferObjectInterface
+    /** @param array<string, mixed> $options */
+    public function showPublic(PublicEntryShowRequestDTO $dto, array $options = []): DataTransferObjectInterface
     {
         $collection = $this->collectionModel()
             ->where('collection_key', $dto->collection_key)
@@ -566,46 +673,45 @@ class PublicEntryReader
             throw new NotFoundException(lang('Entries.not_found'));
         }
 
-        $entryTranslations = $this->batchResolveEntryTranslations([$entryId], $langId, $defaultLangId);
+        $fields = $this->projectionFields($options['fields'] ?? null);
+        $fullProjection = $fields === [];
+        $needsTranslationBundle = $fullProjection || $this->hasAnyField($fields, [
+            'title', 'slug', 'excerpt', 'featured_image', 'og_image', 'meta_title',
+            'meta_description', 'canonical_url', 'robots', 'schema_data', 'localized_slugs', 'translations',
+        ]);
+        $needsMedia = $fullProjection || $this->hasAnyField($fields, ['featured_image', 'og_image']);
+        $needsTaxonomy = $fullProjection || $this->hasAnyField($fields, ['categories', 'tags']);
+        $needsBlocks = $fullProjection || in_array('blocks', $fields, true);
+        $entryTranslations = $needsTranslationBundle
+            ? $this->batchResolveEntryTranslations([$entryId], $langId, $defaultLangId, $needsMedia)
+            : ['translations' => [], 'media' => []];
         $entryTransMap = $entryTranslations['translations'];
         $entryMediaMap = $entryTranslations['media'];
-        $categoriesMap = $this->taxonomyPivotResolver->resolveLocalizedCategories([$entryId], $langId, $defaultLangId);
-        $tagsMap       = $this->taxonomyPivotResolver->resolveLocalizedTags([$entryId], $langId, $defaultLangId);
+        $categoriesMap = $needsTaxonomy ? $this->taxonomyPivotResolver->resolveLocalizedCategories([$entryId], $langId, $defaultLangId) : [];
+        $tagsMap       = $needsTaxonomy ? $this->taxonomyPivotResolver->resolveLocalizedTags([$entryId], $langId, $defaultLangId) : [];
 
         $data               = array_merge($entry->toArray(), $entryTransMap[$entryId] ?? []);
         $data['categories'] = $categoriesMap[$entryId] ?? [];
         $data['tags']       = $tagsMap[$entryId] ?? [];
 
-        // Normalize featured/OG images into canonical nested objects.
-        $data = $this->normalizeEntryMedia($data, $entryMediaMap);
-
-        $blocks = $this->blockInstanceSerializer->forContent('entry', $entryId, $dto->lang);
-        $data['blocks'] = $this->composeNewsGallery(
-            $dto->collection_key,
-            $blocks,
-            is_array($data['featured_image'] ?? null) ? $data['featured_image'] : [],
-            (string) ($data['title'] ?? '')
-        );
-
-        // Get all translations of this entry to construct localized slugs
-        /** @var list<\App\Entities\EntryTranslationEntity> $allTranslations */
-        $allTranslations = $translationModel->where('entry_id', $entryId)->findAll();
-        /** @var list<\App\Entities\LanguageEntity> $activeLanguages */
-        $activeLanguages = $langModel->where('is_active', 1)->findAll();
-        $langCodeMap = [];
-        foreach ($activeLanguages as $al) {
-            $langCodeMap[$al->id] = $al->code;
+        if ($needsMedia) {
+            // Normalize featured/OG images into canonical nested objects.
+            $data = $this->normalizeEntryMedia($data, $entryMediaMap);
         }
 
-        $localizedSlugs = [];
-        foreach ($allTranslations as $at) {
-            $code = $langCodeMap[$at->language_id] ?? null;
-            $slug = trim((string) $at->slug);
-            if ($code !== null && $slug !== '') {
-                $localizedSlugs[$code] = $slug;
-            }
+        if ($needsBlocks) {
+            $blocks = $this->blockInstanceSerializer->forContent('entry', $entryId, $dto->lang);
+            $data['blocks'] = $this->composeNewsGallery(
+                $dto->collection_key,
+                $blocks,
+                is_array($data['featured_image'] ?? null) ? $data['featured_image'] : [],
+                (string) ($data['title'] ?? '')
+            );
         }
-        $data['localized_slugs'] = $localizedSlugs;
+
+        if ($needsTranslationBundle) {
+            $data['localized_slugs'] = $entryTransMap[$entryId]['localized_slugs'] ?? [];
+        }
 
         return PayloadResponseDTO::fromArray($data);
     }
@@ -654,7 +760,7 @@ class PublicEntryReader
      * @param  list<int>  $entryIds
      * @return array{translations: array<int, array<string, mixed>>, media: array<int, array<string, mixed>>}
      */
-    private function batchResolveEntryTranslations(array $entryIds, int $langId, int $defaultLangId): array
+    private function batchResolveEntryTranslations(array $entryIds, int $langId, int $defaultLangId, bool $includeMedia = true): array
     {
         if (empty($entryIds)) {
             return ['translations' => [], 'media' => []];
@@ -683,26 +789,29 @@ class PublicEntryReader
             ->whereIn('language_id', $activeLanguageIds)
             ->findAll();
 
-        $fileIds = [];
-        foreach ($rows as $row) {
-            if (! $row instanceof \App\Entities\EntryTranslationEntity) {
-                continue;
-            }
+        $mediaMap = [];
+        if ($includeMedia) {
+            $fileIds = [];
+            foreach ($rows as $row) {
+                if (! $row instanceof \App\Entities\EntryTranslationEntity) {
+                    continue;
+                }
 
-            foreach (['featured_file_id', 'og_image_file_id'] as $field) {
-                $id = $row->{$field} ?? null;
-                if (is_numeric($id) && (int) $id > 0) {
-                    $fileIds[] = (int) $id;
+                foreach (['featured_file_id', 'og_image_file_id'] as $field) {
+                    $id = $row->{$field} ?? null;
+                    if (is_numeric($id) && (int) $id > 0) {
+                        $fileIds[] = (int) $id;
+                    }
+                }
+                foreach (['featured_image', 'og_image'] as $field) {
+                    $id = $this->fileUrlResolver->resolveMediaReferenceFileId($row->{$field} ?? null);
+                    if ($id !== null) {
+                        $fileIds[] = $id;
+                    }
                 }
             }
-            foreach (['featured_image', 'og_image'] as $field) {
-                $id = $this->fileUrlResolver->resolveMediaReferenceFileId($row->{$field} ?? null);
-                if ($id !== null) {
-                    $fileIds[] = $id;
-                }
-            }
+            $mediaMap = $this->fileUrlResolver->resolveManyMeta(array_values(array_unique($fileIds)), 'public');
         }
-        $mediaMap = $this->fileUrlResolver->resolveManyMeta(array_values(array_unique($fileIds)), 'public');
 
         $grouped = [];
         foreach ($rows as $row) {
@@ -714,14 +823,14 @@ class PublicEntryReader
             $languageId = (int) $row->language_id;
             $slug = trim((string) $row->slug);
 
-            $normalizedMedia = $this->fileUrlResolver->normalizeEntryTranslation([
+            $normalizedMedia = $includeMedia ? $this->fileUrlResolver->normalizeEntryTranslation([
                 'featured_image' => $row->featured_image ?? null,
                 'featured_file_id' => $row->featured_file_id !== null ? (int) $row->featured_file_id : null,
                 'featured_image_url' => $row->featured_image_url,
                 'og_image' => $row->og_image ?? null,
                 'og_image_file_id' => $row->og_image_file_id !== null ? (int) $row->og_image_file_id : null,
                 'og_image_url' => $row->og_image_url ?? null,
-            ], 'public', $mediaMap);
+            ], 'public', $mediaMap) : ['featured_image' => null, 'og_image' => null];
 
             $grouped[$entryId]['translations'][$languageId] = [
                 'slug'               => $slug,
@@ -829,6 +938,28 @@ class PublicEntryReader
         );
 
         return $item;
+    }
+
+    /**
+     * @param list<string> $fields
+     * @param list<string> $wanted
+     */
+    private function hasAnyField(array $fields, array $wanted): bool
+    {
+        return $fields !== [] && array_intersect($fields, $wanted) !== [];
+    }
+
+    /** @return list<string> */
+    private function projectionFields(mixed $fields): array
+    {
+        if (!is_array($fields)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map(static fn (mixed $field): string => (string) $field, $fields),
+            static fn (string $field): bool => $field !== '',
+        ));
     }
 
     /**

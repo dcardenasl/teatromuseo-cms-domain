@@ -105,7 +105,7 @@ class CmsPageBlockSeeder extends Seeder
                     'items_limit'     => 3,
                     'date_field'      => 'listing.start_date',
                     'order_by'        => 'field:start_date',
-                    'order_direction' => 'asc',
+                    'order_direction' => 'upcoming',
                     'layout_variant'  => 'cards',
                     'image_aspect_ratio' => '3/4',
                     'css_class'       => '',
