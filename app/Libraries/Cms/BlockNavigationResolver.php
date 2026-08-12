@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Libraries\Cms;
 
+use App\Entities\PageEntity;
 use App\Models\CollectionModel;
 use App\Models\PageModel;
 
@@ -24,6 +25,11 @@ final class BlockNavigationResolver
 
     /** @var array<int|string, int> */
     private array $indexPageIdsByCollection = [];
+
+    /** @var array<int, \App\Entities\PageEntity|null> */
+    private array $ownerPagesById = [];
+
+    private bool $ownerPageCacheWarmed = false;
 
     public function __construct(
         private readonly SlugRouter $slugRouter,
@@ -120,6 +126,7 @@ final class BlockNavigationResolver
         array $ownerIds = [],
     ): array {
         $this->warmCollectionIndexCache($blockConfigs);
+        $this->warmOwnerPageCache($navigationDefinitions, $ownerType, $ownerIds);
 
         return array_map(
             fn (array $config, int $index): array => $this->resolve(
@@ -132,6 +139,61 @@ final class BlockNavigationResolver
             $blockConfigs,
             array_keys($blockConfigs),
         );
+    }
+
+    /**
+     * Warm owner pages in one query. Owner navigation is common on page
+     * headers, so resolving each owner independently turns a block listing
+     * into a conditional N+1 query pattern.
+     *
+     * @param list<array<string, mixed>> $navigationDefinitions
+     * @param list<int> $ownerIds
+     */
+    private function warmOwnerPageCache(array $navigationDefinitions, string $ownerType, array $ownerIds): void
+    {
+        if ($ownerType !== 'page') {
+            return;
+        }
+
+        $ids = [];
+        foreach ($navigationDefinitions as $index => $definition) {
+            if (($definition['source'] ?? '') !== 'owner') {
+                continue;
+            }
+            $ownerId = (int) ($ownerIds[$index] ?? 0);
+            if ($ownerId > 0) {
+                $ids[] = $ownerId;
+            }
+        }
+        $ids = array_values(array_unique($ids));
+        if ($ids === []) {
+            $this->ownerPageCacheWarmed = true;
+            return;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $pages = (new PageModel())
+            ->whereIn('id', $ids)
+            ->where('status', 'published')
+            ->where('deleted_at IS NULL', null, false)
+            ->groupStart()
+                ->where('published_at IS NULL')
+                ->orWhere('published_at <=', $now)
+            ->groupEnd()
+            ->groupStart()
+                ->where('scheduled_at IS NULL')
+                ->orWhere('scheduled_at <=', $now)
+            ->groupEnd()
+            ->findAll();
+        foreach ($ids as $id) {
+            $this->ownerPagesById[$id] = null;
+        }
+        foreach ($pages as $page) {
+            if ($page instanceof PageEntity) {
+                $this->ownerPagesById[(int) $page->id] = $page;
+            }
+        }
+        $this->ownerPageCacheWarmed = true;
     }
 
     /** @param list<array<string, mixed>> $blockConfigs */
@@ -276,7 +338,24 @@ final class BlockNavigationResolver
             return $this->unresolved('unsupported_owner_target');
         }
 
-        $page = (new PageModel())->where('id', $ownerId)->where('deleted_at IS NULL', null, false)->first();
+        if ($this->ownerPageCacheWarmed && array_key_exists($ownerId, $this->ownerPagesById)) {
+            $page = $this->ownerPagesById[$ownerId];
+        } else {
+            $now = date('Y-m-d H:i:s');
+            $page = (new PageModel())->where('id', $ownerId)
+                ->where('status', 'published')
+                ->where('deleted_at IS NULL', null, false)
+                ->groupStart()
+                    ->where('published_at IS NULL')
+                    ->orWhere('published_at <=', $now)
+                ->groupEnd()
+                ->groupStart()
+                    ->where('scheduled_at IS NULL')
+                    ->orWhere('scheduled_at <=', $now)
+                ->groupEnd()
+                ->first();
+            $this->ownerPagesById[$ownerId] = $page instanceof PageEntity ? $page : null;
+        }
         if ($page === null) {
             return $this->unresolved('owner_page_not_found');
         }
