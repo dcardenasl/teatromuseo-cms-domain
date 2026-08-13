@@ -6,6 +6,35 @@
 
 ## ✅ Completadas
 
+- [x] **PERF-03 — Retirar la ruta pública duplicada `public/{lang}/entries/{collection}`**
+  — cerrada 2026-08-13. Al investigar antes de borrar (siguiendo la propia
+  disciplina de este proyecto) se encontró que `PublicEntryController` NO era
+  un duplicado puro: tenía dos capacidades que `public-read` no tenía. (1)
+  Modo preview de borradores vía firma (`?preview=1&preview_expires=&preview_sig=`)
+  — resultó ser un **bug real y vivo**: `teatromuseo-web`
+  (`SiteEntryService::getBySlug()`) ya enviaba esos parámetros a
+  `public-read/{lang}/entries/...`, pero `PublicReadEntryShowRequestDTO` no
+  los declaraba, así que se descartaban en silencio. Corregido portando el
+  soporte a `PublicReadEntryShowRequestDTO` +
+  `PublicReadEntryReader::show()` (mismo patrón que `PublicPageShowRequestDTO`
+  ya usaba para páginas), antes de borrar nada. (2) Alias
+  `cursos`→`teatroescuela` (remanente de un rename de colección de
+  2026-08-02, LEGACY-MAP-031) — decisión explícita de NO portarlo: cero
+  llamadores reales confirmados, es un shim transicional específico de la
+  ruta legacy. Con la brecha de preview cerrada, se borró
+  `PublicEntryController`, las 2 rutas en `cms.php`, `EntryService::listPublic()`/`showPublic()`
+  (delegaban una línea) y su declaración en `EntryServiceInterface`
+  (incluida la dependencia ahora sin uso `PublicEntryReader` del constructor
+  de `EntryService`). Los 16 tests de `PublicEntryControllerTest.php` se
+  migraron a `tests/Feature/Controllers/Cms/PublicReadEntryControllerTest.php`
+  (renombrado — probaba `PublicReadController`, no el controlador borrado),
+  ajustando la forma real del envelope (`ok` en vez de `status:'success'`,
+  `search`/`per_page` en vez de `q`/`limit`) — los 16 pasaron en el primer
+  intento tras el análisis previo. Verificado: 608/608 tests, PHPStan 0
+  errores, CS-Fixer limpio, swagger sin cambios (el controlador borrado no
+  tenía anotaciones OpenAPI propias). Evidencia:
+  [`../docs/audits/2026-08-12-auditoria-parte2-rendimiento-listados-publicos.md`](../docs/audits/2026-08-12-auditoria-parte2-rendimiento-listados-publicos.md).
+
 - [x] **PERF-01 — Materializar facetas/orden de listados públicos, eliminar
   findAll() sin límite** — cerrada 2026-08-13. Tabla `cms_entry_facet_values`
   + `EntryFacetValueSynchronizer` enganchado en `BlockInstanceService` y
@@ -53,25 +82,6 @@
   baseline/shadow del runtime anterior.
 
 ## 🟡 Próximo
-
-- [ ] **PERF-03 — Retirar la ruta pública duplicada `public/{lang}/entries/{collection}`**
-  (§2.F de
-  [`../docs/audits/2026-08-12-auditoria-parte2-rendimiento-listados-publicos.md`](../docs/audits/2026-08-12-auditoria-parte2-rendimiento-listados-publicos.md)).
-  Evaluado 2026-08-13: `PublicEntryController` (`app/Controllers/Api/V1/Cms/PublicEntryController.php`)
-  + `EntryService::listPublic()`/`showPublic()` (líneas ~603-611, delegación
-  de una línea) son un duplicado exacto de `public-read/{lang}/entries` —
-  confirmado sin consumidores en teatromuseo-web/bff/admin/totem (grep
-  limpio en los 4 repos). A diferencia de los N+1 de event/catalog-domain
-  (cerrados hoy, cero cobertura de test), esta ruta SÍ tiene
-  `tests/Feature/Controllers/Cms/PublicEntryControllerTest.php` (717 líneas,
-  16 tests) ejercitando el mismo `PublicEntryReader::listPublic()`/`showPublic()`
-  compartido — borrar requiere migrar esa cobertura a `public-read` (no solo
-  borrar el archivo, se perdería señal real), un trabajo con blast radius
-  mayor que no debía apurarse en la misma pasada. Queda listo para ejecutar:
-  borrar `PublicEntryController`, las 2 rutas en `cms.php:170-171`, los 2
-  métodos delegados de `EntryService`/`EntryServiceInterface`, y migrar los
-  16 tests a golpear `public-read/{lang}/entries/...` en vez de
-  `public/{lang}/entries/...`.
 
 ### Plan vigente — PublicRead/PageDelivery/Snapshots (2026-08-09)
 
