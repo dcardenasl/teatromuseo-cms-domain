@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`/api/v1/public-read/{locale}/layout` and `/page-bootstrap/{path}`** — composite
+  PublicRead endpoints (ADR 006) aggregating navigation+collections+settings and
+  redirect+page respectively, so `teatromuseo-web` can resolve a cold page load in 2
+  HTTP round trips instead of 5, without duplicating any existing reader's query logic.
 - **`/api/v1/public-read/{locale}/...` endpoints** — versioned envelope read model covering
   pages, navigation, settings, and collection entries (listing + detail), gated by a dedicated
   public-read throttle bucket and served through set-based queries with batched media resolution.
