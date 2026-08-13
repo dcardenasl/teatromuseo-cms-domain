@@ -70,6 +70,9 @@ final class PublicReadEntryReader implements PublicReadEntryReaderInterface
                 'lang' => $request->locale,
                 'collection_key' => $request->collection,
                 'slug' => $request->slug,
+                'preview' => $request->previewRequested ? '1' : null,
+                'preview_expires' => $request->previewExpires,
+                'preview_sig' => $request->previewSig,
             ]);
             $data = $this->reader->showPublic($legacy, ['fields' => $fields])->toArray();
             return PublicReadEnvelope::success(
