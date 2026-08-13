@@ -64,6 +64,33 @@ trait CmsDomainServices
         );
     }
 
+    /** Composite: navigation + collections + settings. See ADR 006. */
+    public static function publicReadLayoutReader(bool $getShared = true): \App\Interfaces\Cms\PublicReadLayoutReaderInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicReadLayoutReader');
+        }
+
+        return new \App\Services\Cms\PublicReadLayoutReader(
+            static::publicReadNavigationReader(),
+            static::publicReadSettingsReader(),
+            static::collectionService(),
+        );
+    }
+
+    /** Composite: redirect check + page (with blocks). See ADR 006. */
+    public static function publicReadPageBootstrapReader(bool $getShared = true): \App\Interfaces\Cms\PublicReadPageBootstrapReaderInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicReadPageBootstrapReader');
+        }
+
+        return new \App\Services\Cms\PublicReadPageBootstrapReader(
+            static::redirectService(),
+            static::publicReadPageReader(),
+        );
+    }
+
     public static function languageResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
         if ($getShared) {
