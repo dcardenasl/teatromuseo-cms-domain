@@ -13,9 +13,24 @@ use Tests\Support\Fixtures\CmsFixtureFactory;
 use Tests\Support\Traits\WithWebAppKeyTrait;
 
 /**
+ * Behavior coverage for PublicReadController::entries()/entry() — migrated
+ * 2026-08-13 from the deleted PublicEntryControllerTest (which exercised the
+ * exact-duplicate legacy route `public/{lang}/entries/{collection}[/{slug}]`,
+ * removed per docs/audits/2026-08-12-auditoria-parte2-rendimiento-listados-publicos.md §2.F).
+ * Both routes always shared the same PublicEntryReader::listPublic()/
+ * showPublic() implementation, so this preserves the same real behavior
+ * coverage against the surviving public-read route instead of re-testing
+ * code that no longer exists.
+ *
+ * Response envelope differs from the deleted legacy route: public-read uses
+ * `{ok: bool, data, meta: {total, per_page, ...}}` (PublicReadEnvelope), not
+ * the legacy `{status: 'success', data, meta}` shape — assertions below use
+ * `$body['ok']`, not `$body['status']`. Query params also differ:
+ * `search=` (not `q=`), `per_page=` (not `limit=`).
+ *
  * @internal
  */
-final class PublicEntryControllerTest extends CIUnitTestCase
+final class PublicReadEntryControllerTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
     use FeatureTestTrait;
@@ -134,7 +149,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $result->assertStatus(200);
 
         $body = json_decode($result->getJSON(), true);
-        $this->assertSame('success', $body['status']);
+        $this->assertTrue($body['ok']);
         $this->assertCount(1, $body['data']);
         $this->assertSame('primer-post', $body['data'][0]['slug']);
         $this->assertSame('Primer Post', $body['data'][0]['title']);
@@ -166,7 +181,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $result->assertStatus(200);
 
         $body = json_decode($result->getJSON(), true);
-        $this->assertSame('success', $body['status']);
+        $this->assertTrue($body['ok']);
         $this->assertSame('primer-post', $body['data']['slug']);
         $this->assertSame('Primer Post', $body['data']['title']);
         $this->assertIsArray($body['data']['blocks']);
@@ -312,7 +327,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $result->assertStatus(200);
 
         $body = json_decode($result->getJSON(), true);
-        $this->assertSame('success', $body['status']);
+        $this->assertTrue($body['ok']);
         $this->assertCount(1, $body['data']);
         $this->assertArrayHasKey('featured_image', $body['data'][0]);
         $this->assertSame('hub_file', $body['data'][0]['featured_image']['source_kind']);
@@ -365,12 +380,12 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             ]);
         }
 
-        $result = $this->get($this->entryPath('?limit=2&order_by=title&order_direction=asc'));
+        $result = $this->get($this->entryPath('?per_page=2&order_by=title&order_direction=asc'));
 
         $result->assertStatus(200);
 
         $body = json_decode($result->getJSON(), true);
-        $this->assertSame('success', $body['status']);
+        $this->assertTrue($body['ok']);
         $this->assertCount(2, $body['data']);
         $this->assertSame('alpha', $body['data'][0]['slug']);
         $this->assertSame('omega', $body['data'][1]['slug']);
@@ -378,7 +393,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertSame(2, (int) $body['meta']['per_page']);
     }
 
-    public function testTeatroEscuelaCollectionOrdersUpcomingFirstThenMostRecentPastAndSupportsLegacyAlias(): void
+    public function testTeatroEscuelaCollectionOrdersUpcomingFirstThenMostRecentPast(): void
     {
         // TeatroEscuela declares its start_date as a public listing field. The
         // reader sorts it through the generic field contract rather than a
@@ -447,7 +462,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             }
         }
 
-        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/entries/cursos?per_page=10&order_by=field:start_date&order_direction=upcoming');
+        $result = $this->get('/api/v1/public-read/' . $this->languages[0]['code'] . '/entries/teatroescuela?per_page=10&order_by=field:start_date&order_direction=upcoming');
 
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
@@ -486,7 +501,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             ]);
         }
 
-        $matching = $this->get($this->entryPath('?q=Banca'));
+        $matching = $this->get($this->entryPath('?search=Banca'));
         $matching->assertStatus(200);
         $matchingBody = json_decode($matching->getJSON(), true);
 
@@ -494,7 +509,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertSame('banca-digital', $matchingBody['data'][0]['slug']);
         $this->assertSame(1, (int) $matchingBody['meta']['total']);
 
-        $unknown = $this->get($this->entryPath('?q=zzzz-sin-resultados'));
+        $unknown = $this->get($this->entryPath('?search=zzzz-sin-resultados'));
         $unknown->assertStatus(200);
         $unknownBody = json_decode($unknown->getJSON(), true);
 
@@ -532,7 +547,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $result->assertStatus(200);
 
         $body = json_decode($result->getJSON(), true);
-        $this->assertSame('success', $body['status']);
+        $this->assertTrue($body['ok']);
         $this->assertArrayHasKey('featured_image', $body['data']);
         $this->assertSame('hub_file', $body['data']['featured_image']['source_kind']);
         $this->assertSame(99, $body['data']['featured_image']['file_id']);
@@ -675,7 +690,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
 
     private function entryPath(string $suffix = ''): string
     {
-        return '/api/v1/public/' . $this->languages[0]['code'] . '/entries/' . $this->collection['key'] . $suffix;
+        return '/api/v1/public-read/' . $this->languages[0]['code'] . '/entries/' . $this->collection['key'] . $suffix;
     }
 
     public function testDraftEntryIsNotFoundByDefault(): void

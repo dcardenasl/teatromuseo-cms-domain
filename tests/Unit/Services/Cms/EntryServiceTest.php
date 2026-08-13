@@ -380,7 +380,6 @@ final class EntryServiceTest extends CIUnitTestCase
             $this->createMock(\App\Libraries\Cms\FileUrlResolver::class),
             $referenceSynchronizer,
             $this->createMock(\App\Libraries\Cms\TranslationResolver::class),
-            $this->createMock(\App\Services\Cms\PublicEntryReader::class),
             $this->createMock(\App\Libraries\Cms\EntryTaxonomyPivotResolver::class),
             $this->createMock(\App\Services\Cms\EntryBlockTemplateInitializer::class),
             $blockInstancePurger
