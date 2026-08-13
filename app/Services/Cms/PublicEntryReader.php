@@ -36,8 +36,6 @@ class PublicEntryReader
 
     private ?\App\Models\EntryTranslationModel $entryTranslationModel = null;
 
-    private ?\App\Models\BlockInstanceTranslationModel $blockInstanceTranslationModel = null;
-
     private ?\App\Models\LanguageModel $languageModel = null;
 
     public function __construct(
@@ -103,17 +101,6 @@ class PublicEntryReader
         return $this->entryTranslationModel;
     }
 
-    private function blockInstanceTranslationModel(): \App\Models\BlockInstanceTranslationModel
-    {
-        if ($this->blockInstanceTranslationModel === null) {
-            /** @var \App\Models\BlockInstanceTranslationModel $resolved */
-            $resolved = model(\App\Models\BlockInstanceTranslationModel::class);
-            $this->blockInstanceTranslationModel = $resolved;
-        }
-
-        return $this->blockInstanceTranslationModel;
-    }
-
     private function languageModel(): \App\Models\LanguageModel
     {
         if ($this->languageModel === null) {
@@ -124,6 +111,36 @@ class PublicEntryReader
 
         return $this->languageModel;
     }
+
+    /**
+     * `entry.*` fields safe to filter/order by directly on `cms_entries`
+     * (real, indexed columns — never require a join).
+     */
+    private const ENTRY_DIRECT_COLUMNS = ['published_at', 'created_at', 'sort_order'];
+
+    /**
+     * `entry.*` fields safe to filter/order by via `cms_entry_translations`
+     * (plain scalar columns only — excludes `schema_data` (JSON) and the two
+     * file-id foreign keys, which were never meaningful facet/order targets).
+     */
+    private const ENTRY_TRANSLATION_FIELDS = [
+        'slug', 'title', 'excerpt', 'meta_title', 'meta_description',
+        'canonical_url', 'robots', 'og_type', 'featured_image_url',
+    ];
+
+    /**
+     * Every real cms_entries column the public contract can expose, minus
+     * `wizard_extra` — a transient write-time payload (cleared once the
+     * block-template initializer consumes it, see EntryBlockTemplateInitializer)
+     * that is never read anywhere in this file and can be an arbitrarily
+     * large JSON blob. `select('cms_entries.*')` was paying to read and
+     * hydrate it on every public listing/detail request for nothing.
+     */
+    private const ENTRY_PUBLIC_COLUMNS = 'cms_entries.id, cms_entries.collection_id, cms_entries.author_id, '
+        . 'cms_entries.workflow_status, cms_entries.published_at, cms_entries.scheduled_at, '
+        . 'cms_entries.is_featured, cms_entries.view_count, cms_entries.sort_order, '
+        . 'cms_entries.sitemap_priority, cms_entries.sitemap_changefreq, cms_entries.is_in_sitemap, '
+        . 'cms_entries.deleted_at, cms_entries.created_at, cms_entries.updated_at';
 
     /** @param array<string, mixed> $options */
     public function listPublic(PublicEntryIndexRequestDTO $dto, array $options = []): DataTransferObjectInterface
@@ -146,7 +163,7 @@ class PublicEntryReader
         // wraps duplicate joined column names.
         $entryModel = $this->entryModel();
         $entryModel->builder()->resetQuery();
-        $entryModel->select('cms_entries.*');
+        $entryModel->select(self::ENTRY_PUBLIC_COLUMNS);
 
         if ($dto->category_id !== null) {
             $entryModel->join('cms_entry_categories', 'cms_entry_categories.entry_id = cms_entries.id')
@@ -215,57 +232,98 @@ class PublicEntryReader
                 ->orWhere('scheduled_at <=', $now)
             ->groupEnd();
 
-        $filteredEntries = null;
-        $filteredFieldValues = [];
+        // --- Faceted filter (filter_by/filter_value) — real WHERE against an
+        // indexed column or an indexed cms_entry_facet_values lookup, never a
+        // full-table load. See docs/audits/2026-08-12-auditoria-parte2-rendimiento-listados-publicos.md §2.A.
+        $filterField = null;
         if ($dto->filter_by !== null && $dto->filter_value !== null) {
-            $candidateEntries = array_values(array_filter(
-                $builder->findAll(),
-                static fn (mixed $entry): bool => $entry instanceof EntryEntity,
-            ));
-            $candidateIds = array_map(static fn (EntryEntity $entry): int => (int) $entry->id, $candidateEntries);
-            $candidateValues = $this->batchResolveListingField($candidateIds, $langId, $defaultLangId, $dto->filter_by);
-            $needle = mb_strtolower($dto->filter_value);
-            $filteredEntries = array_values(array_filter($candidateEntries, function (EntryEntity $entry) use ($candidateValues, $needle, $dto): bool {
-                $value = mb_strtolower((string) ($candidateValues[(int) $entry->id] ?? ''));
-                return $dto->filter_operator === 'contains' ? str_contains($value, $needle) : $value === $needle;
-            }));
-            $filteredFieldValues = $candidateValues;
-            $total = count($filteredEntries);
-        } else {
-            $total = (int) $builder->countAllResults(false);
+            $filterField = $this->classifyField($dto->filter_by);
+            $this->applyFieldFilter($builder, $filterField, $dto->filter_by, $langId, $defaultLangId, $dto->filter_operator, $dto->filter_value);
         }
 
-        $listingFieldValues = [];
+        // Count against the filtered-but-not-yet-ordered builder — mirrors
+        // the pre-existing default branch, which already did this correctly.
+        $total = (int) $builder->countAllResults(false);
 
-        if ($filteredEntries !== null) {
-            if ($dto->listing_field !== null) {
-                $filteredOrderValues = $this->batchResolveListingField(
-                    array_map(static fn (EntryEntity $entry): int => (int) $entry->id, $filteredEntries),
-                    $langId,
-                    $defaultLangId,
-                    $dto->listing_field,
-                );
-                $filteredEntries = $this->sortEntriesByListingField(
-                    $filteredEntries,
-                    $filteredOrderValues,
-                    $dto->order_direction,
-                );
+        $displayValueExpr = null; // SQL fragment selected as entry_listing_field_value, or null if not applicable
+        $displayEntryColumn = null; // set instead of the above when the field is a direct cms_entries column
+
+        if ($dto->listing_field !== null) {
+            $orderField = $this->classifyField($dto->listing_field);
+            $reuseFilterJoin = $filterField !== null
+                && $dto->filter_by === $dto->listing_field
+                && $filterField['mode'] === $orderField['mode']
+                && $orderField['mode'] !== 'entry_column';
+
+            switch ($orderField['mode']) {
+                case 'entry_column':
+                    $column = 'cms_entries.' . $orderField['column'];
+                    $this->applyFieldOrder($builder, $column, 'string', $dto->order_direction, $now);
+                    $displayEntryColumn = $orderField['column'];
+                    break;
+
+                case 'entry_translation':
+                    $alias = $reuseFilterJoin ? 'filter_trans' : 'order_trans';
+                    if (! $reuseFilterJoin) {
+                        $this->joinTranslationValueSubquery($builder, (string) $orderField['column'], $langId, $defaultLangId, $alias, 'left');
+                    }
+                    $this->applyFieldOrder($builder, "{$alias}.resolved_value", 'string', $dto->order_direction, $now);
+                    $displayValueExpr = "{$alias}.resolved_value";
+                    break;
+
+                case 'facet':
+                    $alias = $reuseFilterJoin ? 'filter_facet' : 'order_facet';
+                    if (! $reuseFilterJoin) {
+                        $this->joinFacetSubquery($builder, $dto->listing_field, $langId, $defaultLangId, $alias, 'left');
+                    }
+                    // A field_key's value_type is resolved once per request
+                    // (not per row) from whichever row currently carries it.
+                    // If a block field's declared type changed after some
+                    // rows were materialized under the old type, those rows'
+                    // non-matching typed column is NULL and they naturally
+                    // sort after any row of the now-current type — a self-
+                    // correcting edge case, not a lasting inconsistency (the
+                    // next save of that block re-materializes it under the
+                    // current type).
+                    $valueType = $this->resolveFacetValueType($dto->listing_field);
+                    $orderColumn = match ($valueType) {
+                        'date'    => "{$alias}.value_date",
+                        'numeric' => "{$alias}.value_numeric",
+                        default   => "{$alias}.value_string",
+                    };
+                    $this->applyFieldOrder($builder, $orderColumn, $valueType, $dto->order_direction, $now);
+                    // value_string always holds the verbatim original value
+                    // (EntryFacetValueSynchronizer populates it regardless of
+                    // type) — used here instead of value_date/value_numeric
+                    // so `display_date` matches the source block_data string
+                    // exactly (e.g. "2026-08-13", not a normalized
+                    // "2026-08-13 00:00:00" DATETIME rendering).
+                    $displayValueExpr = "{$alias}.value_string";
+                    break;
+
+                default:
+                    // Unresolvable field reference (e.g. an unsupported
+                    // entry.* column, or the still-dead taxonomy.* prefix —
+                    // see PublicEntryReader's original audit note). No
+                    // primary ORDER BY is added; the tie-breakers below apply
+                    // uniformly, matching the legacy behavior where an
+                    // unresolved field produced identical (empty) values for
+                    // every entry and every comparison fell through to them.
+                    break;
             }
-            $entries = array_slice($filteredEntries, $offset, $dto->per_page);
-        } elseif ($dto->listing_field !== null) {
-            // A listing field is declared by the block schema and resolved in
-            // one batch. The public reader does not need to know which
-            // collection owns the field.
-            $entries = $this->sortByListingField(
-                $builder,
-                $langId,
-                $defaultLangId,
-                $dto->page,
-                $dto->per_page,
-                $dto->listing_field,
-                $dto->order_direction,
-                $listingFieldValues,
-            );
+
+            // Same tie-breakers the already-correct default branch below
+            // uses: published_at desc, created_at desc, then id desc for a
+            // fully stable order across pages.
+            $builder->orderBy('cms_entries.published_at', 'DESC')
+                ->orderBy('cms_entries.created_at', 'DESC')
+                ->orderBy('cms_entries.id', 'DESC');
+
+            if ($displayValueExpr !== null) {
+                $builder->select("{$displayValueExpr} AS entry_listing_field_value", false);
+            }
+
+            $entries = $builder->findAll($dto->per_page, $offset);
         } else {
             $orderColumn = match ($dto->order_by) {
                 'published_at' => 'cms_entries.published_at',
@@ -280,7 +338,7 @@ class PublicEntryReader
                     'title_trans.entry_id = cms_entries.id AND title_trans.language_id = ' . (int) $langId,
                     'left'
                 )
-                    ->select('cms_entries.*')
+                    ->select(self::ENTRY_PUBLIC_COLUMNS)
                     ->select('title_trans.title AS entry_title_order', false);
             }
 
@@ -332,19 +390,32 @@ class PublicEntryReader
             $item    = array_merge($entry->toArray(), $entryTransMap[$entryId] ?? []);
             $item['categories'] = $categoriesMap[$entryId] ?? [];
             $item['tags']       = $tagsMap[$entryId] ?? [];
-            unset($item['entry_title_order']);
+            unset($item['entry_title_order'], $item['entry_listing_field_value']);
             // Normalize featured/OG images into canonical nested objects.
             if ($needsMedia) {
                 $item = $this->normalizeEntryMedia($item, $entryMediaMap);
             }
             if ($dto->listing_field !== null) {
-                $item['display_date'] = $listingFieldValues[$entryId] ?? null;
+                if ($displayEntryColumn !== null) {
+                    $raw = $entry->{$displayEntryColumn} ?? null;
+                } else {
+                    $raw = $entry->entry_listing_field_value ?? null;
+                }
+                $item['display_date'] = is_scalar($raw) && trim((string) $raw) !== '' ? trim((string) $raw) : null;
             }
             $data[] = $item;
         }
 
         if ($dto->include_listing_content) {
-            $listingContentByEntry = $this->entryListingContentResolver->resolveBatch($data, $dto->lang, $dto->projection_fields);
+            // Empty $listing_content_fields means "no sub-selection requested" —
+            // resolveBatch() then computes/returns every key, same contract as
+            // before sub-field selection existed.
+            $listingContentByEntry = $this->entryListingContentResolver->resolveBatch(
+                $data,
+                $dto->lang,
+                $dto->projection_fields,
+                $dto->listing_content_fields
+            );
 
             foreach ($data as &$item) {
                 $entryId = (int) ($item['id'] ?? 0);
@@ -367,238 +438,168 @@ class PublicEntryReader
     }
 
     /**
-     * @param array<int, string> $fieldValuesOut Populated with entry_id => field value.
-     * @return list<EntryEntity>
-     */
-    private function sortByListingField(\App\Models\EntryModel $builder, int $langId, int $defaultLangId, int $page, int $perPage, string $field, string $direction, array &$fieldValuesOut): array
-    {
-        $allEntries = array_values(array_filter(
-            $builder->findAll(),
-            static fn (mixed $entry): bool => $entry instanceof EntryEntity
-        ));
-
-        $entryIds = [];
-        foreach ($allEntries as $entry) {
-            $entryIds[] = (int) $entry->id;
-        }
-
-        $fieldValues = $this->batchResolveListingField($entryIds, $langId, $defaultLangId, $field);
-        $fieldValuesOut = $fieldValues;
-        $allEntries = $this->sortEntriesByListingField($allEntries, $fieldValues, $direction);
-
-        return array_slice($allEntries, ($page - 1) * $perPage, $perPage);
-    }
-
-    /**
-     * Sort a resolved listing field while keeping the ordering stable across
-     * pages and database engines. `UPCOMING` is a two-bucket date order:
-     * future/today ascending, then past descending, then entries without a
-     * valid date.
+     * Classifies a `filter_by`/`order_by=field:...` reference into how it
+     * must be resolved at the SQL layer:
+     *   - `entry_column`   — a real, indexed cms_entries column.
+     *   - `entry_translation` — a plain scalar cms_entry_translations column.
+     *   - `facet`          — a `block.<block_key>.<field>` or bare `<field>`
+     *     reference, resolved against the materialized cms_entry_facet_values
+     *     table (see EntryFacetValueSynchronizer).
+     *   - `none`           — unresolvable (e.g. an entry.* field outside the
+     *     supported list, or the still-unsupported taxonomy.* prefix). Callers
+     *     treat this as "no entries match"/"no ordering effect", matching the
+     *     legacy PHP-side resolver's behavior for the same inputs.
      *
-     * @param list<EntryEntity> $entries
-     * @param array<int, string> $fieldValues
-     * @return list<EntryEntity>
+     * @return array{mode: string, column: string}
      */
-    private function sortEntriesByListingField(array $entries, array $fieldValues, string $direction): array
+    private function classifyField(string $field): array
     {
-        $direction = strtoupper($direction);
-        $descending = $direction === 'DESC';
-        $upcomingFirst = $direction === 'UPCOMING';
-        $today = (new \DateTimeImmutable('today'))->getTimestamp();
-
-        usort($entries, function (EntryEntity $left, EntryEntity $right) use ($fieldValues, $descending, $upcomingFirst, $today): int {
-            $leftValue = trim((string) ($fieldValues[(int) $left->id] ?? ''));
-            $rightValue = trim((string) ($fieldValues[(int) $right->id] ?? ''));
-            $leftTimestamp = $this->listingDateTimestamp($leftValue);
-            $rightTimestamp = $this->listingDateTimestamp($rightValue);
-
-            if ($upcomingFirst) {
-                $comparison = $this->compareUpcomingDates($leftTimestamp, $rightTimestamp, $today);
-            } else {
-                $comparison = $this->compareNullableValues($leftValue, $rightValue);
-                if ($leftValue !== '' && $rightValue !== '' && $descending) {
-                    $comparison = -$comparison;
-                }
-            }
-
-            return $comparison !== 0
-                ? $comparison
-                : $this->compareEntryTieBreakers($left, $right);
-        });
-
-        return $entries;
-    }
-
-    private function compareUpcomingDates(?int $left, ?int $right, int $today): int
-    {
-        if ($left === null || $right === null) {
-            return match (true) {
-                $left === null && $right === null => 0,
-                $left === null => 1,
-                default => -1,
-            };
-        }
-
-        $leftUpcoming = $left >= $today;
-        $rightUpcoming = $right >= $today;
-        if ($leftUpcoming !== $rightUpcoming) {
-            return $leftUpcoming ? -1 : 1;
-        }
-
-        return $leftUpcoming ? $left <=> $right : $right <=> $left;
-    }
-
-    private function compareNullableValues(string $left, string $right): int
-    {
-        if ($left === '' || $right === '') {
-            return match (true) {
-                $left === '' && $right === '' => 0,
-                $left === '' => 1,
-                default => -1,
-            };
-        }
-
-        return $left <=> $right;
-    }
-
-    private function compareEntryTieBreakers(EntryEntity $left, EntryEntity $right): int
-    {
-        $leftPublished = $this->listingDateTimestamp((string) ($left->published_at ?? ''));
-        $rightPublished = $this->listingDateTimestamp((string) ($right->published_at ?? ''));
-        if ($leftPublished !== $rightPublished) {
-            return ($rightPublished ?? PHP_INT_MIN) <=> ($leftPublished ?? PHP_INT_MIN);
-        }
-
-        $leftCreated = $this->listingDateTimestamp((string) ($left->created_at ?? ''));
-        $rightCreated = $this->listingDateTimestamp((string) ($right->created_at ?? ''));
-        if ($leftCreated !== $rightCreated) {
-            return ($rightCreated ?? PHP_INT_MIN) <=> ($leftCreated ?? PHP_INT_MIN);
-        }
-
-        return (int) $right->id <=> (int) $left->id;
-    }
-
-    private function listingDateTimestamp(string $value): ?int
-    {
-        $value = trim($value);
-        if ($value === '') {
-            return null;
-        }
-
-        $timestamp = strtotime($value);
-
-        return $timestamp === false ? null : $timestamp;
-    }
-
-    /**
-     * Resolves a safe listing field for a set of entries in one batch. Field
-     * references are derived from the entry contract (`entry.*`), taxonomy
-     * projection, or the selected collection's block schemas (`block.*`).
-     *
-     * @param list<int> $entryIds
-     * @return array<int, string> entry_id => field value, only entries that have one
-     */
-    private function batchResolveListingField(array $entryIds, int $langId, int $defaultLangId, string $field): array
-    {
-        if ($entryIds === []) {
-            return [];
-        }
-
-        $languageIds = $langId === $defaultLangId ? [$langId] : [$langId, $defaultLangId];
-        $values = [];
-
         if (str_starts_with($field, 'entry.')) {
             $entryField = substr($field, 6);
-            if (! in_array($entryField, ['published_at', 'created_at', 'sort_order'], true)) {
-                $translations = $this->entryTranslationModel()
-                    ->whereIn('entry_id', $entryIds)
-                    ->whereIn('language_id', $languageIds)
-                    ->findAll();
-                $byEntryAndLang = [];
-                foreach ($translations as $translation) {
-                    if (! $translation instanceof \App\Entities\EntryTranslationEntity) {
-                        continue;
-                    }
-                    $byEntryAndLang[(int) $translation->entry_id][(int) $translation->language_id] = $translation;
-                }
-                foreach ($entryIds as $entryId) {
-                    $translation = $byEntryAndLang[$entryId][$langId] ?? $byEntryAndLang[$entryId][$defaultLangId] ?? null;
-                    if ($translation instanceof \App\Entities\EntryTranslationEntity) {
-                        $values[$entryId] = trim((string) ($translation->{$entryField} ?? ''));
-                    }
-                }
-            } else {
-                foreach ($this->entryModel()->whereIn('id', $entryIds)->findAll() as $entry) {
-                    if (! $entry instanceof EntryEntity) {
-                        continue;
-                    }
-                    $values[(int) $entry->id] = trim((string) ($entry->{$entryField} ?? ''));
-                }
+            if (in_array($entryField, self::ENTRY_DIRECT_COLUMNS, true)) {
+                return ['mode' => 'entry_column', 'column' => $entryField];
+            }
+            if (in_array($entryField, self::ENTRY_TRANSLATION_FIELDS, true)) {
+                return ['mode' => 'entry_translation', 'column' => $entryField];
             }
 
-            return array_filter($values, static fn (string $value): bool => $value !== '');
+            return ['mode' => 'none', 'column' => ''];
         }
 
-        // Routed through the injected BlockInstanceTranslationModel (not Database::connect())
-        // to stay within this Service layer's model-coupling guardrail
-        // (ServiceModelDependencyConventionsTest) — CI4 Models proxy join()/where()/etc.
-        // straight to their query builder, same as the entryModel() joins above. The model
-        // is shared/memoized across requests, so reset its builder first — same reasoning
-        // as the entryModel() reset at the top of listPublic().
-        $this->blockInstanceTranslationModel()->builder()->resetQuery();
-
-        $rows = $this->blockInstanceTranslationModel()
-            ->select('cms_block_instances.owner_id AS entry_id, cms_block_instance_translations.language_id, cms_block_instance_translations.block_data, cms_content_blocks.schema_definition, cms_content_blocks.block_key')
-            ->join('cms_block_instances', 'cms_block_instances.id = cms_block_instance_translations.instance_id')
-            ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
-            ->where('cms_block_instances.owner_type', 'entry')
-            ->whereIn('cms_block_instance_translations.language_id', $languageIds)
-            ->whereIn('cms_block_instances.owner_id', $entryIds)
-            ->findAll();
-
-        // Requested language wins over the default-language fallback when both exist.
-        $byEntryAndLang = [];
-        foreach ($rows as $row) {
-            if (!$row instanceof \App\Entities\BlockInstanceTranslationEntity) {
-                continue;
-            }
-            // owner_id was selected under an alias (entry_id) — it isn't a declared
-            // attribute on the entity, so it comes back as a dynamic property.
-            $entryId    = (int) $row->entry_id;
-            $languageId = (int) $row->language_id;
-            $byEntryAndLang[$entryId][$languageId][] = $row;
+        if (str_starts_with($field, 'taxonomy.')) {
+            return ['mode' => 'none', 'column' => ''];
         }
 
-        $map = [];
-        foreach ($byEntryAndLang as $entryId => $byLang) {
-            $rowsForLanguage = $byLang[$langId] ?? $byLang[$defaultLangId] ?? [];
-            foreach ($rowsForLanguage as $row) {
-                $blockKey = trim((string) ($row->block_key ?? ''));
-                $prefix = 'block.' . $blockKey . '.';
-                $legacyField = ! str_contains($field, '.');
-                if (! $legacyField && ! str_starts_with($field, $prefix)) {
-                    continue;
-                }
-                $fieldKey = $legacyField ? $field : substr($field, strlen($prefix));
-                $schema = json_decode((string) ($row->schema_definition ?? '{}'), true);
-                $schemaFields = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
-                $definition = $schemaFields[$fieldKey] ?? null;
-                if (! is_array($definition) || ! in_array((string) ($definition['type'] ?? ''), ['string', 'text', 'textarea', 'richtext', 'date', 'datetime', 'number', 'integer', 'select', 'boolean'], true)) {
-                    continue;
-                }
-                $decoded = \dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer::toArray($row->block_data);
-                $value = $decoded[$fieldKey] ?? null;
-                if (is_array($value)) {
-                    $value = implode(', ', array_map(static fn (mixed $item): string => is_scalar($item) ? trim((string) $item) : '', $value));
-                }
-                if (is_scalar($value) && trim((string) $value) !== '') {
-                    $map[$entryId] = trim((string) $value);
-                    break;
-                }
-            }
+        // `block.<block_key>.<field>` or the bare legacy `<field>` form —
+        // both are written to cms_entry_facet_values by
+        // EntryFacetValueSynchronizer under the same field_key the caller
+        // passed here, so no further parsing is needed.
+        return ['mode' => 'facet', 'column' => ''];
+    }
+
+    /**
+     * @param array{mode: string, column: string} $field
+     */
+    private function applyFieldFilter(
+        \App\Models\EntryModel $builder,
+        array $field,
+        string $rawField,
+        int $langId,
+        int $defaultLangId,
+        string $operator,
+        string $value
+    ): void {
+        $column = match ($field['mode']) {
+            'entry_column' => 'cms_entries.' . $field['column'],
+            'entry_translation' => (function () use ($builder, $field, $langId, $defaultLangId): string {
+                $this->joinTranslationValueSubquery($builder, (string) $field['column'], $langId, $defaultLangId, 'filter_trans', 'inner');
+
+                return 'filter_trans.resolved_value';
+            })(),
+            'facet' => (function () use ($builder, $rawField, $langId, $defaultLangId): string {
+                $this->joinFacetSubquery($builder, $rawField, $langId, $defaultLangId, 'filter_facet', 'inner');
+
+                return 'filter_facet.value_string';
+            })(),
+            default => null,
+        };
+
+        if ($column === null) {
+            // Unresolvable field reference: no entry can match, exactly like
+            // the legacy resolver returning an empty candidate-value map.
+            $builder->where('1 = 0', null, false);
+
+            return;
         }
 
-        return $map;
+        if ($operator === 'contains') {
+            $builder->like($column, $value);
+        } else {
+            $builder->where($column, $value);
+        }
+    }
+
+    /**
+     * Applies ORDER BY for a resolved field column, always pushing NULLs
+     * last regardless of direction (matching compareNullableValues()'s prior
+     * semantics) and supporting the two-bucket `UPCOMING` date order
+     * ("próximos primero, luego histórico descendente") for date-typed
+     * fields only — the same restriction the previous PHP-side sorter had in
+     * practice, since UPCOMING only ever made sense against a parseable date.
+     */
+    private function applyFieldOrder(\App\Models\EntryModel $builder, string $column, string $valueType, string $direction, string $now): void
+    {
+        if ($direction === 'UPCOMING' && $valueType === 'date') {
+            $quotedNow = $builder->db->escape($now);
+            $builder->orderBy("CASE WHEN {$column} IS NULL THEN 2 WHEN {$column} >= {$quotedNow} THEN 0 ELSE 1 END", 'ASC', false);
+            $builder->orderBy("CASE WHEN {$column} >= {$quotedNow} THEN {$column} END", 'ASC', false);
+            $builder->orderBy("CASE WHEN {$column} < {$quotedNow} THEN {$column} END", 'DESC', false);
+
+            return;
+        }
+
+        $sqlDirection = $direction === 'DESC' ? 'DESC' : 'ASC';
+        $builder->orderBy("({$column} IS NULL)", 'ASC', false);
+        $builder->orderBy($column, $sqlDirection, false);
+    }
+
+    /**
+     * Joins a derived, per-entry-resolved value from cms_entry_facet_values
+     * for one field_key, with the requested language winning over the
+     * default-language fallback when both exist — same precedence the old
+     * PHP-side `byEntryAndLang[$entryId][$langId] ?? [...][$defaultLangId]`
+     * lookup had, just computed in SQL instead of after loading every row.
+     */
+    private function joinFacetSubquery(\App\Models\EntryModel $builder, string $fieldKey, int $langId, int $defaultLangId, string $alias, string $joinType): void
+    {
+        $db = $builder->db;
+        $escapedField = $db->escape($fieldKey);
+        $sql = "(SELECT entry_id, "
+            . "COALESCE(MAX(CASE WHEN language_id = {$langId} THEN value_string END), MAX(CASE WHEN language_id = {$defaultLangId} THEN value_string END)) AS value_string, "
+            . "COALESCE(MAX(CASE WHEN language_id = {$langId} THEN value_date END), MAX(CASE WHEN language_id = {$defaultLangId} THEN value_date END)) AS value_date, "
+            . "COALESCE(MAX(CASE WHEN language_id = {$langId} THEN value_numeric END), MAX(CASE WHEN language_id = {$defaultLangId} THEN value_numeric END)) AS value_numeric "
+            . "FROM cms_entry_facet_values WHERE field_key = {$escapedField} AND language_id IN ({$langId}, {$defaultLangId}) "
+            . "GROUP BY entry_id) {$alias}";
+
+        $builder->join($sql, "{$alias}.entry_id = cms_entries.id", $joinType);
+    }
+
+    /**
+     * Same per-entry, language-fallback resolution as joinFacetSubquery(),
+     * but against cms_entry_translations for `entry.*` fields that live on
+     * the translation row (title, excerpt, slug, ...) rather than as a
+     * materialized facet. $column is only ever called with a value from
+     * self::ENTRY_TRANSLATION_FIELDS — never raw user input — so it is safe
+     * to interpolate as an identifier.
+     */
+    private function joinTranslationValueSubquery(\App\Models\EntryModel $builder, string $column, int $langId, int $defaultLangId, string $alias, string $joinType): void
+    {
+        $db = $builder->db;
+        $quotedColumn = $db->escapeIdentifiers($column);
+        $sql = "(SELECT entry_id, "
+            . "COALESCE(MAX(CASE WHEN language_id = {$langId} THEN {$quotedColumn} END), MAX(CASE WHEN language_id = {$defaultLangId} THEN {$quotedColumn} END)) AS resolved_value "
+            . "FROM cms_entry_translations "
+            . "WHERE {$quotedColumn} IS NOT NULL AND {$quotedColumn} <> '' AND language_id IN ({$langId}, {$defaultLangId}) "
+            . "GROUP BY entry_id) {$alias}";
+
+        $builder->join($sql, "{$alias}.entry_id = cms_entries.id", $joinType);
+    }
+
+    /**
+     * One cheap, field_key-indexed lookup to learn whether a facet field
+     * should sort as a date, a number, or a plain string — decided once per
+     * request, not per candidate row.
+     */
+    private function resolveFacetValueType(string $fieldKey): string
+    {
+        $result = $this->entryModel()->db->table('cms_entry_facet_values')
+            ->select('value_type')
+            ->where('field_key', $fieldKey)
+            ->limit(1)
+            ->get();
+        $row = $result === false ? null : $result->getRowArray();
+
+        return is_array($row) ? (string) ($row['value_type'] ?? 'string') : 'string';
     }
 
     /** @param array<string, mixed> $options */
@@ -651,7 +652,10 @@ class PublicEntryReader
             && PreviewToken::verify('entry', (string) $entryId, $dto->preview_expires, $dto->preview_sig);
 
         $now    = date('Y-m-d H:i:s');
-        $query = $this->entryModel()
+        $entryModel = $this->entryModel();
+        $entryModel->builder()->resetQuery();
+        $query = $entryModel
+            ->select(self::ENTRY_PUBLIC_COLUMNS)
             ->where('id', $entryId)
             ->where('collection_id', (int) $collection->id);
 

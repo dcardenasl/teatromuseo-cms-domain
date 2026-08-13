@@ -425,6 +425,26 @@ final class PublicEntryControllerTest extends CIUnitTestCase
                 'language_id' => $this->langEsId,
                 'block_data' => json_encode(['start_date' => $startDate], JSON_THROW_ON_ERROR),
             ]);
+
+            // Fixture inserts block_data directly (bypassing BlockInstanceService/
+            // EntryBlockTemplateInitializer), so it must also materialize
+            // cms_entry_facet_values itself — real writes go through those
+            // services, which call EntryFacetValueSynchronizer automatically.
+            // Both the namespaced and bare field_key forms are written to match
+            // what the real write path produces (the request below uses the
+            // bare `field:start_date` legacy form).
+            foreach (["block.teatroescuela_ficha.start_date", 'start_date'] as $fieldKey) {
+                $this->db->table('cms_entry_facet_values')->insert([
+                    'entry_id' => $entry['id'],
+                    'block_instance_id' => $block['id'],
+                    'language_id' => $this->langEsId,
+                    'field_key' => $fieldKey,
+                    'value_type' => 'date',
+                    'value_string' => $startDate,
+                    'value_date' => $startDate,
+                    'value_numeric' => null,
+                ]);
+            }
         }
 
         $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/entries/cursos?per_page=10&order_by=field:start_date&order_direction=upcoming');
