@@ -28,6 +28,9 @@ return [
         'unsupported_resource' => 'Tipo de recurso no soportado para referencias de archivos CMS: {0}.',
         'sync_failed' => 'No se pudieron sincronizar las referencias de archivos CMS para {0} #{1}.',
     ],
+    'entry_facets' => [
+        'sync_failed' => 'No se pudieron sincronizar los valores de faceta/orden de la entrada #{0}.',
+    ],
     'entry_references' => [
         'required' => 'El campo de referencia de entrada {0} es obligatorio.',
         'min_items' => 'La lista de referencias {0} no contiene suficientes entradas.',

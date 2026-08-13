@@ -28,6 +28,9 @@ return [
         'unsupported_resource' => 'Unsupported CMS file reference resource type: {0}.',
         'sync_failed' => 'Unable to synchronize CMS file references for {0} #{1}.',
     ],
+    'entry_facets' => [
+        'sync_failed' => 'Unable to synchronize facet/order values for entry #{0}.',
+    ],
     'entry_references' => [
         'required' => 'The entry reference field {0} is required.',
         'min_items' => 'The entry reference list {0} does not contain enough entries.',
