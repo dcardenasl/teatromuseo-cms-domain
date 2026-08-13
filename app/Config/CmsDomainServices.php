@@ -375,7 +375,8 @@ trait CmsDomainServices
             static::cacheInvalidationClient(),
             static::translationSynchronizer(),
             static::blockReferenceValidator(),
-            static::entryRelationSynchronizer()
+            static::entryRelationSynchronizer(),
+            static::entryFacetValueSynchronizer()
         );
     }
 
@@ -404,6 +405,15 @@ trait CmsDomainServices
         }
 
         return new \App\Libraries\Cms\EntryRelationSynchronizer(\Config\Database::connect());
+    }
+
+    public static function entryFacetValueSynchronizer(bool $getShared = true): \App\Libraries\Cms\EntryFacetValueSynchronizer
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryFacetValueSynchronizer');
+        }
+
+        return new \App\Libraries\Cms\EntryFacetValueSynchronizer(\Config\Database::connect());
     }
     public static function collectionResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -453,7 +463,7 @@ trait CmsDomainServices
             return static::getSharedInstance('entryBlockTemplateInitializer');
         }
 
-        return new \App\Services\Cms\EntryBlockTemplateInitializer();
+        return new \App\Services\Cms\EntryBlockTemplateInitializer(static::entryFacetValueSynchronizer());
     }
     public static function entryService(bool $getShared = true): \App\Interfaces\Cms\EntryServiceInterface
     {

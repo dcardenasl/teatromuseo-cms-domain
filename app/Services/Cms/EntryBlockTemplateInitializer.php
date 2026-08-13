@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\Libraries\Cms\EntryFacetValueSynchronizer;
+
 /**
  * Transactionally creates BlockInstances (and their translations) for every
  * block defined in an entry's parent collection `block_template`, optionally
@@ -13,6 +15,10 @@ namespace App\Services\Cms;
  */
 class EntryBlockTemplateInitializer
 {
+    public function __construct(private readonly EntryFacetValueSynchronizer $entryFacetValueSynchronizer)
+    {
+    }
+
     /**
      * @param array<string, mixed>|null $wizardExtra
      * @return list<string> wizard_extra keys that were consumed (mapped to block_data)
@@ -121,6 +127,15 @@ class EntryBlockTemplateInitializer
                     if (!$inserted) {
                         throw new \RuntimeException(lang('Entries.block_translation_insert_failed', [$language->id]));
                     }
+
+                    $this->entryFacetValueSynchronizer->sync(
+                        (int) $entry->id,
+                        (int) $instanceId,
+                        $blockKey,
+                        (int) $language->id,
+                        $extraction['data'],
+                        $schemaFields
+                    );
                 }
 
                 $createdBlockCount++;

@@ -7,6 +7,7 @@ namespace App\Services\Cms;
 use App\Entities\BlockInstanceEntity;
 use App\Interfaces\Cms\BlockInstanceServiceInterface;
 use App\Libraries\Cms\BlockReferenceValidator;
+use App\Libraries\Cms\EntryFacetValueSynchronizer;
 use App\Libraries\Cms\EntryRelationSynchronizer;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
@@ -39,6 +40,8 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
 
     private ?EntryRelationSynchronizer $entryRelationSynchronizer;
 
+    private ?EntryFacetValueSynchronizer $entryFacetValueSynchronizer;
+
     public function setOwnerContext(string $ownerType, int $ownerId): void
     {
         $this->filterOwnerType = $ownerType;
@@ -66,7 +69,8 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
         ?BlockReferenceValidator $blockReferenceValidator = null,
-        ?EntryRelationSynchronizer $entryRelationSynchronizer = null
+        ?EntryRelationSynchronizer $entryRelationSynchronizer = null,
+        ?EntryFacetValueSynchronizer $entryFacetValueSynchronizer = null
     ) {
         parent::__construct($blockInstanceRepository, $responseMapper);
         $this->fileUrlResolver = $fileUrlResolver;
@@ -75,6 +79,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         $this->translationSynchronizer = $translationSynchronizer;
         $this->blockReferenceValidator = $blockReferenceValidator;
         $this->entryRelationSynchronizer = $entryRelationSynchronizer;
+        $this->entryFacetValueSynchronizer = $entryFacetValueSynchronizer;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -272,13 +277,15 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
                 }
             }
 
+            $languageId = (int) $translation['language_id'];
             $rows[] = [
-                'language_id'  => (int) $translation['language_id'],
+                'language_id'  => $languageId,
                 'block_data'   => json_encode($blockData),
                 'is_published' => (bool) ($translation['is_published'] ?? true),
             ];
             $normalizedTranslations[] = [
-                'block_data' => $blockData,
+                'language_id' => $languageId,
+                'block_data'  => $blockData,
             ];
         }
 
@@ -290,6 +297,40 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             static fn (array $row): array => $row,
         );
         $this->syncSemanticRelations($instanceId, $normalizedTranslations);
+        $this->syncEntryFacetValues($instanceId, $ownerEntryId, $blockSchemaFields, $normalizedTranslations);
+    }
+
+    /**
+     * Keeps cms_entry_facet_values in lockstep with block_data for
+     * entry-owned blocks, so public listings can filter/order by
+     * `filter_by`/`order_by=field:...` with a real indexed WHERE/ORDER BY
+     * instead of loading every candidate entry into PHP. Page-owned blocks
+     * are skipped — only entries are exposed through listPublic().
+     *
+     * @param list<array{language_id:int, block_data: array<string, mixed>}> $translations
+     * @param array<string, mixed> $schemaFields
+     */
+    private function syncEntryFacetValues(int $instanceId, ?int $ownerEntryId, array $schemaFields, array $translations): void
+    {
+        if ($this->entryFacetValueSynchronizer === null || $ownerEntryId === null) {
+            return;
+        }
+
+        $blockKey = $this->blockKeyForInstance($instanceId);
+        if ($blockKey === null) {
+            return;
+        }
+
+        foreach ($translations as $translation) {
+            $this->entryFacetValueSynchronizer->sync(
+                $ownerEntryId,
+                $instanceId,
+                $blockKey,
+                (int) $translation['language_id'],
+                $translation['block_data'],
+                $schemaFields
+            );
+        }
     }
 
     /** @param array<mixed> $translations */
@@ -606,6 +647,19 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         $blockType = (new \App\Models\BlockTypeModel())->find($blockId);
 
         return $blockType instanceof \App\Entities\BlockTypeEntity ? $blockType : null;
+    }
+
+    private function blockKeyForInstance(int $instanceId): ?string
+    {
+        $instance = $this->repository->find($instanceId);
+        $blockId = isset($instance->block_id) ? (int) $instance->block_id : null;
+        if ($blockId === null) {
+            return null;
+        }
+
+        $blockType = $this->blockTypeById($blockId);
+
+        return $blockType instanceof \App\Entities\BlockTypeEntity ? (string) $blockType->block_key : null;
     }
 
     /**
