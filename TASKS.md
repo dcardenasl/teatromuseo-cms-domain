@@ -6,6 +6,32 @@
 
 ## ✅ Completadas
 
+- [x] **PERF-04 — Endpoints compuestos `layout` y `page-bootstrap` en PublicRead**
+  — cerrada 2026-08-13. Enmienda ADR 004 §1/§6 vía
+  [`../docs/adr/006-public-read-composite-bootstrap-endpoints.md`](../docs/adr/006-public-read-composite-bootstrap-endpoints.md):
+  bajo hosting sin paralelismo real confirmado, el costo dominante de una
+  carga fría de Web es el número de round-trips HTTP, no el diseño de
+  composición — y Web es el único consumidor confirmado de las 5 rutas
+  involucradas. Se agregaron `GET public-read/{locale}/layout` (agrega
+  navigation+collections+settings, mismo payload para toda página de un
+  locale) y `GET public-read/{locale}/page-bootstrap/{path}` (agrega
+  redirect+página), ambos como composición pura sobre los lectores/servicios
+  existentes (`PublicReadNavigationReader`, `PublicReadSettingsReader`,
+  `CollectionService::listPublic()`, `PublicReadPageReader`,
+  `RedirectService::resolvePublic()`) — sin duplicar su lógica de query, sin
+  tocar el esquema. `page-bootstrap` responde 200 con `redirect`/`page`
+  explícitamente `null` en vez de 404 cuando faltan — el llamador (Web)
+  necesita el resultado de ambas búsquedas incluso cuando una falta, para
+  decidir su propia estrategia de resolución. Nuevas clases:
+  `PublicReadLayoutReader`/`PublicReadLayoutReaderInterface`,
+  `PublicReadPageBootstrapReader`/`PublicReadPageBootstrapReaderInterface`;
+  2 acciones nuevas en `PublicReadController` (mismo patrón que
+  `navigation()`/`settings()`); 2 rutas en `public-read.php`; 2 factories en
+  `CmsDomainServices`; documentación OpenAPI + `swagger.json` regenerado;
+  `PublicReadOpenApiContractTest` extendido con los 2 paths nuevos.
+  Verificado: 620/620 tests (608 previos + 12 nuevos: 6 unitarios + 6 de
+  feature), PHPStan 0 errores, CS-Fixer limpio, contrato OpenAPI verde.
+
 - [x] **PERF-03 — Retirar la ruta pública duplicada `public/{lang}/entries/{collection}`**
   — cerrada 2026-08-13. Al investigar antes de borrar (siguiendo la propia
   disciplina de este proyecto) se encontró que `PublicEntryController` NO era
