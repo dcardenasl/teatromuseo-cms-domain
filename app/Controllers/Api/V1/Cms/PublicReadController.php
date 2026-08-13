@@ -9,7 +9,9 @@ use App\DTO\Request\Cms\PublicReadEntryShowRequestDTO;
 use App\DTO\Request\Cms\PublicReadLocaleRequestDTO;
 use App\DTO\Request\Cms\PublicReadPageRequestDTO;
 use App\Interfaces\Cms\PublicReadEntryReaderInterface;
+use App\Interfaces\Cms\PublicReadLayoutReaderInterface;
 use App\Interfaces\Cms\PublicReadNavigationReaderInterface;
+use App\Interfaces\Cms\PublicReadPageBootstrapReaderInterface;
 use App\Interfaces\Cms\PublicReadPageReaderInterface;
 use App\Interfaces\Cms\PublicReadSettingsReaderInterface;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -40,12 +42,18 @@ final class PublicReadController extends ApiController
 
     private PublicReadEntryReaderInterface $entryReader;
 
+    private PublicReadLayoutReaderInterface $layoutReader;
+
+    private PublicReadPageBootstrapReaderInterface $pageBootstrapReader;
+
     protected function resolveDefaultService(): object
     {
         $this->reader = Services::publicReadPageReader();
         $this->navigationReader = Services::publicReadNavigationReader();
         $this->settingsReader = Services::publicReadSettingsReader();
         $this->entryReader = Services::publicReadEntryReader();
+        $this->layoutReader = Services::publicReadLayoutReader();
+        $this->pageBootstrapReader = Services::publicReadPageBootstrapReader();
 
         return $this->reader;
     }
@@ -83,6 +91,34 @@ final class PublicReadController extends ApiController
     {
         return $this->handleRequest(
             fn (PublicReadLocaleRequestDTO $dto): mixed => $this->settingsReader->show($dto->locale),
+            PublicReadLocaleRequestDTO::class,
+            ['locale' => $locale],
+        );
+    }
+
+    /**
+     * Composite: navigation + collections + settings in one response. See
+     * ADR 006 — the same payload for every page in a locale, independent
+     * of slug.
+     */
+    public function layout(string $locale): ResponseInterface
+    {
+        return $this->handleRequest(
+            fn (PublicReadLocaleRequestDTO $dto): mixed => $this->layoutReader->show($dto->locale),
+            PublicReadLocaleRequestDTO::class,
+            ['locale' => $locale],
+        );
+    }
+
+    /**
+     * Composite: redirect check + page (with blocks) in one response. See
+     * ADR 006 — the same pair Web's route resolver always requests
+     * together for a given path.
+     */
+    public function pageBootstrap(string $locale, string $path): ResponseInterface
+    {
+        return $this->handleRequest(
+            fn (PublicReadLocaleRequestDTO $dto): mixed => $this->pageBootstrapReader->show($dto->locale, $path, $this->parseFields(self::DETAIL_FIELDS)),
             PublicReadLocaleRequestDTO::class,
             ['locale' => $locale],
         );
