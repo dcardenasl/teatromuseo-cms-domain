@@ -19,6 +19,8 @@ final class PublicReadOpenApiContractTest extends TestCase
             '/api/v1/public-read/{locale}/settings',
             '/api/v1/public-read/{locale}/entries/{collection}',
             '/api/v1/public-read/{locale}/entries/{collection}/{slug}',
+            '/api/v1/public-read/{locale}/layout',
+            '/api/v1/public-read/{locale}/page-bootstrap/{path}',
         ];
 
         foreach ($paths as $path) {

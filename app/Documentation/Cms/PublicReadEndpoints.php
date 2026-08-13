@@ -101,6 +101,52 @@ final class PublicReadEndpoints
     }
 
     #[OA\Get(
+        path: '/api/v1/public-read/{locale}/layout',
+        tags: ['Public Read - CMS'],
+        summary: 'Composite: navigation, collections and settings in one response (ADR 006)',
+        description: 'Same payload for every page in a locale, independent of slug. Aggregates the navigation, collections and settings PublicRead resources so a page render needs one call instead of three.',
+        security: [['appKeyAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'locale', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'PublicRead envelope; data is {navigation, collections, settings}',
+                content: new OA\JsonContent(ref: '#/components/schemas/PublicReadEnvelope'),
+            ),
+            new OA\Response(response: 401, description: 'Missing or invalid X-App-Key'),
+        ]
+    )]
+    public function layout(): void
+    {
+    }
+
+    #[OA\Get(
+        path: '/api/v1/public-read/{locale}/page-bootstrap/{path}',
+        tags: ['Public Read - CMS'],
+        summary: 'Composite: redirect check and page (with blocks) in one response (ADR 006)',
+        description: 'Aggregates the redirect lookup and the page-by-path lookup Web\'s route resolver always requests together. A missing redirect is `redirect: null` in a 200 response, not a 404 — the caller still needs the page lookup result (or `page: null`, to fall through to other resolution strategies) even when there is no redirect.',
+        security: [['appKeyAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'locale', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'path', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'fields', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'PublicRead envelope; data is {redirect, page}, either may be null',
+                content: new OA\JsonContent(ref: '#/components/schemas/PublicReadEnvelope'),
+            ),
+            new OA\Response(response: 401, description: 'Missing or invalid X-App-Key'),
+        ]
+    )]
+    public function pageBootstrap(): void
+    {
+    }
+
+    #[OA\Get(
         path: '/api/v1/public-read/{locale}/entries/{collection}',
         tags: ['Public Read - CMS'],
         summary: 'List published entries from a collection',

@@ -1509,6 +1509,101 @@
                 ]
             }
         },
+        "/api/v1/public-read/{locale}/layout": {
+            "get": {
+                "tags": [
+                    "Public Read - CMS"
+                ],
+                "summary": "Composite: navigation, collections and settings in one response (ADR 006)",
+                "description": "Same payload for every page in a locale, independent of slug. Aggregates the navigation, collections and settings PublicRead resources so a page render needs one call instead of three.",
+                "operationId": "b7fda2f7d0c20615771648a13ce80709",
+                "parameters": [
+                    {
+                        "name": "locale",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PublicRead envelope; data is {navigation, collections, settings}",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicReadEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid X-App-Key"
+                    }
+                },
+                "security": [
+                    {
+                        "appKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/public-read/{locale}/page-bootstrap/{path}": {
+            "get": {
+                "tags": [
+                    "Public Read - CMS"
+                ],
+                "summary": "Composite: redirect check and page (with blocks) in one response (ADR 006)",
+                "description": "Aggregates the redirect lookup and the page-by-path lookup Web's route resolver always requests together. A missing redirect is `redirect: null` in a 200 response, not a 404 — the caller still needs the page lookup result (or `page: null`, to fall through to other resolution strategies) even when there is no redirect.",
+                "operationId": "d6343fd5886cadce6eaacc74fbf63654",
+                "parameters": [
+                    {
+                        "name": "locale",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "path",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "fields",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PublicRead envelope; data is {redirect, page}, either may be null",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicReadEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid X-App-Key"
+                    }
+                },
+                "security": [
+                    {
+                        "appKeyAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/public-read/{locale}/entries/{collection}": {
             "get": {
                 "tags": [
