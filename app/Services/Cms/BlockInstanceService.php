@@ -586,13 +586,15 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             return [];
         }
 
-        $schemaDefinition = $blockType->schema_definition ?? null;
-        if (is_string($schemaDefinition) && trim($schemaDefinition) !== '') {
-            $decoded = json_decode($schemaDefinition, true);
-            return is_array($decoded) ? $decoded : [];
-        }
-
-        return is_array($schemaDefinition) ? $schemaDefinition : [];
+        // BlockTypeEntity casts schema_definition as 'json', which CI4
+        // decodes to stdClass recursively at every nesting level (not an
+        // array) — a plain is_array() check here always returned [] for real
+        // schema data. JsonCastNormalizer::toArray() round-trips through
+        // json_encode/json_decode(..., true) to normalize it correctly, the
+        // same fix already applied where this exact pitfall was root-caused
+        // (see this repo's CLAUDE.md, and EntryBlockTemplateInitializer's
+        // identical use of it for the same property).
+        return \dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer::toArray($blockType->schema_definition ?? null);
     }
 
     private function blockTypeById(int $blockId): ?\App\Entities\BlockTypeEntity
