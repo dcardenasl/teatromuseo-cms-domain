@@ -7,8 +7,6 @@ namespace App\Services\Cms;
 use App\DTO\Request\Cms\EntrySetCategoriesRequestDTO;
 use App\DTO\Request\Cms\EntrySetTagsRequestDTO;
 use App\DTO\Request\Cms\EntrySyncTaxonomyRequestDTO;
-use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
-use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\DTO\Response\Cms\EntryResponseDTO;
 use App\Entities\EntryEntity;
 use App\Interfaces\Cms\EntryListRepositoryInterface;
@@ -48,8 +46,6 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     private BlockInstancePurger $blockInstancePurger;
 
-    private PublicEntryReader $publicReader;
-
     private EntryTaxonomyPivotResolver $taxonomyPivotResolver;
 
     private \App\Libraries\Cms\TranslationResolver $translationResolver;
@@ -69,7 +65,6 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         FileUrlResolver $fileUrlResolver,
         FileReferenceSynchronizer $fileReferenceSynchronizer,
         \App\Libraries\Cms\TranslationResolver $translationResolver,
-        PublicEntryReader $publicReader,
         EntryTaxonomyPivotResolver $taxonomyPivotResolver,
         EntryBlockTemplateInitializer $blockTemplateInitializer,
         BlockInstancePurger $blockInstancePurger,
@@ -82,7 +77,6 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->fileUrlResolver      = $fileUrlResolver;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
         $this->translationResolver = $translationResolver;
-        $this->publicReader = $publicReader;
         $this->taxonomyPivotResolver = $taxonomyPivotResolver;
         $this->blockInstancePurger = $blockInstancePurger;
         $this->blockTemplateInitializer = $blockTemplateInitializer;
@@ -598,16 +592,6 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         /** @var \App\Models\EntryTagModel $entryTagModel */
         $entryTagModel = model(\App\Models\EntryTagModel::class);
         $entryTagModel->replaceForEntry($entryId, $tagIds);
-    }
-
-    public function listPublic(PublicEntryIndexRequestDTO $dto): DataTransferObjectInterface
-    {
-        return $this->publicReader->listPublic($dto);
-    }
-
-    public function showPublic(PublicEntryShowRequestDTO $dto): DataTransferObjectInterface
-    {
-        return $this->publicReader->showPublic($dto);
     }
 
     public function createVersionSnapshot(int $entryId, string $note = ''): void

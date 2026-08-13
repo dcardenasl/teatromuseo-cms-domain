@@ -480,7 +480,6 @@ trait CmsDomainServices
             static::fileUrlResolver(),
             static::fileReferenceSynchronizer(),
             static::translationResolver(),
-            static::publicEntryReader(),
             static::entryTaxonomyPivotResolver(),
             static::entryBlockTemplateInitializer(),
             static::blockInstancePurger(),

@@ -7,8 +7,6 @@ namespace App\Interfaces\Cms;
 use App\DTO\Request\Cms\EntrySetCategoriesRequestDTO;
 use App\DTO\Request\Cms\EntrySetTagsRequestDTO;
 use App\DTO\Request\Cms\EntrySyncTaxonomyRequestDTO;
-use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
-use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Services\CrudServiceContract;
@@ -32,10 +30,6 @@ interface EntryServiceInterface extends CrudServiceContract
         EntrySyncTaxonomyRequestDTO $dto,
         ?SecurityContext $context = null
     ): DataTransferObjectInterface;
-
-    public function listPublic(PublicEntryIndexRequestDTO $dto): DataTransferObjectInterface;
-
-    public function showPublic(PublicEntryShowRequestDTO $dto): DataTransferObjectInterface;
 
     public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool;
 }

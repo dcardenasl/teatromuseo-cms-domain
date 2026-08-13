@@ -167,8 +167,18 @@ $routes->get('public/menus/(:segment)', '\App\Controllers\Api\V1\Cms\PublicMenuC
 $routes->get('public/(:segment)/collections', '\App\Controllers\Api\V1\Cms\PublicCollectionController::index/$1', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/(:segment)/categories/(:segment)', '\App\Controllers\Api\V1\Cms\PublicCategoryController::index/$1/$2', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/(:segment)/tags/(:segment)', '\App\Controllers\Api\V1\Cms\PublicTagController::index/$1/$2', ['filter' => ['webappkey', 'throttle']]);
-$routes->get('public/(:segment)/entries/(:segment)', '\App\Controllers\Api\V1\Cms\PublicEntryController::index/$1/$2', ['filter' => ['webappkey', 'throttle']]);
-$routes->get('public/(:segment)/entries/(:segment)/(.+)', '\App\Controllers\Api\V1\Cms\PublicEntryController::show/$1/$2/$3', ['filter' => ['webappkey', 'throttle']]);
+// `public/{lang}/entries/{collection}[/{slug}]` (PublicEntryController) removed
+// 2026-08-13 — exact duplicate of public-read/{lang}/entries/{collection}[/{any}],
+// same underlying PublicEntryReader::listPublic()/showPublic(). Confirmed zero
+// consumers across teatromuseo-web/bff/admin/totem. Preview support
+// (?preview=1&preview_expires=&preview_sig=) was ported to
+// PublicReadEntryShowRequestDTO/PublicReadEntryReader::show() first — it was
+// already being sent by SiteEntryService::getBySlug() but silently dropped,
+// a live bug fixed as part of this removal, not scope creep. The
+// `cursos`→`teatroescuela` collection-key alias (a one-time rename-migration
+// shim, never present on public-read, zero current callers) was deliberately
+// NOT ported. See
+// docs/audits/2026-08-12-auditoria-parte2-rendimiento-listados-publicos.md §2.F.
 $routes->get('public/redirects/(.*)', '\App\Controllers\Api\V1\Cms\PublicRedirectController::resolve/$1', ['filter' => ['webappkey', 'throttle']]);
 // Public form definition (for web rendering dynamic forms)
 $routes->get('public/(:segment)/forms/(:segment)', '\App\Controllers\Api\V1\Cms\PublicFormController::definition/$1/$2', ['filter' => ['webappkey', 'throttle']]);
