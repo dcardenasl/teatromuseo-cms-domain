@@ -16,13 +16,27 @@ final class EntryListingContentResolver
     {
     }
 
+    /** Every key this resolver can produce — the full, backward-compatible contract. */
+    private const ALL_KEYS = [
+        'rich_text', 'image', 'hover_image', 'secondary_action', 'documents',
+        'publication_date', 'date_fields', 'fields', 'video',
+    ];
+
     /**
      * @param list<array<string, mixed>> $entries
      * @param list<string> $projectionFields
-     * @return array<int, array{rich_text: string, image: array<string, mixed>|null, hover_image: array<string, mixed>|null, secondary_action: array{label: string, url: string}|null, documents: list<array{url: string, title: string, description: string, file_id: int|null}>, publication_date: string, date_fields: array<string, string>, fields: array<string, mixed>, video: array{provider: string, id: string, url: string}|null}>
+     * @param list<string> $includeKeys Subset of self::ALL_KEYS to compute and
+     *   return. Empty means "no sub-selection requested" — every key is
+     *   computed and returned, same as before this parameter existed. A
+     *   caller that only renders a card's image and date (e.g. collection_grid)
+     *   passes `['image', 'date_fields']` and skips the cost/payload of
+     *   rich_text, video, documents, and secondary_action entirely.
+     * @return array<int, array<string, mixed>>
      */
-    public function resolveBatch(array $entries, string $langCode, array $projectionFields = []): array
+    public function resolveBatch(array $entries, string $langCode, array $projectionFields = [], array $includeKeys = []): array
     {
+        $keys = $includeKeys === [] ? self::ALL_KEYS : array_values(array_intersect(self::ALL_KEYS, $includeKeys));
+
         $entryIds = [];
         foreach ($entries as $entry) {
             $entryId = (int) ($entry['id'] ?? 0);
@@ -43,21 +57,27 @@ final class EntryListingContentResolver
             $schemaListing = $this->schemaListing($entry['schema_data'] ?? null);
             $blocks = $blocksByEntry[$entryId] ?? [];
 
-            $result[$entryId] = [
-                'rich_text' => $this->stringValue($schemaListing['rich_text'] ?? null)
-                    ?: $this->richTextFromBlock($blocks),
-                'image' => $this->imageFromSchema($schemaListing['image'] ?? null)
-                    ?? $this->imageFromBlock($blocks),
-                'hover_image' => $this->hoverImageFromBlock($blocks),
-                'secondary_action' => $this->actionFromSchema($schemaListing['secondary_action'] ?? null)
-                    ?? $this->actionFromBlock($blocks),
-                'documents' => $this->documentsFromBlocks($blocks),
-                'publication_date' => $this->publicationDateFromBlocks($blocks)
-                    ?: $this->publicationYearFromEntry($entry),
-                'date_fields' => $this->dateFieldsFromBlocks($blocks),
-                'fields' => $this->projectionValues($entry, $blocks, $projectionFields),
-                'video' => $this->videoFromBlocks($blocks),
-            ];
+            $item = [];
+            foreach ($keys as $key) {
+                $item[$key] = match ($key) {
+                    'rich_text' => $this->stringValue($schemaListing['rich_text'] ?? null)
+                        ?: $this->richTextFromBlock($blocks),
+                    'image' => $this->imageFromSchema($schemaListing['image'] ?? null)
+                        ?? $this->imageFromBlock($blocks),
+                    'hover_image' => $this->hoverImageFromBlock($blocks),
+                    'secondary_action' => $this->actionFromSchema($schemaListing['secondary_action'] ?? null)
+                        ?? $this->actionFromBlock($blocks),
+                    'documents' => $this->documentsFromBlocks($blocks),
+                    'publication_date' => $this->publicationDateFromBlocks($blocks)
+                        ?: $this->publicationYearFromEntry($entry),
+                    'date_fields' => $this->dateFieldsFromBlocks($blocks),
+                    'fields' => $this->projectionValues($entry, $blocks, $projectionFields),
+                    'video' => $this->videoFromBlocks($blocks),
+                    default => null,
+                };
+            }
+
+            $result[$entryId] = $item;
         }
 
         return $result;

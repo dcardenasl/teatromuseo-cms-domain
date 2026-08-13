@@ -23,6 +23,14 @@ readonly class PublicReadEntryIndexRequestDTO extends BaseRequestDTO
     public ?string $filterValue;
     public string $filterOperator;
     public bool $includeListingContent;
+    /**
+     * Raw `include=` value, preserved verbatim (e.g.
+     * `listing_content.image,listing_content.date_fields`) so
+     * PublicReadEntryReader can forward the exact sub-field selection to
+     * PublicEntryIndexRequestDTO instead of collapsing it back to the
+     * all-or-nothing `listing_content` token.
+     */
+    public string $rawInclude;
 
     public function rules(): array
     {
@@ -40,7 +48,7 @@ readonly class PublicReadEntryIndexRequestDTO extends BaseRequestDTO
             'filter_by' => 'permit_empty|string|max_length[100]',
             'filter_value' => 'permit_empty|string|max_length[255]',
             'filter_operator' => 'permit_empty|in_list[equals,contains]',
-            'include' => 'permit_empty|in_list[listing_content]',
+            'include' => 'permit_empty|string|max_length[300]',
         ];
     }
 
@@ -67,7 +75,10 @@ readonly class PublicReadEntryIndexRequestDTO extends BaseRequestDTO
         $this->filterOperator = in_array((string) ($data['filter_operator'] ?? 'equals'), ['equals', 'contains'], true)
             ? (string) ($data['filter_operator'] ?? 'equals')
             : 'equals';
-        $this->includeListingContent = (string) ($data['include'] ?? '') === 'listing_content';
+        $this->rawInclude = trim((string) ($data['include'] ?? ''));
+        $this->includeListingContent = $this->rawInclude === 'listing_content'
+            || str_starts_with($this->rawInclude, 'listing_content.')
+            || str_contains($this->rawInclude, ',listing_content');
     }
 
     /** @return array<string, mixed> */
@@ -87,7 +98,7 @@ readonly class PublicReadEntryIndexRequestDTO extends BaseRequestDTO
             'filter_by' => $this->filterBy,
             'filter_value' => $this->filterValue,
             'filter_operator' => $this->filterOperator,
-            'include' => $this->includeListingContent ? 'listing_content' : null,
+            'include' => $this->rawInclude !== '' ? $this->rawInclude : null,
         ];
     }
 }

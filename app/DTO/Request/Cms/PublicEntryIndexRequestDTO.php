@@ -8,6 +8,12 @@ use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 
 readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
 {
+    /** Keys EntryListingContentResolver::resolveBatch() can return. */
+    private const LISTING_CONTENT_FIELDS = [
+        'rich_text', 'image', 'hover_image', 'secondary_action', 'documents',
+        'publication_date', 'date_fields', 'fields', 'video',
+    ];
+
     public string $lang;
     public string $collection_key;
     public int $page;
@@ -25,6 +31,15 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
     /** @var list<string> */
     public array $projection_fields;
     public bool $include_listing_content;
+    /**
+     * Sub-keys of listing_content actually requested (e.g. `image`,
+     * `date_fields`) via `include=listing_content.image,listing_content.date_fields`.
+     * Empty means "no sub-selection was requested" — resolveBatch() then
+     * returns every listing_content key, same as before this field existed.
+     *
+     * @var list<string>
+     */
+    public array $listing_content_fields;
 
     /** @return array<string, string> */
     public function rules(): array
@@ -41,7 +56,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'q'              => 'permit_empty|string|max_length[255]',
             'order_by'       => 'permit_empty|regex_match[/^(published_at|sort_order|created_at|title|field:[a-z][a-z0-9_]{0,49}|field:(entry|block|taxonomy)\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)?)$/]',
             'order_direction' => 'permit_empty|in_list[asc,desc,upcoming,ASC,DESC,UPCOMING]',
-            'include'         => 'permit_empty|in_list[listing_content]',
+            'include'         => 'permit_empty|string|max_length[300]',
             'fields'          => 'permit_empty|string|max_length[2000]',
             'filter_by'       => 'permit_empty|string|max_length[100]',
             'filter_value'    => 'permit_empty|string|max_length[255]',
@@ -70,7 +85,9 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'UPCOMING' => 'UPCOMING',
             default => 'ASC',
         };
-        $this->include_listing_content = (string) ($data['include'] ?? '') === 'listing_content';
+        $parsedInclude = $this->parseInclude((string) ($data['include'] ?? ''));
+        $this->include_listing_content = $parsedInclude['include_listing_content'];
+        $this->listing_content_fields  = $parsedInclude['listing_content_fields'];
         $rawFields = is_string($data['fields'] ?? null) ? explode(',', (string) $data['fields']) : [];
         $this->projection_fields = array_values(array_filter(array_map(
             static fn (string $field): string => trim($field),
@@ -105,7 +122,55 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'filter_operator' => $this->filter_operator,
             'fields'         => $this->projection_fields,
             'order_direction' => $this->order_direction,
-            'include'         => $this->include_listing_content ? 'listing_content' : null,
+            'include'         => $this->buildIncludeString(),
         ];
+    }
+
+    /**
+     * Parses `include=listing_content` and/or comma-separated
+     * `listing_content.<subkey>` tokens. Any token that isn't recognized is
+     * dropped silently, matching this DTO's existing lenient style for
+     * `fields`/`filter_operator`.
+     *
+     * @return array{include_listing_content: bool, listing_content_fields: list<string>}
+     */
+    private function parseInclude(string $raw): array
+    {
+        $includeListingContent = false;
+        $listingContentFields  = [];
+
+        foreach (explode(',', $raw) as $token) {
+            $token = trim($token);
+            if ($token === 'listing_content') {
+                $includeListingContent = true;
+            } elseif (str_starts_with($token, 'listing_content.')) {
+                $subKey = substr($token, strlen('listing_content.'));
+                if (in_array($subKey, self::LISTING_CONTENT_FIELDS, true)) {
+                    $includeListingContent = true;
+                    $listingContentFields[] = $subKey;
+                }
+            }
+        }
+
+        return [
+            'include_listing_content' => $includeListingContent,
+            'listing_content_fields'  => array_values(array_unique($listingContentFields)),
+        ];
+    }
+
+    private function buildIncludeString(): ?string
+    {
+        if (! $this->include_listing_content) {
+            return null;
+        }
+
+        if ($this->listing_content_fields === []) {
+            return 'listing_content';
+        }
+
+        return implode(',', array_map(
+            static fn (string $field): string => 'listing_content.' . $field,
+            $this->listing_content_fields,
+        ));
     }
 }

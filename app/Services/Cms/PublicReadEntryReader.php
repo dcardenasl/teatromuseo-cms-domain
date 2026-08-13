@@ -38,7 +38,7 @@ final class PublicReadEntryReader implements PublicReadEntryReaderInterface
                 'filter_by' => $request->filterBy,
                 'filter_value' => $request->filterValue,
                 'filter_operator' => $request->filterOperator,
-                'include' => $request->includeListingContent ? 'listing_content' : null,
+                'include' => $request->rawInclude !== '' ? $request->rawInclude : null,
             ]);
             $result = $this->reader->listPublic($legacy, ['fields' => $fields])->toArray();
             $items = is_array($result['data'] ?? null) ? $result['data'] : [];
