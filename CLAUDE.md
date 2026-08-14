@@ -213,6 +213,16 @@ return type doesn't expose (e.g. `BlockInstanceService::blockTypeById()`,
 guardrail on a *new* violation — it's for this one specific typing problem, not
 a loophole.
 
+## Cross-repo public-read contract
+
+`teatromuseo-bff/app/PublicRead/Cms/` owns the migrated public-read contract.
+If a CMS migration changes a table, column, relation, or publication rule used
+by that BFF code, notify and update `teatromuseo-bff` in the same session (or
+open an explicit follow-up before merging). There is no cross-repository CI
+that detects this schema/reader drift automatically. The BFF remains
+SELECT-only and must not be made dependent on this application or on a shared
+public-read Composer package.
+
 ## Common pitfalls
 
 - ❌ Issuing JWTs from this app — that's the hub's job, always.
