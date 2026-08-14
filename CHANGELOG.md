@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **`/api/v1/public-read/{locale}/**`, `/api/v1/public/{locale}/categories/{key}` and
+  `/api/v1/public/{locale}/tags/{key}`** — retired now that `teatromuseo-bff` reads this
+  domain's database directly and serves the public-read surface exclusively; removed the
+  controllers, DTOs, readers, interfaces, OpenAPI docs and their transitional shared-package
+  dependencies.
+
 ### Added
 
 - **`/api/v1/public-read/{locale}/layout` and `/page-bootstrap/{path}`** — composite
