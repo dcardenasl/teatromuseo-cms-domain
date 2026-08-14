@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b8856ca6ec954b05893ef2120ebfeabd",
+    "content-hash": "e53fe44dd362537ca2833ce1a300c2ef",
     "packages": [
         {
             "name": "codeigniter4/framework",
@@ -171,6 +171,113 @@
                 "source": "https://github.com/dcardenasl/ci4-api-core"
             },
             "time": "2026-08-06T15:28:52+00:00"
+        },
+        {
+            "name": "dcardenasl/ci4-public-read-core",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../../ci4-platform/ci4-public-read-core",
+                "reference": "b9c1740ef987601053229c4215c4fb78fdbe78cd"
+            },
+            "require": {
+                "codeigniter4/framework": "^4.7",
+                "dcardenasl/ci4-api-core": "^1.0",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.95",
+                "phpstan/phpstan": "^2.1",
+                "phpunit/phpunit": "^11.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "dcardenasl\\Ci4PublicReadCore\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "phpunit --configuration=phpunit.xml.dist --no-coverage"
+                ],
+                "phpstan": [
+                    "phpstan analyse --memory-limit=512M"
+                ],
+                "cs-check": [
+                    "php-cs-fixer fix --dry-run --diff --sequential"
+                ],
+                "quality": [
+                    "@cs-check",
+                    "@phpstan",
+                    "@test"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Shared read-only contracts and infrastructure for public read models.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dcardenasl/teatromuseo-cms-public-read",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../../ci4-platform/teatromuseo-cms-public-read",
+                "reference": "775e8bb1003a7cbc1ea262fbbc0e31e88cdc708e"
+            },
+            "require": {
+                "codeigniter4/framework": "^4.7",
+                "dcardenasl/ci4-api-core": "^1.0",
+                "dcardenasl/ci4-public-read-core": "dev-main",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.95",
+                "phpstan/phpstan": "^2.1",
+                "phpunit/phpunit": "^11.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "dcardenasl\\TeatroMuseoCmsPublicRead\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "phpunit --configuration=phpunit.xml.dist --no-coverage"
+                ],
+                "phpstan": [
+                    "phpstan analyse --memory-limit=512M"
+                ],
+                "cs-check": [
+                    "php-cs-fixer fix --dry-run --diff --sequential"
+                ],
+                "quality": [
+                    "@cs-check",
+                    "@phpstan",
+                    "@test"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Read-only public CMS projections for Teatro Museo.",
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "ezyang/htmlpurifier",
@@ -6014,7 +6121,10 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "dcardenasl/ci4-public-read-core": 20,
+        "dcardenasl/teatromuseo-cms-public-read": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

@@ -3,10 +3,26 @@
     "description": "CodeIgniter 4 Website Builder starter — delegates auth to a hub via /auth/introspect.",
     "type": "project",
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../../ci4-platform/ci4-api-core"
+        },
+        {
+            "type": "path",
+            "url": "../../ci4-platform/ci4-public-read-core"
+        },
+        {
+            "type": "path",
+            "url": "../../ci4-platform/teatromuseo-cms-public-read"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "codeigniter4/framework": "^4.7",
         "dcardenasl/ci4-api-core": "^1.0",
+        "dcardenasl/ci4-public-read-core": "dev-main",
+        "dcardenasl/teatromuseo-cms-public-read": "dev-main",
         "ezyang/htmlpurifier": "^4.17",
         "guzzlehttp/psr7": "^2.12.1",
         "monolog/monolog": "^3.5",
