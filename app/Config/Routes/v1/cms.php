@@ -165,16 +165,13 @@ $routes->get('public/(:segment)/pages/by-type/(:segment)', '\App\Controllers\Api
 $routes->get('public/(:segment)/pages/(.+)', '\App\Controllers\Api\V1\Cms\PublicPageController::show/$1/$2', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/menus/(:segment)', '\App\Controllers\Api\V1\Cms\PublicMenuController::show/$1', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/(:segment)/collections', '\App\Controllers\Api\V1\Cms\PublicCollectionController::index/$1', ['filter' => ['webappkey', 'throttle']]);
-$routes->get('public/(:segment)/categories/(:segment)', '\App\Controllers\Api\V1\Cms\PublicCategoryController::index/$1/$2', ['filter' => ['webappkey', 'throttle']]);
-$routes->get('public/(:segment)/tags/(:segment)', '\App\Controllers\Api\V1\Cms\PublicTagController::index/$1/$2', ['filter' => ['webappkey', 'throttle']]);
 // `public/{lang}/entries/{collection}[/{slug}]` (PublicEntryController) removed
 // 2026-08-13 — exact duplicate of public-read/{lang}/entries/{collection}[/{any}],
 // same underlying PublicEntryReader::listPublic()/showPublic(). Confirmed zero
 // consumers across teatromuseo-web/bff/admin/totem. Preview support
-// (?preview=1&preview_expires=&preview_sig=) was ported to
-// PublicReadEntryShowRequestDTO/PublicReadEntryReader::show() first — it was
-// already being sent by SiteEntryService::getBySlug() but silently dropped,
-// a live bug fixed as part of this removal, not scope creep. The
+// (?preview=1&preview_expires=&preview_sig=) was verified through the BFF first
+// — the Web/Admin preview flow already sends these parameters opaquely. The
+// CMS duplicate was not kept as a fallback after the BFF cutover. The
 // `cursos`→`teatroescuela` collection-key alias (a one-time rename-migration
 // shim, never present on public-read, zero current callers) was deliberately
 // NOT ported. See

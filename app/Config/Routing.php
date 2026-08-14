@@ -108,9 +108,9 @@ class Routing extends BaseRouting
     public bool $prioritize = false;
 
     /**
-     * For Defined Routes. PublicRead page and entry slugs may contain
-     * hierarchical paths such as `museo/coleccion`; keep a matched wildcard
-     * path as one controller argument.
+     * For Defined Routes. Public page and entry slugs may contain hierarchical
+     * paths such as `museo/coleccion`; keep a matched wildcard path as one
+     * controller argument.
      */
     public bool $multipleSegmentsOneParam = true;
 
