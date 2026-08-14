@@ -41,6 +41,23 @@ class RedirectService extends BaseCrudService implements RedirectServiceInterfac
         return $this->publicRedirectResolver->resolve($segments);
     }
 
+    /**
+     * @param list<string> $segments
+     * @return array{
+     *     redirect: array{new_url: string, redirect_type: int},
+     *     manual: array{id: int, hit_count: int}|null
+     * }
+     */
+    public function resolvePublicWithMetadata(array $segments): array
+    {
+        return $this->publicRedirectResolver->resolveWithMetadata($segments);
+    }
+
+    public function recordPublicHit(int $redirectId, int $currentHitCount): void
+    {
+        $this->publicRedirectResolver->recordHit($redirectId, $currentHitCount);
+    }
+
     protected function afterStore(object $entity, ?SecurityContext $context): void
     {
         parent::afterStore($entity, $context);

@@ -28,7 +28,14 @@ class PublicRedirectController extends ApiController
     {
         return $this->handleRequest(
             function (array $dto, SecurityContext $context) use ($segments): mixed {
-                return $this->redirectService->resolvePublic(array_values($segments));
+                $resolution = $this->redirectService->resolvePublicWithMetadata(array_values($segments));
+                $manual = $resolution['manual'];
+
+                if ($manual !== null) {
+                    $this->redirectService->recordPublicHit($manual['id'], $manual['hit_count']);
+                }
+
+                return $resolution['redirect'];
             }
         );
     }
