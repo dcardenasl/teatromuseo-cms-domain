@@ -109,6 +109,93 @@
 
 ## 🟡 Próximo
 
+### BFF de lectura directa (2026-08-13) — ver `../docs/plan/2026-08-13-plan-bff-completo.md`
+
+No cambia el comportamiento propio de este repo (`CollectionService`/
+`CategoryService`/`TagService`/`RedirectService` siguen sirviendo su CRUD/HTTP
+tal cual, hasta `CMS-PR-06`).
+
+> ⚠️ **`CMS-PR-01..05` (abajo) se completaron bajo un diseño que el plan ya no
+> usa** — proponían extraer las clases a un paquete Composor compartido
+> (`teatromuseo-cms-public-read` en `ci4-platform/`), consumido de vuelta por
+> este mismo repo. Revisión de diseño 2026-08-13 (decisión #5 del plan): con
+> un solo consumidor final (el BFF), un paquete no aporta nada — el BFF
+> escribe su propia implementación en `teatromuseo-bff/app/PublicRead/Cms/`,
+> usando el código de este repo como referencia de lectura, no como
+> dependencia. El análisis hecho en `CMS-PR-01..05` (qué clases son limpias,
+> el split de `PublicRedirectResolver`) sigue siendo válido y es justamente lo
+> que informa esa implementación — no se pierde el trabajo, pero **no dejes
+> ese paquete/`repositories` como si fuera parte del diseño final**; ver
+> `CMS-PR-06`, que lo limpia.
+
+- [x] **CMS-PR-01 — Crear `teatromuseo-cms-public-read` y mover lectores
+  limpios.** Agregar el bloque `repositories` faltante en `composer.json`
+  (hacia `ci4-api-core` y hacia los paquetes nuevos — hoy falta pese a que
+  `CLAUDE.md` dice que existe). Mover `PublicReadPageReader`,
+  `PublicReadNavigationReader`, `PublicReadSettingsReader` tal cual (ya son
+  `BaseConnection`-only) al paquete nuevo en `ci4-platform/`, que este repo
+  pasa a consumir vía path-repo.
+- [x] **CMS-PR-02 — `PublicReadCollectionsReader` nuevo, desacoplar
+  `PublicReadLayoutReader`.** `PublicReadLayoutReader` hoy depende de
+  `CollectionService::listPublic()`, que arrastra `CacheInvalidationClient`/
+  `TranslationSynchronizer` (colaboradores de escritura). Crear
+  `PublicReadCollectionsReader` (`BaseConnection`-only) componiendo
+  `PublicCollectionReader` directo con los repositorios, sin esos dos
+  colaboradores, y usarlo en `PublicReadLayoutReader` en vez de
+  `CollectionService`. `CollectionService` no se toca (sigue sirviendo CRUD).
+- [x] **CMS-PR-03 — `PublicReadCategoryReader`/`PublicReadTagReader`
+  nuevos.** `PublicCategoryController`/`PublicTagController` usan
+  `CategoryService`/`TagService`, que llaman `model()` (service locator) — no
+  son reusables tal cual por el BFF. Escribir dos lectores nuevos
+  `BaseConnection`-only, mismo patrón que
+  `PublicReadCollectionItemReader` de `teatromuseo-catalog-domain`.
+  `CategoryService`/`TagService` no se tocan.
+- [x] **CMS-PR-04 — Partir `PublicRedirectResolver::resolve()`/`recordHit()`.**
+  Hoy `resolve()` escribe (`recordHit()` incrementa `hit_count`/`last_hit_at`
+  en cada resolución) — incompatible con un usuario MySQL solo-`SELECT`.
+  Separar en `resolve()` puro (lo que usará el BFF, vía
+  `PublicReadPageBootstrapReader`) y `recordHit()` (queda invocado solo por el
+  controlador HTTP propio de este dominio — el BFF nunca la llama, se pierde
+  esa métrica para tráfico servido por BFF, decisión ya tomada con David).
+- [x] **CMS-PR-05 — Auditar `entries`/`forms` para el paquete compartido.**
+  Mismo criterio ya aplicado a pages/nav/settings: verificar si el lector
+  detrás de `GET public-read/{locale}/entries/{collectionKey}` y de
+  `GET public/{locale}/forms/{formKey}` ya son `BaseConnection`-only o
+  necesitan el mismo tratamiento que CMS-PR-03 antes de moverse al paquete.
+- [ ] **CMS-PR-06 — Retirar el HTTP público propio, una vez el BFF sea
+  estable (Fase 3 del plan).** El BFF pasa a ser dueño exclusivo de la
+  lectura pública migrada — no se mantiene este dominio sirviendo el mismo
+  contrato en paralelo "por si acaso" (mismo criterio que ya usó este
+  proyecto en los cierres `PERF-03` de hoy: cero consumidores confirmados
+  fuera de Web → se borra). Bloqueada por `BFF-DB-03` (equivalente en el BFF,
+  ya funcionando y verificado) y por `WEB-BFF-03` (corte de Web estable).
+  **Bloqueo operativo actual:** `CMS_PREVIEW_SECRET` está vacío en el CMS y
+  Admin del entorno dev (y no se simula en BFF); todavía no existe una prueba
+  positiva real de `page-bootstrap?preview=1&preview_expires=&preview_sig=`.
+  Configurar el mismo secreto real en BFF/CMS/Admin y ejecutar esa prueba
+  antes de borrar este controlador. Al
+  ejecutar: borrar `PublicReadController.php`, `PublicCategoryController.php`,
+  `PublicTagController.php`, sus rutas `public-read/*`/`public/*`
+  (webappkey), OpenAPI y tests de contrato específicos de esas rutas.
+  **También**: `CMS-PR-01` (2026-08-13) ya agregó a este `composer.json` los
+  bloques `repositories`/`require` de `ci4-public-read-core` y
+  `teatromuseo-cms-public-read` — quitar ambos de este repo (ya no es parte
+  del diseño, ver nota de arriba) y correr `composer update` para que
+  `composer.lock`/`vendor/` queden consistentes. **No borrar todavía** las
+  carpetas `ci4-platform/ci4-public-read-core/`/`ci4-platform/teatromuseo-cms-public-read/`
+  — `catalog-domain`/`event-domain` (para `ci4-public-read-core`) y el BFF
+  (para todas) pueden seguir declarándolas hasta que también corran su
+  propia tarea de retiro; el borrado físico de esas carpetas es la tarea de
+  limpieza final cross-repo en `../TASKS.md`, no esta. **Antes de borrar**,
+  confirmar que el preview de Admin
+  (`page-bootstrap?preview=1&preview_expires=&preview_sig=`) ya lo sirve el
+  controlador nuevo del BFF — es la única capacidad no puramente pública
+  anónima de este controlador. `CollectionService`/`CategoryService`/
+  `TagService`/`RedirectService` (con `recordHit()`) no se tocan. Agregar al
+  `CLAUDE.md` de este repo la nota de proceso: si una migración toca una
+  tabla usada por `teatromuseo-bff/app/PublicRead/Cms/`, avisar/actualizar el
+  BFF en la misma sesión — no hay CI cross-repo que lo detecte solo.
+
 ### Plan vigente — PublicRead/PageDelivery/Snapshots (2026-08-09)
 
 `PUB-00`, `PUB-01/02`, `CMS-01..05`, `SHARED-01` y `CACHE-03` están cerradas
