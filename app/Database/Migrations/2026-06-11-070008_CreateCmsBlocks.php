@@ -53,9 +53,13 @@ class CreateCmsBlocks extends Migration
         $this->forge->addKey(['parent_instance_id', 'sort_order'], false, false, 'idx_blockinst_parent');
         $this->forge->addKey('block_id', false, false, 'idx_blockinst_block');
         $this->forge->addForeignKey('block_id', 'cms_content_blocks', 'id', '', 'RESTRICT', 'fk_blockinst_block');
-        $this->forge->addForeignKey('parent_instance_id', 'cms_block_instances', 'id', '', 'CASCADE', 'fk_blockinst_parent');
 
         $this->forge->createTable('cms_block_instances', false, ['ENGINE' => 'InnoDB']);
+
+        // Add the self-reference after CREATE TABLE for MySQL/MariaDB
+        // compatibility; those engines may reject it in the initial DDL.
+        $this->forge->addForeignKey('parent_instance_id', 'cms_block_instances', 'id', '', 'CASCADE', 'fk_blockinst_parent');
+        $this->forge->processIndexes('cms_block_instances');
 
         // Domain-owned registry of Hub file IDs referenced by CMS resources.
         // There is deliberately no FK to `files`: that table belongs to the Hub.

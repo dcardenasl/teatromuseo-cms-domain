@@ -72,12 +72,16 @@ class CreateCmsMenus extends Migration
         $this->forge->addKey('entry_id', false, false, 'idx_menuitem_entry');
         $this->forge->addKey('collection_id', false, false, 'idx_menuitem_collection');
         $this->forge->addForeignKey('menu_id', 'cms_menus', 'id', '', 'CASCADE', 'fk_menuitem_menu');
-        $this->forge->addForeignKey('parent_id', 'cms_menu_items', 'id', '', 'CASCADE', 'fk_menuitem_parent');
         $this->forge->addForeignKey('page_id', 'cms_pages', 'id', '', 'CASCADE', 'fk_menuitem_page');
         $this->forge->addForeignKey('entry_id', 'cms_entries', 'id', '', 'CASCADE', 'fk_menuitem_entry');
         $this->forge->addForeignKey('collection_id', 'cms_collections', 'id', '', 'CASCADE', 'fk_menuitem_collection');
 
         $this->forge->createTable('cms_menu_items', false, ['ENGINE' => 'InnoDB']);
+
+        // Add the self-reference after CREATE TABLE for MySQL/MariaDB
+        // compatibility; those engines may reject it in the initial DDL.
+        $this->forge->addForeignKey('parent_id', 'cms_menu_items', 'id', '', 'CASCADE', 'fk_menuitem_parent');
+        $this->forge->processIndexes('cms_menu_items');
 
         $this->forge->addField([
             'id'           => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],
