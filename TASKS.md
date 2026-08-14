@@ -6,6 +6,24 @@
 
 ## ✅ Completadas
 
+- [x] **CMS-PR-06 — Retirar el HTTP público propio (Fase 3).** Cerrada
+  2026-08-14 después de verificar el gate de preview firmado y la estabilidad
+  de Fase 2. Se retiraron `PublicReadController`, `PublicCategoryController`,
+  `PublicTagController`, sus rutas `public-read`/categorías/tags, DTOs,
+  lectores, interfaces, envelope, documentación OpenAPI y tests específicos.
+  Se conservaron las rutas públicas CMS-only y el CRUD autenticado. Se quitaron
+  los dos path-repositories y requisitos Composer de lectura pública; el lock y
+  `vendor/` ya no contienen esos paquetes. Las carpetas físicas superseded se
+  eliminaron después en `PKG-CLEANUP-01`. Se añadió la nota de
+  coordinación cross-repo en `CLAUDE.md`. El preview positivo se verificó con
+  curl real en CMS `8190` y BFF `8188` usando el mismo secreto efectivo de 64
+  bytes; las rutas CMS retiradas responden `404` y el endpoint de página
+  conservado responde `200`. Se corrigieron cinco migraciones MySQL con
+  foreign keys auto-referenciadas para aplicarlas después de `createTable()`.
+  `composer quality` oficial: CS-Fixer limpio, PHPStan 0, arquitectura verde,
+  558 tests / 2.628 assertions / 1 skipped; contratos de seed: 15 tests /
+  3.472 assertions. Swagger regenerado: 25 paths / 59 schemas.
+
 - [x] **PERF-04 — Endpoints compuestos `layout` y `page-bootstrap` en PublicRead**
   — cerrada 2026-08-13. Enmienda ADR 004 §1/§6 vía
   [`../docs/adr/006-public-read-composite-bootstrap-endpoints.md`](../docs/adr/006-public-read-composite-bootstrap-endpoints.md):
@@ -162,39 +180,6 @@ tal cual, hasta `CMS-PR-06`).
   detrás de `GET public-read/{locale}/entries/{collectionKey}` y de
   `GET public/{locale}/forms/{formKey}` ya son `BaseConnection`-only o
   necesitan el mismo tratamiento que CMS-PR-03 antes de moverse al paquete.
-- [ ] **CMS-PR-06 — Retirar el HTTP público propio, una vez el BFF sea
-  estable (Fase 3 del plan).** El BFF pasa a ser dueño exclusivo de la
-  lectura pública migrada — no se mantiene este dominio sirviendo el mismo
-  contrato en paralelo "por si acaso" (mismo criterio que ya usó este
-  proyecto en los cierres `PERF-03` de hoy: cero consumidores confirmados
-  fuera de Web → se borra). Bloqueada por `BFF-DB-03` (equivalente en el BFF,
-  ya funcionando y verificado) y por `WEB-BFF-03` (corte de Web estable).
-  **Bloqueo operativo actual:** `CMS_PREVIEW_SECRET` está vacío en el CMS y
-  Admin del entorno dev (y no se simula en BFF); todavía no existe una prueba
-  positiva real de `page-bootstrap?preview=1&preview_expires=&preview_sig=`.
-  Configurar el mismo secreto real en BFF/CMS/Admin y ejecutar esa prueba
-  antes de borrar este controlador. Al
-  ejecutar: borrar `PublicReadController.php`, `PublicCategoryController.php`,
-  `PublicTagController.php`, sus rutas `public-read/*`/`public/*`
-  (webappkey), OpenAPI y tests de contrato específicos de esas rutas.
-  **También**: `CMS-PR-01` (2026-08-13) ya agregó a este `composer.json` los
-  bloques `repositories`/`require` de `ci4-public-read-core` y
-  `teatromuseo-cms-public-read` — quitar ambos de este repo (ya no es parte
-  del diseño, ver nota de arriba) y correr `composer update` para que
-  `composer.lock`/`vendor/` queden consistentes. **No borrar todavía** las
-  carpetas `ci4-platform/ci4-public-read-core/`/`ci4-platform/teatromuseo-cms-public-read/`
-  — `catalog-domain`/`event-domain` (para `ci4-public-read-core`) y el BFF
-  (para todas) pueden seguir declarándolas hasta que también corran su
-  propia tarea de retiro; el borrado físico de esas carpetas es la tarea de
-  limpieza final cross-repo en `../TASKS.md`, no esta. **Antes de borrar**,
-  confirmar que el preview de Admin
-  (`page-bootstrap?preview=1&preview_expires=&preview_sig=`) ya lo sirve el
-  controlador nuevo del BFF — es la única capacidad no puramente pública
-  anónima de este controlador. `CollectionService`/`CategoryService`/
-  `TagService`/`RedirectService` (con `recordHit()`) no se tocan. Agregar al
-  `CLAUDE.md` de este repo la nota de proceso: si una migración toca una
-  tabla usada por `teatromuseo-bff/app/PublicRead/Cms/`, avisar/actualizar el
-  BFF en la misma sesión — no hay CI cross-repo que lo detecte solo.
 
 ### Plan vigente — PublicRead/PageDelivery/Snapshots (2026-08-09)
 
