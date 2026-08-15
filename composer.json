@@ -3,13 +3,6 @@
     "description": "CodeIgniter 4 Website Builder starter — delegates auth to a hub via /auth/introspect.",
     "type": "project",
     "license": "MIT",
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../../ci4-platform/ci4-api-core",
-            "canonical": false
-        }
-    ],
     "require": {
         "php": "^8.2",
         "codeigniter4/framework": "^4.7",
