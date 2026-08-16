@@ -297,6 +297,66 @@ final class CollectionBlockTemplateTest extends ApiTestCase
 
         // 2 active languages seeded -> 2 translations
         $this->assertCount(2, $translations);
+        $this->assertSame([1, 1], array_map(
+            static fn (array $translation): int => (int) $translation['is_published'],
+            $translations
+        ));
+    }
+
+    public function testAutoInitializeBlocksForDraftEntryKeepsTranslationsPrivate(): void
+    {
+        $db = Database::connect();
+        $template = [
+            'version' => '1.0',
+            'blocks' => [[
+                'block_key' => 'rich_text',
+                'sort_order' => 1,
+                'required' => true,
+                'locked' => true,
+                'block_config_defaults' => [],
+            ]],
+        ];
+
+        $db->table('cms_collections')->insert([
+            'collection_type' => 'post',
+            'collection_key' => 'draft-blocks',
+            'is_active' => 1,
+            'requires_approval' => 0,
+            'enables_categories' => 0,
+            'enables_tags' => 0,
+            'sort_order' => 30,
+            'block_template' => json_encode($template),
+        ]);
+        $collectionId = (int) $db->insertID();
+
+        $result = $this->post('/api/v1/cms/entries', [
+            'collection_id' => (string) $collectionId,
+            'workflow_status' => 'draft',
+            'is_featured' => 'false',
+            'translations' => [[
+                'language_id' => (string) $this->langEsId,
+                'slug' => 'draft-entry',
+                'title' => 'Draft entry',
+            ]],
+        ]);
+        $result->assertStatus(200);
+
+        $entryId = (int) $this->getResponseJson($result)['data']['id'];
+        $instanceId = (int) $db->table('cms_block_instances')
+            ->where('owner_type', 'entry')
+            ->where('owner_id', $entryId)
+            ->get()
+            ->getRowArray()['id'];
+        $translations = $db->table('cms_block_instance_translations')
+            ->where('instance_id', $instanceId)
+            ->get()
+            ->getResultArray();
+
+        $this->assertNotEmpty($translations);
+        $this->assertSame([0, 0], array_map(
+            static fn (array $translation): int => (int) $translation['is_published'],
+            $translations
+        ));
     }
 
     /**

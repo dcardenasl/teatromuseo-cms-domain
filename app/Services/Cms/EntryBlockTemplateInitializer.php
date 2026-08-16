@@ -66,6 +66,11 @@ class EntryBlockTemplateInitializer
             /** @var list<\App\Entities\LanguageEntity> $activeLanguages */
             $activeLanguages = $languageModel->where('is_active', 1)->findAll();
             $createdBlockCount = 0;
+            // A required block created for an already-published entry is part of
+            // that public entry. Draft and review entries remain private until
+            // their workflow reaches `published`; optional blocks added later
+            // keep their own publication decision through the normal block API.
+            $initialBlockPublication = (string) ($entry->workflow_status ?? 'draft') === 'published' ? 1 : 0;
 
             foreach ($blocks as $blockDef) {
                 // Legacy templates did not carry this flag and therefore keep
@@ -121,7 +126,7 @@ class EntryBlockTemplateInitializer
                         'instance_id'  => (int) $instanceId,
                         'language_id'  => (int) $language->id,
                         'block_data'   => $blockDataJson,
-                        'is_published' => 0,
+                        'is_published' => $initialBlockPublication,
                     ]);
 
                     if (!$inserted) {
