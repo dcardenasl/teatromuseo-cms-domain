@@ -62,6 +62,8 @@ class CmsContentSanitizationSeeder extends Seeder
         $this->sanitize_NormalizeSiteSettings();
         $this->sanitize_NormalizeStoredMediaUrls();
         $this->sanitize_NormalizePublishedVideoBlocks();
+        $this->sanitize_NormalizePublicDetailTemplateRobots();
+        $this->sanitize_NormalizePublicDetailTemplateSocialType();
     }
 
     private function sanitize_NormalizeStoredMediaUrls(): void
@@ -3548,6 +3550,53 @@ class CmsContentSanitizationSeeder extends Seeder
                 ], JSON_UNESCAPED_UNICODE),
                 'description' => 'Proveedor de analytics: none | ga4 | plausible | fathom',
             ]);
+    }
+
+    private function sanitize_NormalizePublicDetailTemplateRobots(): void
+    {
+        $pageIds = $this->db->table('cms_pages')
+            ->select('id')
+            ->whereIn('page_type', ['template_catalog_item', 'template_event_item'])
+            ->get()
+            ->getResultArray();
+
+        $pageIds = array_values(array_map(
+            static fn (array $row): int => (int) ($row['id'] ?? 0),
+            $pageIds,
+        ));
+        if ($pageIds === []) {
+            return;
+        }
+
+        $this->db->table('cms_page_translations')
+            ->whereIn('page_id', $pageIds)
+            ->where('robots', 'noindex, follow')
+            ->update(['robots' => 'index, follow']);
+    }
+
+    private function sanitize_NormalizePublicDetailTemplateSocialType(): void
+    {
+        $pageIds = $this->db->table('cms_pages')
+            ->select('id')
+            ->whereIn('page_type', ['template_catalog_item', 'template_event_item'])
+            ->get()
+            ->getResultArray();
+
+        $pageIds = array_values(array_map(
+            static fn (array $row): int => (int) ($row['id'] ?? 0),
+            $pageIds,
+        ));
+        if ($pageIds === []) {
+            return;
+        }
+
+        $this->db->table('cms_page_translations')
+            ->whereIn('page_id', $pageIds)
+            ->groupStart()
+                ->where('og_type', null)
+                ->orWhere('og_type', '')
+            ->groupEnd()
+            ->update(['og_type' => 'article']);
     }
 
     // Helpers/properties from class:

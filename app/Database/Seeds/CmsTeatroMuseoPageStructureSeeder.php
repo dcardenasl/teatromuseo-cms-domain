@@ -342,7 +342,8 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
                 'meta_title' => $definition['es_name'],
                 'meta_description' => $definition['es_excerpt'],
                 'canonical_url' => null,
-                'robots' => 'noindex, follow',
+                'og_type' => 'article',
+                'robots' => 'index, follow',
                 'schema_data' => null,
             ],
             'en' => [
@@ -352,7 +353,8 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
                 'meta_title' => $definition['en_name'],
                 'meta_description' => $definition['en_excerpt'],
                 'canonical_url' => null,
-                'robots' => 'noindex, follow',
+                'og_type' => 'article',
+                'robots' => 'index, follow',
                 'schema_data' => null,
             ],
             'fr' => [
@@ -362,7 +364,8 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
                 'meta_title' => $definition['fr_name'],
                 'meta_description' => $definition['fr_excerpt'],
                 'canonical_url' => null,
-                'robots' => 'noindex, follow',
+                'og_type' => 'article',
+                'robots' => 'index, follow',
                 'schema_data' => null,
             ],
             'pt' => [
@@ -372,7 +375,8 @@ final class CmsTeatroMuseoPageStructureSeeder extends Seeder
                 'meta_title' => $definition['pt_name'],
                 'meta_description' => $definition['pt_excerpt'],
                 'canonical_url' => null,
-                'robots' => 'noindex, follow',
+                'og_type' => 'article',
+                'robots' => 'index, follow',
                 'schema_data' => null,
             ],
         ];

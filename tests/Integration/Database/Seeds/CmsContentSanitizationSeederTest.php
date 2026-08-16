@@ -163,6 +163,53 @@ final class CmsContentSanitizationSeederTest extends CIUnitTestCase
         );
     }
 
+    public function testPublicDetailTemplateSeoDefaultsRemainEditableAndAreIdempotent(): void
+    {
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
+
+        $templatePages = $this->db->table('cms_pages')
+            ->select('id')
+            ->whereIn('page_type', ['template_catalog_item', 'template_event_item'])
+            ->get()
+            ->getResultArray();
+        $this->assertNotEmpty($templatePages);
+
+        $templatePageIds = array_map(
+            static fn (array $row): int => (int) $row['id'],
+            $templatePages,
+        );
+        $this->db->table('cms_page_translations')
+            ->whereIn('page_id', $templatePageIds)
+            ->update(['og_type' => null]);
+
+        $seeder->call(\App\Database\Seeds\CmsContentSanitizationSeeder::class);
+
+        $types = array_values(array_unique(array_column(
+            $this->db->table('cms_page_translations')
+                ->select('og_type')
+                ->whereIn('page_id', $templatePageIds)
+                ->get()
+                ->getResultArray(),
+            'og_type',
+        )));
+        self::assertSame(['article'], $types);
+
+        // A second run must preserve the normalized result and not mutate
+        // editorial values that were already selected by the CMS.
+        $this->db->table('cms_page_translations')
+            ->where('page_id', $templatePageIds[0])
+            ->where('og_type', 'article')
+            ->update(['og_type' => 'website']);
+        $seeder->call(\App\Database\Seeds\CmsContentSanitizationSeeder::class);
+
+        $editorialType = $this->db->table('cms_page_translations')
+            ->where('page_id', $templatePageIds[0])
+            ->where('og_type', 'website')
+            ->countAllResults();
+        self::assertSame(4, $editorialType);
+    }
+
     public function testRemovePeopleNavigationRetiresStaleGenericLocalizedIndexPages(): void
     {
         $seeder = \Config\Database::seeder();
