@@ -15,8 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   controllers, DTOs, readers, interfaces, OpenAPI docs and their transitional shared-package
   dependencies.
 
+### Fixed
+
+- **`template_catalog_item`/`template_event_item` detail pages** — default `robots`
+  changed from `noindex, follow` to `index, follow` and `og_type` defaults to
+  `article`, so public catalog/event detail pages are indexable and share correctly
+  by default. Existing rows are normalized once via `CmsContentSanitizationSeeder`
+  without overwriting editorial values already set.
+
 ### Added
 
+- **`cms_content_blocks.schema_definition.presentation`** — blocks can now declare
+  `owns_page_heading` (so a detail template's hero block suppresses the page's own
+  `<h1>` instead of duplicating it) and `seo.description_max_length` (truncates the
+  detail page's `meta_description` to the block's own SEO policy). Seeded for
+  `hero_slider`, `hero_banner`, `page_header`, `catalog_item_header` and
+  `event_item_header`; surfaced by `BlockInstanceSerializer` under each block's
+  `presentation` key.
 - **`/api/v1/public-read/{locale}/layout` and `/page-bootstrap/{path}`** — composite
   PublicRead endpoints (ADR 006) aggregating navigation+collections+settings and
   redirect+page respectively, so `teatromuseo-web` can resolve a cold page load in 2
