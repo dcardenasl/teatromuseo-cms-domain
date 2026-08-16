@@ -55,7 +55,7 @@ final class PageQualityControllerTest extends ApiTestCase
 
         $result->assertStatus(200);
         $body = json_decode((string) $result->response()->getBody(), true);
-        $this->assertSame('page-quality.v1', $body['data']['version'] ?? null);
+        $this->assertSame('page-quality.v2', $body['data']['version'] ?? null);
         $this->assertSame('warning', $body['data']['status'] ?? null);
 
         $headingCheck = array_values(array_filter(
@@ -63,6 +63,11 @@ final class PageQualityControllerTest extends ApiTestCase
             static fn (array $check): bool => ($check['key'] ?? '') === 'page_heading_owner'
         ));
         $this->assertSame('pass', $headingCheck[0]['status'] ?? null);
+
+        foreach ($body['data']['checks'] ?? [] as $check) {
+            $this->assertArrayHasKey('message_key', $check);
+            $this->assertArrayNotHasKey('message', $check);
+        }
     }
 
     private function authenticateRequest(): void

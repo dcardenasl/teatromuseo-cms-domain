@@ -9,7 +9,7 @@ use CodeIgniter\Entity\Entity;
 
 final class PageQualityService implements PageQualityServiceInterface
 {
-    private const VERSION = 'page-quality.v1';
+    private const VERSION = 'page-quality.v2';
     private const META_TITLE_MAX = 60;
     private const META_DESCRIPTION_MAX = 160;
 
@@ -38,7 +38,7 @@ final class PageQualityService implements PageQualityServiceInterface
                     'key' => 'page_exists',
                     'status' => 'fail',
                     'severity' => 'error',
-                    'message' => 'La página no existe o fue eliminada.',
+                    'message_key' => 'page_not_found',
                 ]],
             ];
         }
@@ -103,7 +103,7 @@ final class PageQualityService implements PageQualityServiceInterface
             'default_title',
             'title',
             trim((string) ($translation->title ?? '')) !== '',
-            'El título principal es obligatorio.',
+            'default_title_required',
             $languageId,
             $languageCode,
         );
@@ -112,7 +112,7 @@ final class PageQualityService implements PageQualityServiceInterface
             'default_slug',
             'slug',
             trim((string) ($translation->slug ?? '')) !== '',
-            'El slug de la traducción principal es obligatorio.',
+            'default_slug_required',
             $languageId,
             $languageCode,
         );
@@ -129,7 +129,6 @@ final class PageQualityService implements PageQualityServiceInterface
             $languageId = (int) ($language->id ?? 0);
             $languageCode = strtoupper((string) ($language->code ?? ''));
             $translation = $translationByLanguage[$languageId] ?? null;
-            $prefix = $languageCode !== '' ? " ({$languageCode})" : '';
 
             if ($languageId !== $defaultLanguageId) {
                 $this->addPresenceCheck(
@@ -137,7 +136,7 @@ final class PageQualityService implements PageQualityServiceInterface
                     "translation_title_{$languageId}",
                     'title',
                     trim((string) ($translation->title ?? '')) !== '',
-                    "Falta el título{$prefix}.",
+                    'translation_title_missing',
                     $languageId,
                     $languageCode,
                     'warning',
@@ -147,7 +146,7 @@ final class PageQualityService implements PageQualityServiceInterface
                     "translation_slug_{$languageId}",
                     'slug',
                     trim((string) ($translation->slug ?? '')) !== '',
-                    "Falta el slug{$prefix}.",
+                    'translation_slug_missing',
                     $languageId,
                     $languageCode,
                     'warning',
@@ -159,7 +158,7 @@ final class PageQualityService implements PageQualityServiceInterface
                 "meta_title_presence_{$languageId}",
                 'meta_title',
                 trim((string) ($translation->meta_title ?? '')) !== '',
-                "Falta el meta title{$prefix}; el CMS usará el título como fallback.",
+                'meta_title_missing',
                 $languageId,
                 $languageCode,
                 'warning',
@@ -169,10 +168,11 @@ final class PageQualityService implements PageQualityServiceInterface
                 "meta_description_presence_{$languageId}",
                 'meta_description',
                 trim((string) ($translation->meta_description ?? '')) !== '',
-                "Falta la meta description{$prefix}; se recomienda completar hasta " . self::META_DESCRIPTION_MAX . ' caracteres.',
+                'meta_description_missing',
                 $languageId,
                 $languageCode,
                 'warning',
+                ['limit' => self::META_DESCRIPTION_MAX],
             );
 
             $this->addLengthCheck(
@@ -181,7 +181,7 @@ final class PageQualityService implements PageQualityServiceInterface
                 'meta_title',
                 (string) ($translation->meta_title ?? ''),
                 self::META_TITLE_MAX,
-                "El meta title{$prefix} supera el máximo recomendado de " . self::META_TITLE_MAX . ' caracteres.',
+                'meta_title_too_long',
                 $languageId,
                 $languageCode,
             );
@@ -191,7 +191,7 @@ final class PageQualityService implements PageQualityServiceInterface
                 'meta_description',
                 (string) ($translation->meta_description ?? ''),
                 self::META_DESCRIPTION_MAX,
-                "La meta description{$prefix} supera el máximo de " . self::META_DESCRIPTION_MAX . ' caracteres.',
+                'meta_description_too_long',
                 $languageId,
                 $languageCode,
             );
@@ -202,20 +202,22 @@ final class PageQualityService implements PageQualityServiceInterface
                     'key' => "schema_data_{$languageId}",
                     'status' => 'fail',
                     'severity' => 'error',
-                    'message' => "El JSON-LD{$prefix} no es válido.",
+                    'message_key' => 'schema_data_invalid',
                     'field' => 'schema_data',
                     'language_id' => $languageId,
                     'language_code' => $languageCode,
+                    'message_params' => ['language_code' => $languageCode],
                 ];
             } else {
                 $checks[] = [
                     'key' => "schema_data_{$languageId}",
                     'status' => 'pass',
                     'severity' => 'info',
-                    'message' => "El JSON-LD{$prefix} está vacío o es válido.",
+                    'message_key' => 'schema_data_valid',
                     'field' => 'schema_data',
                     'language_id' => $languageId,
                     'language_code' => $languageCode,
+                    'message_params' => ['language_code' => $languageCode],
                 ];
             }
 
@@ -225,12 +227,11 @@ final class PageQualityService implements PageQualityServiceInterface
                 'key' => "og_image_{$languageId}",
                 'status' => $hasOgImage ? 'pass' : 'warning',
                 'severity' => 'warning',
-                'message' => $hasOgImage
-                    ? "La imagen social{$prefix} está configurada."
-                    : "Falta la imagen social{$prefix}; se recomienda para compartir la página.",
+                'message_key' => $hasOgImage ? 'og_image_configured' : 'og_image_missing',
                 'field' => 'og_image',
                 'language_id' => $languageId,
                 'language_code' => $languageCode,
+                'message_params' => ['language_code' => $languageCode],
             ];
         }
     }
@@ -258,11 +259,9 @@ final class PageQualityService implements PageQualityServiceInterface
             'key' => 'page_heading_owner',
             'status' => $ownerCount === 1 ? 'pass' : 'fail',
             'severity' => $ownerCount === 1 ? 'info' : 'error',
-            'message' => $ownerCount === 0
-                ? 'La página no tiene un bloque que declare ser dueño del H1.'
-                : ($ownerCount > 1
-                    ? 'La página tiene más de un bloque dueño del H1; debe quedar exactamente uno.'
-                    : 'La página tiene exactamente un bloque dueño del H1.'),
+            'message_key' => $ownerCount === 0
+                ? 'page_heading_missing'
+                : ($ownerCount > 1 ? 'page_heading_multiple' : 'page_heading_configured'),
             'field' => 'blocks',
             'heading_owners' => $headingOwners,
         ];
@@ -271,9 +270,7 @@ final class PageQualityService implements PageQualityServiceInterface
             'key' => 'active_blocks',
             'status' => $blocks !== [] ? 'pass' : 'fail',
             'severity' => 'error',
-            'message' => $blocks !== []
-                ? 'La página tiene bloques publicados.'
-                : 'La página no tiene bloques publicados.',
+            'message_key' => $blocks !== [] ? 'active_blocks_configured' : 'active_blocks_missing',
             'field' => 'blocks',
         ];
     }
@@ -295,9 +292,9 @@ final class PageQualityService implements PageQualityServiceInterface
             'key' => 'sitemap_robots_consistency',
             'status' => ! $isIndexable || ! $hasNoIndex ? 'pass' : 'fail',
             'severity' => 'error',
-            'message' => ! $isIndexable || ! $hasNoIndex
-                ? 'La configuración de sitemap y robots es consistente.'
-                : 'La página está en sitemap pero declara noindex.',
+            'message_key' => ! $isIndexable || ! $hasNoIndex
+                ? 'sitemap_robots_consistent'
+                : 'sitemap_robots_inconsistent',
             'field' => 'robots',
             'language_id' => (int) ($defaultLanguage->id ?? 0),
             'language_code' => strtoupper((string) ($defaultLanguage->code ?? '')),
@@ -317,25 +314,30 @@ final class PageQualityService implements PageQualityServiceInterface
         ];
     }
 
-    /** @param array<int, array<string, mixed>> $checks */
+    /**
+     * @param array<int, array<string, mixed>> $checks
+     * @param array<string, mixed> $messageParams
+     */
     private function addPresenceCheck(
         array &$checks,
         string $key,
         string $field,
         bool $present,
-        string $message,
+        string $missingMessageKey,
         int $languageId,
         string $languageCode,
         string $missingSeverity = 'error',
+        array $messageParams = [],
     ): void {
         $checks[] = [
             'key' => $key,
             'status' => $present ? 'pass' : ($missingSeverity === 'warning' ? 'warning' : 'fail'),
             'severity' => $missingSeverity,
-            'message' => $present ? 'Campo configurado.' : $message,
+            'message_key' => $present ? 'field_configured' : $missingMessageKey,
             'field' => $field,
             'language_id' => $languageId,
             'language_code' => $languageCode,
+            'message_params' => array_merge(['language_code' => $languageCode], $messageParams),
         ];
     }
 
@@ -346,7 +348,7 @@ final class PageQualityService implements PageQualityServiceInterface
         string $field,
         string $value,
         int $limit,
-        string $message,
+        string $tooLongMessageKey,
         int $languageId,
         string $languageCode,
     ): void {
@@ -355,10 +357,14 @@ final class PageQualityService implements PageQualityServiceInterface
             'key' => $key,
             'status' => $length <= $limit ? 'pass' : 'fail',
             'severity' => 'error',
-            'message' => $length <= $limit ? "El campo está dentro del máximo de {$limit} caracteres." : $message,
+            'message_key' => $length <= $limit ? 'field_length_valid' : $tooLongMessageKey,
             'field' => $field,
             'language_id' => $languageId,
             'language_code' => $languageCode,
+            'message_params' => [
+                'language_code' => $languageCode,
+                'limit' => $limit,
+            ],
             'length' => $length,
             'limit' => $limit,
         ];
