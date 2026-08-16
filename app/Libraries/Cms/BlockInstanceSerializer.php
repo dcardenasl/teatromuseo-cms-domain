@@ -150,6 +150,9 @@ class BlockInstanceSerializer
             $schemaDefinition = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
             $schemaFields = (array) ($schemaDefinition['fields'] ?? []);
             $schemaConfigFields = (array) ($schemaDefinition['config_fields'] ?? []);
+            $presentation = is_array($schemaDefinition['presentation'] ?? null)
+                ? $schemaDefinition['presentation']
+                : [];
 
             $allFileIds = array_merge($allFileIds, $this->fileUrlResolver->collectBlockFileIds($blockData, $schemaFields));
 
@@ -229,6 +232,7 @@ class BlockInstanceSerializer
                 'block_config'       => $blockConfig,
                 'block_data'         => $blockData,
                 'listing_fields'     => $listingFields,
+                'presentation'       => $presentation,
                 'is_fallback'        => $translation['is_fallback'] ?? true,
                 'children'           => [],
             ];

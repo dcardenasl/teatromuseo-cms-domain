@@ -68,7 +68,10 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
                 'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
             ], [
                 'fallback_image_url' => ['type' => 'string', 'label' => 'Imagen de respaldo (URL)', 'required' => false, 'default' => ''],
-            ], true, false),
+            ], true, false, [
+                'owns_page_heading' => true,
+                'seo' => ['description_max_length' => 160],
+            ]),
             $this->block('catalog_item_details', 'Detalles de ficha de catálogo', 'Catalog item details', 'Ficha técnica dinámica (técnica, dimensiones, etc) para la ficha pública del catálogo.', [
                 'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
             ], [], true, false),
@@ -84,7 +87,10 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
                 'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
             ], [
                 'fallback_image_url' => ['type' => 'string', 'label' => 'Imagen de respaldo (URL)', 'required' => false, 'default' => ''],
-            ], true, false),
+            ], true, false, [
+                'owns_page_heading' => true,
+                'seo' => ['description_max_length' => 160],
+            ]),
             $this->block('event_item_details', 'Detalles de evento', 'Event item details', 'Ficha técnica dinámica (fechas, lugar, precio, tickets) para la ficha pública de programación.', [
                 'fallback_title' => ['type' => 'string', 'label' => 'Título de respaldo', 'required' => false],
             ], [], true, false),
@@ -176,6 +182,7 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
     /**
      * @param array<string, array<string, mixed>> $fields
      * @param array<string, array<string, mixed>> $configFields
+     * @param array<string, mixed> $presentation
      * @return array<string, mixed>
      */
     private function block(
@@ -186,7 +193,8 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
         array $fields,
         array $configFields,
         bool $supportsPages,
-        bool $supportsEntries = true
+        bool $supportsEntries = true,
+        array $presentation = []
     ): array {
         return [
             'block_key' => $key,
@@ -210,6 +218,7 @@ final class TeatroMuseoBlockTypeSeeder extends Seeder
                     )
                 ),
                 'config_fields' => $configFields,
+                'presentation' => $presentation,
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'supports_pages' => $supportsPages ? 1 : 0,
             'supports_entries' => $supportsEntries ? 1 : 0,
