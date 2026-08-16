@@ -61,6 +61,7 @@ class CmsContentSanitizationSeeder extends Seeder
         $this->sanitize_RetireObrasCollection();
         $this->sanitize_NormalizeSiteSettings();
         $this->sanitize_NormalizeStoredMediaUrls();
+        $this->sanitize_NormalizePublishedVideoBlocks();
     }
 
     private function sanitize_NormalizeStoredMediaUrls(): void
@@ -116,6 +117,61 @@ class CmsContentSanitizationSeeder extends Seeder
                 ]);
             }
         }
+    }
+
+    /**
+     * The primary `video_ficha` block is required and locked for the `videos`
+     * collection. Older imports created the entries as published but left the
+     * auto-created block translations private, so public readers discarded the
+     * YouTube identity before the listing projection could expose it.
+     *
+     * Align only valid video data belonging to published, active entries. Draft
+     * entries, inactive blocks, incomplete payloads, and unrelated collections
+     * remain untouched.
+     */
+    private function sanitize_NormalizePublishedVideoBlocks(): void
+    {
+        $rows = $this->db->table('cms_block_instance_translations t')
+            ->select('t.id, t.block_data')
+            ->join('cms_block_instances i', 'i.id = t.instance_id')
+            ->join('cms_content_blocks b', 'b.id = i.block_id')
+            ->join('cms_entries e', "e.id = i.owner_id AND i.owner_type = 'entry'")
+            ->join('cms_collections c', 'c.id = e.collection_id')
+            ->where('b.block_key', 'video_ficha')
+            ->where('c.collection_key', 'videos')
+            ->where('e.workflow_status', 'published')
+            ->where('e.deleted_at IS NULL', null, false)
+            ->where('i.is_active', 1)
+            ->where('t.is_published', 0)
+            ->get()
+            ->getResultArray();
+
+        foreach ($rows as $row) {
+            $data = json_decode((string) ($row['block_data'] ?? '{}'), true);
+            if (! is_array($data) || ! $this->Sanitize_NormalizePublishedVideoBlocks_isValidVideo($data)) {
+                continue;
+            }
+
+            $this->db->table('cms_block_instance_translations')
+                ->where('id', (int) $row['id'])
+                ->update(['is_published' => 1]);
+        }
+    }
+
+    /** @param array<string, mixed> $data */
+    private function Sanitize_NormalizePublishedVideoBlocks_isValidVideo(array $data): bool
+    {
+        $provider = strtolower(trim((string) ($data['provider'] ?? '')));
+        $videoId = trim((string) ($data['video_id'] ?? ''));
+        $videoUrl = trim((string) ($data['video_url'] ?? ''));
+
+        if ($provider === 'youtube') {
+            return preg_match('/^[A-Za-z0-9_-]{11}$/', $videoId) === 1;
+        }
+
+        return $provider === 'vimeo'
+            && preg_match('/^\d+$/', $videoId) === 1
+            && preg_match('#^https://(?:www\.)?vimeo\.com/#i', $videoUrl) === 1;
     }
 
     private function Sanitize_NormalizeStoredMediaUrls_portableUrl(mixed $value): mixed

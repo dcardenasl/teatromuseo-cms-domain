@@ -262,6 +262,92 @@ final class CmsContentSanitizationSeederTest extends CIUnitTestCase
         $this->assertSame('desc', $updatedConfig['listing_projection']['order']['direction']);
     }
 
+    public function testPublishedVideoBlocksAreExposedAndDraftVideoBlocksRemainPrivate(): void
+    {
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
+
+        $videos = $this->db->table('cms_collections')
+            ->where('collection_key', 'videos')
+            ->get()
+            ->getRowArray();
+        $videoType = $this->db->table('cms_content_blocks')
+            ->where('block_key', 'video_ficha')
+            ->get()
+            ->getRowArray();
+        $spanish = $this->db->table('cms_languages')
+            ->where('code', 'es')
+            ->get()
+            ->getRowArray();
+
+        $this->assertIsArray($videos);
+        $this->assertIsArray($videoType);
+        $this->assertIsArray($spanish);
+
+        $createVideo = function (string $workflow, array $data) use ($videos, $videoType, $spanish): int {
+            $this->db->table('cms_entries')->insert([
+                'collection_id' => (int) $videos['id'],
+                'workflow_status' => $workflow,
+                'published_at' => $workflow === 'published' ? date('Y-m-d H:i:s') : null,
+                'is_in_sitemap' => 1,
+            ]);
+            $entryId = (int) $this->db->insertID();
+
+            $this->db->table('cms_block_instances')->insert([
+                'block_id' => (int) $videoType['id'],
+                'owner_type' => 'entry',
+                'owner_id' => $entryId,
+                'sort_order' => 1,
+                'is_active' => 1,
+                'block_config' => '{}',
+            ]);
+            $instanceId = (int) $this->db->insertID();
+
+            $this->db->table('cms_block_instance_translations')->insert([
+                'instance_id' => $instanceId,
+                'language_id' => (int) $spanish['id'],
+                'block_data' => json_encode($data, JSON_THROW_ON_ERROR),
+                'is_published' => 0,
+            ]);
+
+            return $instanceId;
+        };
+
+        $publishedId = $createVideo('published', [
+            'provider' => 'youtube',
+            'video_id' => '1SBdy9DB9oQ',
+            'video_url' => 'https://www.youtube.com/watch?v=1SBdy9DB9oQ',
+        ]);
+        $draftId = $createVideo('draft', [
+            'provider' => 'youtube',
+            'video_id' => '1SBdy9DB9oQ',
+            'video_url' => 'https://www.youtube.com/watch?v=1SBdy9DB9oQ',
+        ]);
+        $invalidId = $createVideo('published', [
+            'provider' => 'youtube',
+            'video_id' => 'invalid',
+            'video_url' => 'https://www.youtube.com/watch?v=invalid',
+        ]);
+
+        $seeder->call(\App\Database\Seeds\CmsContentSanitizationSeeder::class);
+
+        $published = $this->db->table('cms_block_instance_translations')->where('instance_id', $publishedId)->get()->getRowArray();
+        $draft = $this->db->table('cms_block_instance_translations')->where('instance_id', $draftId)->get()->getRowArray();
+        $invalid = $this->db->table('cms_block_instance_translations')->where('instance_id', $invalidId)->get()->getRowArray();
+
+        $this->assertIsArray($published);
+        $this->assertIsArray($draft);
+        $this->assertIsArray($invalid);
+        $this->assertSame(1, (int) $published['is_published']);
+        $this->assertSame(0, (int) $draft['is_published']);
+        $this->assertSame(0, (int) $invalid['is_published']);
+
+        // The normalization is safe to run repeatedly after deployment.
+        $seeder->call(\App\Database\Seeds\CmsContentSanitizationSeeder::class);
+        $publishedAgain = $this->db->table('cms_block_instance_translations')->where('instance_id', $publishedId)->get()->getRowArray();
+        $this->assertSame(1, (int) ($publishedAgain['is_published'] ?? 0));
+    }
+
     private function assertSiteSettingsNormalized(): void
     {
         $candidateKeys = [...self::RETIRED_SETTING_KEYS, 'analytics_provider', 'site_name'];
