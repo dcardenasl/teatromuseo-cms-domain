@@ -257,11 +257,11 @@ final class PageQualityService implements PageQualityServiceInterface
         $checks[] = [
             'key' => 'page_heading_owner',
             'status' => $ownerCount === 1 ? 'pass' : 'fail',
-            'severity' => 'error',
+            'severity' => $ownerCount === 1 ? 'info' : 'error',
             'message' => $ownerCount === 0
                 ? 'La página no tiene un bloque que declare ser dueño del H1.'
                 : ($ownerCount > 1
-                    ? 'La página tiene más de un bloque dueño del H1; debe existir exactamente uno.'
+                    ? 'La página tiene más de un bloque dueño del H1; debe quedar exactamente uno.'
                     : 'La página tiene exactamente un bloque dueño del H1.'),
             'field' => 'blocks',
             'heading_owners' => $headingOwners,
