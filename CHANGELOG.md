@@ -112,6 +112,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Duplicate TeatroEscuela collections** — identifier normalization now merges legacy and
   canonical collections, reassigns their content and translations, and removes the obsolete
   duplicate safely.
+- **`EntryBlockTemplateInitializer`** — required blocks auto-created for an entry that is
+  already published now start published too, instead of always defaulting to private and
+  hiding the entry's own required content from public readers.
+- **`CmsContentSanitizationSeeder`** — backfills the same private-block bug for existing
+  published video entries by validating and publishing their `video_ficha` block data.
 
 - **Public route and redirect consistency** — redirects survive slug changes and localized
   homepage hero destinations are normalized to the currently published routes.
