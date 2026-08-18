@@ -256,7 +256,9 @@ class WizardConfigService implements WizardConfigServiceInterface
                 'id'               => (int) $blockType->id,
                 'name'             => (string) ($blockType->name ?? $blockKey),
                 'description'      => $blockType->description ?? null,
+                'category'         => $blockType->category ?? null,
                 'icon'             => $blockType->icon ?? null,
+                'schema_definition' => $schema,
                 'fields'           => $capabilities['fields'],
                 'config_fields'    => (array) ($schema['config_fields'] ?? []),
                 'capabilities'     => $capabilities,
@@ -279,7 +281,7 @@ class WizardConfigService implements WizardConfigServiceInterface
         if ($this->activeBlockTypesCache === null) {
             /** @var list<BlockTypeEntity> $blockTypes */
             $blockTypes = $this->blockTypeRepository->getModel()
-                ->select('id, block_key, name, description, icon, schema_definition, supports_pages, supports_entries, is_container, is_active, sort_order')
+                ->select('id, block_key, name, description, category, icon, schema_definition, supports_pages, supports_entries, is_container, is_active, sort_order')
                 ->where('is_active', 1)
                 ->findAll();
 
