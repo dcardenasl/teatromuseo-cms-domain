@@ -85,11 +85,11 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         // File usages (federated query for Admin "Usado en" panel)
         $routes->get('files/(:num)/usages', 'FileUsageController::usages/$1', ['filter' => 'permission:cms.entries.read']);
         // File Translations CRUD
-        $routes->get('files/(:num)/translations', 'FileTranslationController::index/$1', ['filter' => 'permission:cms.pages.read']);
-        $routes->get('files/(:num)/translations/(:num)', 'FileTranslationController::show/$1/$2', ['filter' => 'permission:cms.pages.read']);
-        $routes->post('files/(:num)/translations', 'FileTranslationController::create/$1', ['filter' => 'permission:cms.pages.write']);
-        $routes->put('files/(:num)/translations/(:num)', 'FileTranslationController::update/$1/$2', ['filter' => 'permission:cms.pages.write']);
-        $routes->delete('files/(:num)/translations/(:num)', 'FileTranslationController::delete/$1/$2', ['filter' => 'permission:cms.pages.write']);
+        $routes->get('files/(:num)/translations', 'FileTranslationController::index/$1', ['filter' => 'permission:cms.file-translations.read']);
+        $routes->get('files/(:num)/translations/(:num)', 'FileTranslationController::show/$1/$2', ['filter' => 'permission:cms.file-translations.read']);
+        $routes->post('files/(:num)/translations', 'FileTranslationController::create/$1', ['filter' => 'permission:cms.file-translations.write']);
+        $routes->put('files/(:num)/translations/(:num)', 'FileTranslationController::update/$1/$2', ['filter' => 'permission:cms.file-translations.write']);
+        $routes->delete('files/(:num)/translations/(:num)', 'FileTranslationController::delete/$1/$2', ['filter' => 'permission:cms.file-translations.admin']);
         $routes->get('block-types/(:num)', 'BlockTypeController::show/$1', ['filter' => 'permission:cms.blocks.read']);
         $routes->get('block-types/(:num)/usages', 'BlockTypeController::usages/$1', ['filter' => 'permission:cms.blocks.read']);
         $routes->put('block-types/(:num)', 'BlockTypeController::update/$1', ['filter' => 'permission:cms.blocks.write']);
@@ -107,11 +107,11 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->put('entries/(:num)', 'EntryController::update/$1', ['filter' => 'permission:cms.entries.write']);
         $routes->delete('entries/(:num)', 'EntryController::delete/$1', ['filter' => 'permission:cms.entries.admin']);
         // Block Instances CRUD nested under entries
-        $routes->get('entries/(:num)/blocks', 'BlockInstanceController::indexForEntry/$1', ['filter' => 'permission:cms.pages.read']);
-        $routes->get('entries/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.pages.read']);
-        $routes->post('entries/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
-        $routes->put('entries/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.pages.write']);
-        $routes->delete('entries/(:num)/blocks/(:num)', 'BlockInstanceController::delete/$2', ['filter' => 'permission:cms.pages.write']);
+        $routes->get('entries/(:num)/blocks', 'BlockInstanceController::indexForEntry/$1', ['filter' => 'permission:cms.entries.read']);
+        $routes->get('entries/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.entries.read']);
+        $routes->post('entries/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.entries.write']);
+        $routes->put('entries/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.entries.write']);
+        $routes->delete('entries/(:num)/blocks/(:num)', 'BlockInstanceController::delete/$2', ['filter' => 'permission:cms.entries.write']);
         $routes->get('categories/(:num)', 'CategoryController::show/$1', ['filter' => 'permission:cms.categories.read']);
         $routes->put('categories/(:num)', 'CategoryController::update/$1', ['filter' => 'permission:cms.categories.write']);
         $routes->delete('categories/(:num)', 'CategoryController::delete/$1', ['filter' => 'permission:cms.categories.write']);

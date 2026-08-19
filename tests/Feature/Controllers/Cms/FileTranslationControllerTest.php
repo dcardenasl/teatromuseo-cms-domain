@@ -40,7 +40,11 @@ final class FileTranslationControllerTest extends ApiTestCase
         $stub = new class (new IntrospectResult(
             valid: true,
             uid: 1,
-            permissions: ['cms.pages.read', 'cms.pages.write'],
+            permissions: [
+                'cms.file-translations.read',
+                'cms.file-translations.write',
+                'cms.file-translations.admin',
+            ],
             exp: time() + 3600,
             error: null
         )) extends HubClient {
