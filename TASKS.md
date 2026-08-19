@@ -6,6 +6,13 @@
 
 ## ✅ Completadas
 
+- [x] **CMS-EDITOR-04 — Contrato de autorización editorial.** Cerrada
+  2026-08-18. Se registraron `cms.file-translations.read/write/admin`, se
+  corrigieron los permisos de bloques anidados de entries y se dejó la
+  eliminación de traducciones bajo `.admin`. Verificado con la suite completa
+  y `composer quality` (560 tests, 2.717 asserts, 1 skip); OpenAPI regenerado
+  y `domain:sync-permissions` aplicado al Hub.
+
 - [x] **CMS-PR-06 — Retirar el HTTP público propio (Fase 3).** Cerrada
   2026-08-14 después de verificar el gate de preview firmado y la estabilidad
   de Fase 2. Se retiraron `PublicReadController`, `PublicCategoryController`,
