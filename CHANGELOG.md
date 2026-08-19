@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **File translation and entry block routes shared unrelated permission codes** —
+  file translation endpoints (`files/{id}/translations*`) were gated by
+  `cms.pages.read/write`, and entry block instance endpoints
+  (`entries/{id}/blocks*`) also fell back to `cms.pages.read/write` instead of
+  their own resource. Registered dedicated `cms.file-translations.read/write/admin`
+  permissions (delete now requires `.admin`) and switched entry block routes to
+  `cms.entries.read/write`, so granting page access no longer implicitly grants
+  file-translation or entry-block access.
 - **`template_catalog_item`/`template_event_item` detail pages** — default `robots`
   changed from `noindex, follow` to `index, follow` and `og_type` defaults to
   `article`, so public catalog/event detail pages are indexable and share correctly
