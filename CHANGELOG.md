@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`POST /api/v1/cms/sort-orders`** — atomic batch reorder for pages, entries,
+  categories, languages, menu items, and block instances (up to 500 rows per
+  request), replacing the Admin's per-row HTTP loop with one transactional
+  `CASE`-based update gated by the resource's existing write permission.
 - **`cms_content_blocks.schema_definition.presentation`** — blocks can now declare
   `owns_page_heading` (so a detail template's hero block suppresses the page's own
   `<h1>` instead of duplicating it) and `seo.description_max_length` (truncates the
