@@ -6,6 +6,18 @@ namespace Config;
 
 trait CmsDomainServices
 {
+    public static function sortOrderBatchService(bool $getShared = true): \App\Services\Cms\SortOrderBatchService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('sortOrderBatchService');
+        }
+
+        return new \App\Services\Cms\SortOrderBatchService(
+            \Config\Database::connect(),
+            static::cacheInvalidationClient(),
+        );
+    }
+
     public static function dashboardSummaryService(bool $getShared = true): \App\Services\Admin\DashboardSummaryService
     {
         if ($getShared) {
