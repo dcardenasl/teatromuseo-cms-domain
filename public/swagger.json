@@ -1470,6 +1470,36 @@
                 }
             }
         },
+        "/api/v1/cms/sort-orders": {
+            "post": {
+                "tags": [
+                    "Cms"
+                ],
+                "summary": "Reorder a bounded CMS resource in one operation",
+                "operationId": "3b9e410afbe0ba98d6c76c2eefa14b65",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CmsSortOrderBatchRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order saved successfully"
+                    },
+                    "403": {
+                        "description": "Insufficient permissions"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
         "/api/v1/cms/tags": {
             "get": {
                 "tags": [
@@ -3131,6 +3161,51 @@
                             "type": "object"
                         },
                         "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "CmsSortOrderBatchRequest": {
+                "properties": {
+                    "items": {
+                        "description": "Rows to reorder. IDs must be unique and belong to the requested scope.",
+                        "type": "array",
+                        "items": {
+                            "required": [
+                                "id",
+                                "sort_order"
+                            ],
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "sort_order": {
+                                    "type": "integer",
+                                    "minimum": 0
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "maxItems": 500,
+                        "minItems": 1
+                    },
+                    "scope": {
+                        "description": "Optional resource scope. Entries require collection_id; menu_items require menu_id; block_instances require owner_type and owner_id.",
+                        "type": "object",
+                        "additionalProperties": true
+                    },
+                    "resource": {
+                        "description": "CMS resource to reorder.",
+                        "type": "string",
+                        "enum": [
+                            "pages",
+                            "entries",
+                            "categories",
+                            "languages",
+                            "menu_items",
+                            "block_instances"
+                        ]
                     }
                 },
                 "type": "object"
