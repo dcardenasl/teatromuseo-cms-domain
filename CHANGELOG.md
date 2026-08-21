@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`dcardenasl/ci4-api-core` updated to v1.5.1** — `AbstractPermissionFilter` now accepts a comma-separated
+  list of alternative permission codes on a route (e.g. `permission:cms.pages.read,cms.pages.scoped-read`),
+  and a v1.5.1 follow-up closes a bypass gap the v1.5.0 change introduced: a route declaring a blank
+  permission code was incorrectly rescued by a caller's superadmin bypass instead of always denying.
+
 ### Removed
 
 - **`/api/v1/public-read/{locale}/**`, `/api/v1/public/{locale}/categories/{key}` and
