@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "308dc3e7fc678ecc5089b0c7bfcd6051",
+    "content-hash": "55e6c07f998f7ec7d3bc4fb1f51e4b8f",
     "packages": [
         {
             "name": "codeigniter4/framework",
@@ -85,16 +85,16 @@
         },
         {
             "name": "dcardenasl/ci4-api-core",
-            "version": "v1.4.1",
+            "version": "v1.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dcardenasl/ci4-api-core.git",
-                "reference": "8e35bdfd4892203124fddddfce80074da3840c12"
+                "reference": "be3e8b0070bf11f30d4c9d98c5a4567b1eaafebc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dcardenasl/ci4-api-core/zipball/8e35bdfd4892203124fddddfce80074da3840c12",
-                "reference": "8e35bdfd4892203124fddddfce80074da3840c12",
+                "url": "https://api.github.com/repos/dcardenasl/ci4-api-core/zipball/be3e8b0070bf11f30d4c9d98c5a4567b1eaafebc",
+                "reference": "be3e8b0070bf11f30d4c9d98c5a4567b1eaafebc",
                 "shasum": ""
             },
             "require": {
@@ -171,7 +171,7 @@
                 "issues": "https://github.com/dcardenasl/ci4-api-core/issues",
                 "source": "https://github.com/dcardenasl/ci4-api-core"
             },
-            "time": "2026-08-13T06:46:30+00:00"
+            "time": "2026-08-21T05:42:25+00:00"
         },
         {
             "name": "ezyang/htmlpurifier",
