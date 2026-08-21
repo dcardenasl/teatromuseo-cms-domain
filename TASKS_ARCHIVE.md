@@ -1,7 +1,104 @@
 # TASKS_ARCHIVE — ci4-website-builder
 
 > Historial de tareas completadas. Movido desde TASKS.md para mantener el tracker activo liviano.
-> Última actualización: 2026-05-07
+> Última actualización: 2026-08-20
+
+## ✅ Cierres 2026-08-11..18 — archivados 2026-08-20
+
+`QA-01..04` y `ADM-DASH-01` no se re-archivan aquí: eran espejos locales de
+tareas raíz ya cerradas y documentadas en `../TASKS_ARCHIVE.md` (y `QA-01/02`
+ya estaban en este archivo desde antes) — se retiraron de `TASKS.md` sin
+duplicar evidencia.
+
+### CMS-EDITOR-04 — Contrato de autorización editorial
+
+Cerrada 2026-08-18. Se registraron `cms.file-translations.read/write/admin`,
+se corrigieron los permisos de bloques anidados de entries y se dejó la
+eliminación de traducciones bajo `.admin`. Verificado con la suite completa y
+`composer quality` (560 tests, 2.717 asserts, 1 skip); OpenAPI regenerado y
+`domain:sync-permissions` aplicado al Hub.
+
+### CMS-PR-06 — Retirar el HTTP público propio (Fase 3)
+
+Cerrada 2026-08-14 después de verificar el gate de preview firmado y la
+estabilidad de Fase 2. Se retiraron `PublicReadController`,
+`PublicCategoryController`, `PublicTagController`, sus rutas
+`public-read`/categorías/tags, DTOs, lectores, interfaces, envelope,
+documentación OpenAPI y tests específicos. Se conservaron las rutas públicas
+CMS-only y el CRUD autenticado. Se quitaron los dos path-repositories y
+requisitos Composer de lectura pública; el lock y `vendor/` ya no contienen
+esos paquetes. Las carpetas físicas superseded se eliminaron después en
+`PKG-CLEANUP-01`. Se añadió la nota de coordinación cross-repo en `CLAUDE.md`.
+El preview positivo se verificó con curl real en CMS `8190` y BFF `8188`
+usando el mismo secreto efectivo de 64 bytes; las rutas CMS retiradas
+responden `404` y el endpoint de página conservado responde `200`. Se
+corrigieron cinco migraciones MySQL con foreign keys auto-referenciadas para
+aplicarlas después de `createTable()`. `composer quality` oficial: CS-Fixer
+limpio, PHPStan 0, arquitectura verde, 558 tests / 2.628 assertions / 1
+skipped; contratos de seed: 15 tests / 3.472 assertions. Swagger regenerado:
+25 paths / 59 schemas.
+
+### PERF-04 — Endpoints compuestos `layout` y `page-bootstrap` en PublicRead
+
+Cerrada 2026-08-13. Enmienda ADR 004 §1/§6 vía
+[`../docs/adr/006-public-read-composite-bootstrap-endpoints.md`](../docs/adr/006-public-read-composite-bootstrap-endpoints.md):
+bajo hosting sin paralelismo real confirmado, el costo dominante de una carga
+fría de Web es el número de round-trips HTTP, no el diseño de composición —
+y Web es el único consumidor confirmado de las 5 rutas involucradas. Se
+agregaron `GET public-read/{locale}/layout` y
+`GET public-read/{locale}/page-bootstrap/{path}` como composición pura sobre
+los lectores/servicios existentes, sin duplicar su lógica de query, sin tocar
+el esquema. Verificado: 620/620 tests, PHPStan 0 errores, CS-Fixer limpio,
+contrato OpenAPI verde.
+
+### PERF-03 — Retirar la ruta pública duplicada `public/{lang}/entries/{collection}`
+
+Cerrada 2026-08-13. Al investigar antes de borrar se encontró que
+`PublicEntryController` no era un duplicado puro: tenía modo preview de
+borradores vía firma, y `teatromuseo-web` ya enviaba esos parámetros pero
+`PublicReadEntryShowRequestDTO` los descartaba en silencio — bug real y vivo,
+corregido antes de borrar nada. El alias `cursos`→`teatroescuela` no se portó
+(cero llamadores reales). Con la brecha de preview cerrada, se borró
+`PublicEntryController`, sus rutas y los métodos que delegaban una línea.
+Verificado: 608/608 tests, PHPStan 0 errores, CS-Fixer limpio.
+
+### PERF-01 — Materializar facetas/orden de listados públicos, eliminar `findAll()` sin límite
+
+Cerrada 2026-08-13. Tabla `cms_entry_facet_values` +
+`EntryFacetValueSynchronizer` enganchado en los dos write-paths de
+`block_data`, backfill idempotente corrido contra dev (61.208 filas).
+`PublicEntryReader::listPublic()` reescrito: los dos `findAll()` sin límite
+reemplazados por WHERE/ORDER BY/LIMIT reales; `SELECT *` reemplazado por
+proyección explícita; `include=listing_content.<sub>` soporta selección
+parcial. Bug preexistente corregido de paso en
+`BlockInstanceService::blockSchemaDefinition()`. Verificado: 608/608 tests,
+PHPStan 0 errores, CS-Fixer limpio.
+
+### CMS-PR-01..05 — Análisis de lectores públicos bajo el diseño superseded de paquete compartido
+
+Cerradas 2026-08-13, bajo un diseño que el plan luego abandonó (revisión de
+diseño 2026-08-13, decisión #5): proponían extraer los lectores públicos a
+un paquete Composer compartido `teatromuseo-cms-public-read` en
+`ci4-platform/`, consumido de vuelta por este repo. Con un solo consumidor
+final (el BFF), el paquete no aportaba nada — el BFF terminó escribiendo su
+propia implementación en `teatromuseo-bff/app/PublicRead/Cms/`, usando el
+código de este repo como referencia de lectura, no como dependencia. El
+análisis de cuáles lectores ya eran `BaseConnection`-only, el desacople de
+`PublicReadLayoutReader` de `CollectionService`, los lectores nuevos de
+categorías/tags, y el split de `PublicRedirectResolver::resolve()`/
+`recordHit()` (necesario porque `recordHit()` escribe, incompatible con un
+usuario MySQL solo-`SELECT`) siguió siendo válido y es lo que informó esa
+implementación final — no se perdió el trabajo, solo cambió dónde vive el
+código resultante. `CMS-PR-06` (ver arriba) retiró el paquete/path-repo que
+esta serie sí llegó a crear.
+
+### ADM-DASH-02 — Proyección CMS alineada al esquema real
+
+Cerrada 2026-08-11. La consulta de traducciones usa únicamente `title` y
+`slug`, recibe permisos antes de contar/leer y cuenta con prueba de
+integración contra `cms_page_translations`.
+
+---
 
 ## ✅ QA-01 — PublicRead y OpenAPI — cerrado 2026-08-10
 
