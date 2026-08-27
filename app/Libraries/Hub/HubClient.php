@@ -177,23 +177,55 @@ class HubClient extends CoreHubClient
      *
      * The Hub is the single email sender — website builder apps must never send emails directly.
      *
+     * Deliberately bypasses `$this->request()` (and its inherited retry-once-on
+     * timeout/5xx from AbstractServiceClient), same pattern as
+     * {@see resolvePublicFileMeta()}: this call is not idempotent. A timeout
+     * only means *this app* stopped waiting — the Hub may have already queued
+     * or sent the email — so retrying on that ambiguous signal risks sending
+     * the same email twice. Confirmed in production: enabling the Domain's
+     * QUEUE_DRIVER=sync made this call run inline during the visitor's
+     * request, exposed the Hub's occasional multi-second latency, and the
+     * built-in retry duplicated the send.
+     *
      * @return int Job ID (0 if queuing failed)
      */
     public function queueEmail(string $to, string $subject, string $message, ?string $textMessage = null): int
     {
+        $url = rtrim($this->config->url, '/') . '/api/v1/internal/email/queue';
+        $startedAt = microtime(true);
+
         try {
-            $data = $this->request('POST', '/api/v1/internal/email/queue', [
-                'headers' => $this->appKeyHeaders(),
-                'json'    => [
+            $headers = array_merge($this->appKeyHeaders(), ['Accept' => 'application/json']);
+            $requestId = \dcardenasl\Ci4ApiCore\Http\RequestIdHolder::get();
+            if ($requestId !== null) {
+                $headers['X-Request-Id'] = $requestId;
+            }
+
+            $response = $this->http->request('POST', $url, [
+                'headers' => $headers,
+                'json' => [
                     'to'           => $to,
                     'subject'      => $subject,
                     'message'      => $message,
                     'text_message' => $textMessage,
                 ],
+                'timeout' => $this->config->httpTimeout,
+                'http_errors' => false,
             ]);
+            $status = $response->getStatusCode();
+            $this->recordBreadcrumb('POST', $url, $status, (microtime(true) - $startedAt) * 1000, 1);
 
-            return (int) ($data['job_id'] ?? 0);
+            if ($status < 200 || $status >= 300) {
+                log_message('error', "[HubClient] queueEmail failed with status {$status}.");
+                return 0;
+            }
+
+            $decoded = json_decode((string) $response->getBody(), true);
+            $data = is_array($decoded) && is_array($decoded['data'] ?? null) ? $decoded['data'] : $decoded;
+
+            return is_array($data) && isset($data['job_id']) ? (int) $data['job_id'] : 0;
         } catch (\Throwable $e) {
+            $this->recordBreadcrumb('POST', $url, null, (microtime(true) - $startedAt) * 1000, 1);
             log_message('error', '[HubClient] queueEmail failed: ' . $e->getMessage());
             return 0;
         }
