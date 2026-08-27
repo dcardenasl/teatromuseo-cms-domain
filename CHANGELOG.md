@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`HubClient::queueEmail()` could send the same email twice** — it used the
+  inherited `AbstractServiceClient::request()`, which retries once on a
+  timeout or 5xx. A timeout only means this app stopped waiting; the Hub may
+  have already queued/sent the email, so the retry could resend it. Confirmed
+  in production once `teatromuseo-web`'s form-submission timeout was widened
+  to accommodate `QUEUE_DRIVER=sync` on this app, which exposed the Hub's
+  occasional multi-second latency on `/api/v1/internal/email/queue`.
+  `queueEmail()` now calls `$this->http` directly for a single, non-retried
+  attempt — same pattern already used by `resolvePublicFileMeta()` for the
+  same reason (non-idempotent/expensive calls shouldn't inherit the default
+  retry).
 - **`dcardenasl/ci4-api-core` updated to v1.5.1** — `AbstractPermissionFilter` now accepts a comma-separated
   list of alternative permission codes on a route (e.g. `permission:cms.pages.read,cms.pages.scoped-read`),
   and a v1.5.1 follow-up closes a bypass gap the v1.5.0 change introduced: a route declaring a blank
