@@ -35,6 +35,10 @@ abstract class ApiTestCase extends CIUnitTestCase
      */
     protected function setUp(): void
     {
+        // CI4's shared service factories can retain model instances (including
+        // BaseModel tempData) between PHPUnit methods. Reset them before the
+        // framework bootstraps the next test so each request gets fresh state.
+        Services::reset();
         parent::setUp();
         \dcardenasl\Ci4ApiCore\Services\Audit\AuditService::$forceEnabledInTests = false;
         \dcardenasl\Ci4ApiCore\Http\ContextHolder::flush();
@@ -60,6 +64,7 @@ abstract class ApiTestCase extends CIUnitTestCase
         // that merely happened to run afterward).
         Services::resetSingle('hubClient');
         parent::tearDown();
+        Services::reset();
     }
 
     /**
