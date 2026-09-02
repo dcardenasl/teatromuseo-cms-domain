@@ -44,4 +44,14 @@ class CollectionModel extends BaseAuditableModel
         'block_template' => 'permit_empty',
         'wizard_config'  => 'permit_empty|valid_json',
     ];
+
+    /**
+     * Whether a collection with this key exists. Extracted from
+     * BlockTypeService::validateSchemaDefinition() (LAYER-03), which used to
+     * run this existence check via an injected BaseConnection directly.
+     */
+    public function existsByKey(string $collectionKey): bool
+    {
+        return $this->where('collection_key', $collectionKey)->countAllResults() > 0;
+    }
 }

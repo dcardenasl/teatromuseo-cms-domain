@@ -141,6 +141,47 @@ final class PublicPageControllerTest extends CIUnitTestCase
         $this->assertSame($this->draftPageTitle, $body['data']['title']);
     }
 
+    public function testByTypeResolvesTheSingletonTemplatePage(): void
+    {
+        $translation = $this->pageTranslation(0);
+        $page = $this->fixtures->page([$translation], ['page_type' => 'template_catalog_item']);
+
+        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/pages/by-type/template_catalog_item');
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertSame('success', $body['status']);
+        $this->assertSame($page['id'], (int) $body['data']['id']);
+        $this->assertSame('template_catalog_item', $body['data']['page_type']);
+    }
+
+    public function testByTypeRejectsNonTemplatePageTypes(): void
+    {
+        $translation = $this->pageTranslation(0);
+        $this->fixtures->page([$translation], ['page_type' => 'home']);
+
+        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/pages/by-type/home');
+
+        $result->assertStatus(404);
+    }
+
+    public function testByTypeReturns404WhenNoTemplateExists(): void
+    {
+        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/pages/by-type/template_event_item');
+
+        $result->assertStatus(404);
+    }
+
+    public function testTemplatePagesAreNotResolvableBySlug(): void
+    {
+        $translation = $this->pageTranslation(0);
+        $this->fixtures->page([$translation], ['page_type' => 'template_event_item']);
+
+        $result = $this->get($this->pagePath($translation['slug']));
+
+        $result->assertStatus(404);
+    }
+
     /** @return array<string, mixed> */
     private function pageTranslation(int $languagePosition): array
     {
@@ -203,4 +244,5 @@ final class PublicPageControllerTest extends CIUnitTestCase
     {
         return '/api/v1/public/' . $this->languages[0]['code'] . '/pages/' . $slug;
     }
+
 }

@@ -34,6 +34,22 @@ class CmsLanguageSeeder extends Seeder
                 'is_active'   => 1,
                 'sort_order'  => 2,
             ],
+            [
+                'code'        => 'fr',
+                'name'        => 'Francés',
+                'native_name' => 'Français',
+                'is_default'  => 0,
+                'is_active'   => 1,
+                'sort_order'  => 3,
+            ],
+            [
+                'code'        => 'pt',
+                'name'        => 'Portugués',
+                'native_name' => 'Português',
+                'is_default'  => 0,
+                'is_active'   => 1,
+                'sort_order'  => 4,
+            ],
         ];
 
         foreach ($languages as $lang) {

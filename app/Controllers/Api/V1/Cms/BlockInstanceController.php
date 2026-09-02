@@ -11,11 +11,19 @@ use App\Interfaces\Cms\BlockInstanceServiceInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
+use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
 use dcardenasl\Ci4ApiCore\Http\ApiController;
 
 class BlockInstanceController extends ApiController
 {
     protected BlockInstanceServiceInterface $blockInstanceService;
+
+    /**
+     * Owner type ('page'|'entry') for the current index() call, set by
+     * indexForPage()/indexForEntry() from their own route parameter — never
+     * inferred from the raw request URI.
+     */
+    private ?string $indexOwnerType = null;
 
     protected function resolveDefaultService(): BlockInstanceServiceInterface
     {
@@ -24,17 +32,23 @@ class BlockInstanceController extends ApiController
         return $this->blockInstanceService;
     }
 
-    private function ownerTypeFromRequest(): string
+    /**
+     * Resolve the owner type for an existing block instance via the
+     * service (the source of truth is the row's own `owner_type` column),
+     * not by guessing from the request path.
+     */
+    private function ownerTypeForExistingInstance(int $id): string
     {
-        $segments = service('request')->getUri()->getSegments();
+        $ownerType = $this->blockInstanceService->ownerTypeForInstance($id);
+        if ($ownerType === null) {
+            throw new NotFoundException(lang('Api.resourceNotFound'));
+        }
 
-        return in_array('entries', $segments, true) ? 'entry' : 'page';
+        return $ownerType;
     }
 
-    private function requiresPermission(string $action): string
+    private function requiresPermission(string $ownerType, string $action): string
     {
-        $ownerType = $this->ownerTypeFromRequest();
-
         return $ownerType === 'entry'
             ? "cms.entries.{$action}"
             : "cms.pages.{$action}";
@@ -46,6 +60,7 @@ class BlockInstanceController extends ApiController
 
     public function indexForPage(int $pageId): ResponseInterface
     {
+        $this->indexOwnerType = 'page';
         $this->blockInstanceService->setOwnerContext('page', $pageId);
 
         return $this->index();
@@ -53,6 +68,7 @@ class BlockInstanceController extends ApiController
 
     public function indexForEntry(int $entryId): ResponseInterface
     {
+        $this->indexOwnerType = 'entry';
         $this->blockInstanceService->setOwnerContext('entry', $entryId);
 
         return $this->index();
@@ -62,7 +78,8 @@ class BlockInstanceController extends ApiController
     {
         return $this->handleRequest(
             function (BlockInstanceIndexRequestDTO $dto, SecurityContext $context): mixed {
-                if (!$context->hasPermission($this->requiresPermission('read'))) {
+                $ownerType = $this->indexOwnerType ?? 'page';
+                if (!$context->hasPermission($this->requiresPermission($ownerType, 'read'))) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->blockInstanceService->index($dto, $context);
@@ -75,7 +92,7 @@ class BlockInstanceController extends ApiController
     {
         return $this->handleRequest(
             function (BlockInstanceCreateRequestDTO $dto, SecurityContext $context): mixed {
-                if (!$context->hasPermission($this->requiresPermission('write'))) {
+                if (!$context->hasPermission($this->requiresPermission($dto->owner_type, 'write'))) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->blockInstanceService->store($dto, $context);
@@ -88,7 +105,8 @@ class BlockInstanceController extends ApiController
     {
         return $this->handleRequest(
             function (BlockInstanceUpdateRequestDTO $dto, SecurityContext $context) use ($id): mixed {
-                if (!$context->hasPermission($this->requiresPermission('write'))) {
+                $ownerType = $this->ownerTypeForExistingInstance($id);
+                if (!$context->hasPermission($this->requiresPermission($ownerType, 'write'))) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->blockInstanceService->update($id, $dto, $context);
@@ -101,7 +119,8 @@ class BlockInstanceController extends ApiController
     {
         return $this->handleRequest(
             function (array $dto, SecurityContext $context) use ($id): mixed {
-                if (!$context->hasPermission($this->requiresPermission('read'))) {
+                $ownerType = $this->ownerTypeForExistingInstance($id);
+                if (!$context->hasPermission($this->requiresPermission($ownerType, 'read'))) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->blockInstanceService->show($id, $context);
@@ -113,7 +132,8 @@ class BlockInstanceController extends ApiController
     {
         return $this->handleRequest(
             function (array $dto, SecurityContext $context) use ($id): mixed {
-                if (!$context->hasPermission($this->requiresPermission('write'))) {
+                $ownerType = $this->ownerTypeForExistingInstance($id);
+                if (!$context->hasPermission($this->requiresPermission($ownerType, 'write'))) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
 

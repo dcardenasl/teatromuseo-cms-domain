@@ -39,6 +39,11 @@ class DomainPermissions
         ['code' => 'cms.blocks.write', 'resource' => 'blocks', 'action' => 'write', 'description' => 'Create/Edit CMS content blocks'],
         ['code' => 'cms.blocks.admin', 'resource' => 'blocks', 'action' => 'admin', 'description' => 'Full administration of CMS content blocks'],
 
+        // File translations
+        ['code' => 'cms.file-translations.read', 'resource' => 'file-translations', 'action' => 'read', 'description' => 'Read CMS file translations'],
+        ['code' => 'cms.file-translations.write', 'resource' => 'file-translations', 'action' => 'write', 'description' => 'Create/Edit CMS file translations'],
+        ['code' => 'cms.file-translations.admin', 'resource' => 'file-translations', 'action' => 'admin', 'description' => 'Full administration of CMS file translations'],
+
         // Collections
         ['code' => 'cms.collections.read', 'resource' => 'collections', 'action' => 'read', 'description' => 'Read CMS custom collections'],
         ['code' => 'cms.collections.write', 'resource' => 'collections', 'action' => 'write', 'description' => 'Create/Edit CMS custom collections'],

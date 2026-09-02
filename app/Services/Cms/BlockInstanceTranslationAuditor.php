@@ -18,9 +18,12 @@ class BlockInstanceTranslationAuditor
 {
     protected \App\Models\BlockInstanceTranslationModel $blockInstanceTranslationModel;
 
+    protected \App\Models\BlockInstanceModel $blockInstanceModel;
+
     public function __construct(private TranslationAuditSupport $support)
     {
         $this->blockInstanceTranslationModel = model(\App\Models\BlockInstanceTranslationModel::class);
+        $this->blockInstanceModel = model(\App\Models\BlockInstanceModel::class);
     }
 
     /**
@@ -28,7 +31,7 @@ class BlockInstanceTranslationAuditor
      * @param array<string, mixed> $filters
      * @return list<array<string, mixed>>
      */
-    public function audit(array $activeLanguages, array $filters): array
+    public function audit(array $activeLanguages, array $filters, ?int $defaultLanguageId = null): array
     {
         $instances = $this->getBlockInstancesWithTypes();
         $translationsByInstance = $this->support->groupTranslationsByResource(
@@ -56,16 +59,23 @@ class BlockInstanceTranslationAuditor
                 }
 
                 $translation = $translations[$langId] ?? null;
-                [$status, $detail] = $this->support->evaluateTranslationState(
-                    $translation,
-                    $translations,
-                    $translatableFields,
-                    $langId,
-                    function (array $row, string $fieldKey, array $fieldDefinition): mixed {
-                        return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
-                    },
-                    isset($instance['updated_at']) ? (string) $instance['updated_at'] : null
-                );
+                $valueResolver = function (array $row, string $fieldKey, array $fieldDefinition): mixed {
+                    return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
+                };
+                [$status, $detail] = $translation === null
+                    && ! $this->shouldReportMissing($translations, $translatableFields, $valueResolver)
+                    ? ['complete', '']
+                    : $this->support->evaluateTranslationState(
+                        $translation,
+                        $translations,
+                        $translatableFields,
+                        $langId,
+                        $valueResolver,
+                        $langId === $defaultLanguageId
+                            ? null
+                            : (isset($instance['updated_at']) ? (string) $instance['updated_at'] : null),
+                        $defaultLanguageId
+                    );
                 if ($status === 'complete') {
                     continue;
                 }
@@ -95,7 +105,7 @@ class BlockInstanceTranslationAuditor
      * 'block_instance' resource type: resolves the instance + its schema + its
      * translations, ready for the caller to run through evaluateTranslationState().
      *
-     * @return array{0: array<string, mixed>, 1: array<string, array{required: bool, type: string, data_key: string}>, 2: array<int, array<string, mixed>>, 3: callable(array<string, mixed>, string, array<string, mixed>): mixed}|null
+     * @return array{0: array<string, mixed>, 1: array<string, array{required: bool, type: string, data_key: string, compareToSource: bool}>, 2: array<int, array<string, mixed>>, 3: callable(array<string, mixed>, string, array<string, mixed>): mixed}|null
      */
     public function resolveForResource(int $resourceId): ?array
     {
@@ -115,6 +125,34 @@ class BlockInstanceTranslationAuditor
         };
 
         return [$instance, $fieldDefinitions, $translations, $valueResolver];
+    }
+
+    /**
+     * Empty optional containers (for example a gallery whose content lives in
+     * child instances) do not need translation rows. A block with required
+     * fields, or with content in any existing language, still requires a row
+     * for every active language.
+     *
+     * @param array<int, array<string, mixed>> $translations
+     * @param array<string, array<string, mixed>> $fieldDefinitions
+     */
+    public function shouldReportMissing(array $translations, array $fieldDefinitions, callable $valueResolver): bool
+    {
+        foreach ($fieldDefinitions as $fieldDefinition) {
+            if ((bool) ($fieldDefinition['required'] ?? false)) {
+                return true;
+            }
+        }
+
+        foreach ($translations as $translation) {
+            foreach ($fieldDefinitions as $fieldKey => $fieldDefinition) {
+                if (! $this->support->isBlank($valueResolver($translation, (string) $fieldKey, $fieldDefinition))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -140,7 +178,7 @@ class BlockInstanceTranslationAuditor
      *   summary: array<string, array{complete:int,total:int}>,
      * }
      */
-    public function auditForOwner(string $ownerType, int $ownerId, array $activeLanguages): array
+    public function auditForOwner(string $ownerType, int $ownerId, array $activeLanguages, ?int $defaultLanguageId = null): array
     {
         $summary = [];
         foreach ($activeLanguages as $lang) {
@@ -177,16 +215,23 @@ class BlockInstanceTranslationAuditor
                 $langCode = (string) $lang->code;
 
                 $translation = $translations[$langId] ?? null;
-                [$status, $detail] = $this->support->evaluateTranslationState(
-                    $translation,
-                    $translations,
-                    $translatableFields,
-                    $langId,
-                    function (array $row, string $fieldKey, array $fieldDefinition): mixed {
-                        return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
-                    },
-                    isset($instance['updated_at']) ? (string) $instance['updated_at'] : null
-                );
+                $valueResolver = function (array $row, string $fieldKey, array $fieldDefinition): mixed {
+                    return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
+                };
+                [$status, $detail] = $translation === null
+                    && ! $this->shouldReportMissing($translations, $translatableFields, $valueResolver)
+                    ? ['complete', '']
+                    : $this->support->evaluateTranslationState(
+                        $translation,
+                        $translations,
+                        $translatableFields,
+                        $langId,
+                        $valueResolver,
+                        $langId === $defaultLanguageId
+                            ? null
+                            : (isset($instance['updated_at']) ? (string) $instance['updated_at'] : null),
+                        $defaultLanguageId
+                    );
 
                 $status = $this->support->collapseForBlockBadge($status);
 
@@ -227,18 +272,7 @@ class BlockInstanceTranslationAuditor
      */
     private function getBlockInstancesWithTypes(): array
     {
-        $db = \Config\Database::connect();
-        $query = $db->table('cms_block_instances i')
-            ->select('i.*, b.block_key, b.schema_definition')
-            ->join('cms_content_blocks b', 'b.id = i.block_id')
-            ->where('i.is_active', 1)
-            ->orderBy('i.sort_order', 'ASC')
-            ->get();
-
-        /** @var list<array<string, mixed>> $rows */
-        $rows = $query ? $query->getResultArray() : [];
-
-        return $rows;
+        return $this->blockInstanceModel->findAllWithBlockType(onlyActive: true);
     }
 
     /**
@@ -246,19 +280,7 @@ class BlockInstanceTranslationAuditor
      */
     private function getBlockInstancesForOwner(string $ownerType, int $ownerId): array
     {
-        $db = \Config\Database::connect();
-        $query = $db->table('cms_block_instances i')
-            ->select('i.*, b.block_key, b.schema_definition')
-            ->join('cms_content_blocks b', 'b.id = i.block_id')
-            ->where('i.owner_type', $ownerType)
-            ->where('i.owner_id', $ownerId)
-            ->orderBy('i.sort_order', 'ASC')
-            ->get();
-
-        /** @var list<array<string, mixed>> $rows */
-        $rows = $query ? $query->getResultArray() : [];
-
-        return $rows;
+        return $this->blockInstanceModel->findAllWithBlockType($ownerType, $ownerId);
     }
 
     /**
@@ -266,22 +288,12 @@ class BlockInstanceTranslationAuditor
      */
     private function getBlockInstanceWithType(int $resourceId): ?array
     {
-        $db = \Config\Database::connect();
-        $query = $db->table('cms_block_instances i')
-            ->select('i.*, b.block_key, b.schema_definition')
-            ->join('cms_content_blocks b', 'b.id = i.block_id')
-            ->where('i.id', $resourceId)
-            ->limit(1)
-            ->get();
-
-        $instance = $query ? $query->getRowArray() : null;
-
-        return is_array($instance) ? $instance : null;
+        return $this->blockInstanceModel->findOneWithBlockType($resourceId);
     }
 
     /**
      * @param array<string, mixed>|array<int, mixed>|string|null $schemaDefinition
-     * @return array<string, array{required: bool, type: string, data_key: string}>
+     * @return array<string, array{required: bool, type: string, data_key: string, compareToSource: bool}>
      */
     private function getTranslatableBlockFieldDefinitions(mixed $schemaDefinition): array
     {
@@ -304,15 +316,21 @@ class BlockInstanceTranslationAuditor
                 continue;
             }
 
-            if (!TranslationResourceCatalog::isAuditableBlockField($fieldDef)) {
+            if (! TranslationResourceCatalog::isAuditableBlockField($fieldDef, (string) $fieldKey)) {
                 continue;
             }
 
             $fieldKey = (string) $fieldKey;
+            $fieldType = strtolower((string) ($fieldDef['type'] ?? 'string'));
             $translatable[$fieldKey] = [
                 'required' => (bool) ($fieldDef['required'] ?? false),
-                'type' => strtolower((string) ($fieldDef['type'] ?? 'string')),
+                'type' => $fieldType,
                 'data_key' => $fieldKey,
+                // URLs are routing/technical values. A localized block may
+                // legitimately point to the same route in every language;
+                // copying that route must not make an otherwise complete
+                // translation appear incomplete in the admin badges.
+                'compareToSource' => $fieldType !== 'url',
             ];
         }
 

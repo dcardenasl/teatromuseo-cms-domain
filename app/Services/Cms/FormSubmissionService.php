@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Cms;
 
 use App\DTO\Request\Cms\FormSubmissionCreateRequestDTO;
+use App\DTO\Request\Cms\FormSubmissionImportRequestDTO;
 use App\DTO\Request\Cms\FormSubmissionIndexRequestDTO;
 use App\DTO\Request\Cms\FormSubmissionUpdateStatusRequestDTO;
 use App\DTO\Response\Cms\FormSubmissionResponseDTO;
@@ -28,7 +29,23 @@ class FormSubmissionService
      */
     public function list(FormSubmissionIndexRequestDTO $dto): array
     {
-        $builder = $this->model->orderBy('created_at', 'DESC');
+        // FormSubmissionModel is constructor-injected (not resolved fresh
+        // per call via a Repository like BaseCrudService's generic index()
+        // does — see BaseRepository::paginateCriteria()'s own
+        // `$this->model->builder()->resetQuery()` for the same defensive
+        // reset), so a prior get()/find($id) call sharing this same model
+        // instance (e.g. create()/import() both end by calling get()) can
+        // leave a stale `where($primaryKey, $id)` on the model's internal
+        // query builder — found via LAYER-07 characterization testing,
+        // where two sequential import()+list() calls against the same
+        // (test-process-shared) service singleton silently filtered list()
+        // down to just the last imported row.
+        // Use a short-lived model for the read path. The injected model is
+        // also used by create/import/get and CodeIgniter keeps its builder
+        // state on that instance; a clean builder prevents a previous
+        // primary-key lookup from narrowing the listing unexpectedly.
+        $listModel = new FormSubmissionModel();
+        $builder = $listModel->builder()->select('*')->orderBy('created_at', 'DESC');
 
         if ($dto->status !== null) {
             $builder->where('status', $dto->status);
@@ -40,8 +57,11 @@ class FormSubmissionService
 
         $total  = (int) $builder->countAllResults(false);
         $offset = ($dto->page - 1) * $dto->per_page;
-        /** @var list<FormSubmissionEntity> */
-        $rows   = $builder->findAll($dto->per_page, $offset);
+        $queryResult = $builder
+            ->limit($dto->per_page, $offset)
+            ->get();
+        /** @var list<FormSubmissionEntity> $rows */
+        $rows = $queryResult === false ? [] : $queryResult->getResult(FormSubmissionEntity::class);
 
         $data = array_map(
             fn (FormSubmissionEntity $e) => FormSubmissionResponseDTO::fromArray($e->toArray())->toArray(),
@@ -113,6 +133,34 @@ class FormSubmissionService
         }
 
         return $submission;
+    }
+
+    /**
+     * Backfill a historical submission (e.g. legacy migration ETL). Skips
+     * CAPTCHA and email-notification jobs — those only make sense for live
+     * submissions — and preserves the caller's created_at/status instead of
+     * stamping the import time.
+     */
+    public function import(FormSubmissionImportRequestDTO $dto): FormSubmissionResponseDTO
+    {
+        $dataJson = json_encode($dto->form_data, JSON_UNESCAPED_UNICODE) ?: '{}';
+
+        $id = $this->model->insert([
+            'form_id'     => $dto->form_id,
+            'form_key'    => $dto->form_key,
+            'page_id'     => $dto->page_id,
+            'language_id' => $dto->language_id,
+            'data_json'   => $dataJson,
+            'status'      => $dto->status,
+            'ip_address'  => $dto->ip_address ?? '',
+            'user_agent'  => $dto->user_agent ?? '',
+        ], true);
+
+        if ($dto->created_at !== null) {
+            $this->model->builder()->where('id', $id)->update(['created_at' => $dto->created_at]);
+        }
+
+        return $this->get((int) $id);
     }
 
     private function verifyRecaptcha(string $token): bool
@@ -226,18 +274,6 @@ class FormSubmissionService
      */
     public function countByStatus(): array
     {
-        $db = \Config\Database::connect();
-        $result = $db->table('cms_form_submissions')
-            ->select('status, COUNT(*) as total')
-            ->groupBy('status')
-            ->get();
-        $rows = $result ? $result->getResultArray() : [];
-
-        $counts = ['new' => 0, 'read' => 0, 'replied' => 0, 'spam' => 0, 'archived' => 0];
-        foreach ($rows as $row) {
-            $counts[$row['status']] = (int) $row['total'];
-        }
-
-        return $counts;
+        return $this->model->countByStatus();
     }
 }

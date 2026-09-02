@@ -12,6 +12,8 @@ Environment variables:
 - `RATE_LIMIT_REQUESTS`
 - `RATE_LIMIT_USER_REQUESTS`
 - `RATE_LIMIT_WINDOW`
+- `PUBLIC_READ_RATE_LIMIT_REQUESTS`
+- `PUBLIC_READ_RATE_LIMIT_WINDOW`
 - `AUTH_RATE_LIMIT_REQUESTS`
 - `AUTH_RATE_LIMIT_WINDOW`
 - `API_KEY_RATE_LIMIT_DEFAULT`
@@ -24,3 +26,4 @@ Notes:
 - `throttle` is applied to general API routes.
 - Responses include rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`).
 - If `X-App-Key` is present, API key limits are applied after key validation.
+- Public GET reads are bucketed by a SHA-256 fingerprint of the validated Web app key, not by the shared hosting IP. The default is 600 requests per 60 seconds; public writes and protected routes keep the IP/user limits.

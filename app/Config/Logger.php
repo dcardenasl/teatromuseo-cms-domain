@@ -43,6 +43,27 @@ class Logger extends BaseConfig
      */
     public $threshold = (ENVIRONMENT === 'production') ? 4 : 9;
 
+    public function __construct()
+    {
+        parent::__construct();
+
+        $levels = [
+            'emergency' => 1,
+            'alert'     => 2,
+            'critical'  => 3,
+            'error'     => 4,
+            'warning'   => 5,
+            'notice'    => 6,
+            'info'      => 7,
+            'debug'     => 8,
+        ];
+        $configured = strtolower(trim((string) (env('LOG_LEVEL', '') ?? '')));
+
+        if (isset($levels[$configured])) {
+            $this->threshold = $levels[$configured];
+        }
+    }
+
     /**
      * --------------------------------------------------------------------------
      * Date Format for Logs

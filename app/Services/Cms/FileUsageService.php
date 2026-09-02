@@ -37,6 +37,16 @@ class FileUsageService
             throw new \RuntimeException(lang('Cms.file_references.missing_table'));
         }
 
+        // LAYER-03: intentionally left on the injected BaseConnection rather
+        // than migrated to a Model. This is a 3-table LEFT JOIN (file
+        // references -> their owning block instance -> that block's type)
+        // where the two joins are deliberately LEFT (a reference's owner
+        // isn't always a block instance — see the resource_type match below)
+        // and the result is reshaped per resource_type afterwards. An Active
+        // Record model would need to encode that same conditional-join +
+        // reshape logic to be reusable, which isn't worth it for a single
+        // call site — the same exception FormService::getUsages() documents
+        // for its own JSON_EXTRACT join.
         $result = $this->db->table('cms_file_references fr')
             ->select('fr.resource_type, fr.resource_id, fr.role, fr.label, bi.owner_type, bi.owner_id, bt.block_key, bt.name as block_name')
             ->join('cms_block_instances bi', 'bi.id = fr.block_instance_id', 'left')

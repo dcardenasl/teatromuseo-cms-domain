@@ -33,9 +33,12 @@ class CreateCmsLanguages extends Migration
         $this->forge->addPrimaryKey('id');
         $this->forge->addUniqueKey('code', 'uk_lang_code');
         $this->forge->addKey(['is_active', 'sort_order'], false, false, 'idx_lang_active_sort');
-        $this->forge->addForeignKey('fallback_language_id', 'cms_languages', 'id', '', 'SET NULL', 'fk_lang_fallback');
-
         $this->forge->createTable('cms_languages', false, ['ENGINE' => 'InnoDB']);
+
+        // MySQL/MariaDB cannot resolve the self-referencing constraint while
+        // the table is still being created. Add it after the table exists.
+        $this->forge->addForeignKey('fallback_language_id', 'cms_languages', 'id', '', 'SET NULL', 'fk_lang_fallback');
+        $this->forge->processIndexes('cms_languages');
     }
 
     public function down(): void

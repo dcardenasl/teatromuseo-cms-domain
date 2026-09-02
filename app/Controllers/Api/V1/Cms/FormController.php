@@ -32,7 +32,7 @@ class FormController extends ApiController
                 }
                 /** @var FormService $svc */
                 $svc = service('formService');
-                return $svc->list();
+                return $svc->list($data);
             }
         );
     }

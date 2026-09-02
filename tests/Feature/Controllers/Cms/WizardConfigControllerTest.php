@@ -90,6 +90,7 @@ final class WizardConfigControllerTest extends ApiTestCase
             'block_key'         => 'hero_banner',
             'name'              => 'Hero Banner',
             'description'       => 'A hero banner',
+            'category'          => 'content',
             'icon'              => 'image',
             'schema_definition' => json_encode([
                 'fields'        => [
@@ -98,6 +99,7 @@ final class WizardConfigControllerTest extends ApiTestCase
                 'config_fields' => [
                     'style' => ['type' => 'string'],
                 ],
+                'allowed_children' => ['rich_text'],
             ]),
             'supports_pages'    => 1,
             'supports_entries'  => 0,
@@ -135,6 +137,8 @@ final class WizardConfigControllerTest extends ApiTestCase
 
         $this->assertArrayHasKey('hero_banner', $data['block_types']);
         $this->assertSame('Hero Banner', $data['block_types']['hero_banner']['name']);
+        $this->assertSame('content', $data['block_types']['hero_banner']['category']);
+        $this->assertSame(['rich_text'], $data['block_types']['hero_banner']['schema_definition']['allowed_children']);
         $this->assertArrayHasKey('heading', $data['block_types']['hero_banner']['fields']);
         $this->assertSame(['style' => ['type' => 'string']], $data['block_types']['hero_banner']['config_fields']);
         $this->assertSame(['heading'], $data['block_types']['hero_banner']['capabilities']['required_fields']);

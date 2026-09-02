@@ -7,16 +7,19 @@ namespace App\Services\Cms;
 use App\DTO\Request\Cms\EntrySetCategoriesRequestDTO;
 use App\DTO\Request\Cms\EntrySetTagsRequestDTO;
 use App\DTO\Request\Cms\EntrySyncTaxonomyRequestDTO;
-use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
-use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
+use App\DTO\Response\Cms\EntryResponseDTO;
 use App\Entities\EntryEntity;
+use App\Interfaces\Cms\EntryListRepositoryInterface;
 use App\Interfaces\Cms\EntryServiceInterface;
+use App\Libraries\Cms\BlockInstancePurger;
 use App\Libraries\Cms\EntryTaxonomyPivotResolver;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasDeferredTranslations;
 use dcardenasl\Ci4ApiCore\Dto\Common\PayloadResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
@@ -41,13 +44,15 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     private EntryBlockTemplateInitializer $blockTemplateInitializer;
 
-    private PublicEntryReader $publicReader;
+    private BlockInstancePurger $blockInstancePurger;
 
     private EntryTaxonomyPivotResolver $taxonomyPivotResolver;
 
     private \App\Libraries\Cms\TranslationResolver $translationResolver;
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
+    private ?EntryListRepositoryInterface $entryListRepository;
 
     /**
      * @param RepositoryInterface<EntryEntity> $entryRepository
@@ -60,10 +65,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         FileUrlResolver $fileUrlResolver,
         FileReferenceSynchronizer $fileReferenceSynchronizer,
         \App\Libraries\Cms\TranslationResolver $translationResolver,
-        PublicEntryReader $publicReader,
         EntryTaxonomyPivotResolver $taxonomyPivotResolver,
         EntryBlockTemplateInitializer $blockTemplateInitializer,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        BlockInstancePurger $blockInstancePurger,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?EntryListRepositoryInterface $entryListRepository = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder;
@@ -71,10 +77,49 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->fileUrlResolver      = $fileUrlResolver;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
         $this->translationResolver = $translationResolver;
-        $this->publicReader = $publicReader;
         $this->taxonomyPivotResolver = $taxonomyPivotResolver;
+        $this->blockInstancePurger = $blockInstancePurger;
         $this->blockTemplateInitializer = $blockTemplateInitializer;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->entryListRepository = $entryListRepository;
+    }
+
+    /**
+     * The administrative list is a database projection. It deliberately
+     * bypasses the generic entity enrichment path: that path is appropriate
+     * for full records, but it would hydrate translations and media one row
+     * at a time for a paginated table.
+     */
+    public function index(DataTransferObjectInterface $request, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->entryListRepository === null) {
+            return parent::index($request, $context);
+        }
+
+        $page = max(1, (int) ($requestData['page'] ?? 1));
+        $perPage = min(1000, max(1, (int) ($requestData['per_page'] ?? 20)));
+        $result = $this->entryListRepository->paginateAdminList($requestData, $page, $perPage);
+
+        $data = array_map(
+            function (array $row): EntryResponseDTO {
+                $row['translations'] = AdminListProjectionDecoder::translations(
+                    $row['translations_data'] ?? null,
+                    ['title', 'slug'],
+                );
+                unset($row['translations_data']);
+
+                return EntryResponseDTO::fromArray($row);
+            },
+            $result['data']
+        );
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -145,8 +190,6 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     {
         parent::afterStore($entity, $context);
 
-        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
-
         // wizard_extra is a transient payload: pre-fill matching block fields, then clear it.
         $rawExtra = ($entity instanceof EntryEntity) ? $entity->wizard_extra : null;
         $wizardExtra = null;
@@ -171,6 +214,14 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                     : null
             )->update();
         }
+
+        // Written last, after the wizard_extra clear above (which bumps
+        // cms_entries.updated_at): if translations were saved first instead, that
+        // later housekeeping write could land a second after them, making
+        // TranslationAuditSupport::evaluateTranslationState() flag a perfectly
+        // complete translation as "outdated" purely from write-ordering timing,
+        // not from any actually-stale content.
+        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
 
         $this->fileReferenceSynchronizer->syncEntry((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
@@ -210,6 +261,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
+        // cms_entries is soft-deleted, but cms_block_instances has no such column
+        // (BlockInstanceModel::$useSoftDeletes = false) — leaving them behind turns
+        // them into orphans that still hold cms_file_references rows, which blocks
+        // Hub file deletion with a 409 "in use" for files nothing can reach anymore.
+        $this->blockInstancePurger->purgeForOwner('entry', (int) $entity->id);
         $this->fileReferenceSynchronizer->removeResourceReferences('entry', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['entries']);
     }
@@ -304,10 +360,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     {
         /** @var \App\Models\EntryTranslationModel $translationModel */
         $translationModel = model(\App\Models\EntryTranslationModel::class);
+        $slugGenerator = new \App\Libraries\Cms\SlugGenerator();
 
         foreach ($translations as $translation) {
             $langId = (int) $translation['language_id'];
-            $slug = (string) $translation['slug'];
+            $slug = $slugGenerator->slugify((string) $translation['slug']);
 
             $existing = $translationModel
                 ->where('language_id', $langId)
@@ -339,23 +396,20 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             $translationResolver = $this->translationResolver;
             $languageCodeMap = [];
             if ($entry instanceof \App\Entities\EntryEntity) {
-                $currentLangResult = \Config\Database::connect()->table('cms_languages')
-                    ->where('is_active', 1)
-                    ->get();
-                $languageRows = $currentLangResult instanceof \CodeIgniter\Database\ResultInterface
-                    ? $currentLangResult->getResultArray()
-                    : [];
+                /** @var \App\Models\LanguageModel $languageModel */
+                $languageModel = model(\App\Models\LanguageModel::class);
+                $activeLanguages = $languageModel->where('is_active', 1)->findAll();
                 $languageCodeMap = [];
-                foreach ($languageRows as $languageRow) {
-                    if (isset($languageRow['id'], $languageRow['code'])) {
-                        $languageCodeMap[(int) $languageRow['id']] = (string) $languageRow['code'];
+                foreach ($activeLanguages as $language) {
+                    if ($language instanceof \App\Entities\LanguageEntity) {
+                        $languageCodeMap[(int) $language->id] = (string) $language->code;
                     }
                 }
             }
 
             foreach ($translations as $translation) {
                 $langId  = (int) $translation['language_id'];
-                $newSlug = (string) $translation['slug'];
+                $newSlug = $slugGenerator->slugify((string) $translation['slug']);
                 if (isset($currentSlugs[$langId]) && $currentSlugs[$langId] !== $newSlug) {
                     $langCode = $languageCodeMap[$langId] ?? null;
                     $resolvedPrefix = '';
@@ -376,19 +430,21 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 $translation['featured_image'] ?? [
                     'file_id' => $translation['featured_file_id'] ?? null,
                     'url'     => isset($translation['featured_image_url']) ? (string) $translation['featured_image_url'] : null,
-                ]
+                ],
+                'storage'
             );
             $ogImage = $this->fileUrlResolver->normalizeMediaReference(
                 $translation['og_image'] ?? [
                     'file_id' => $translation['og_image_file_id'] ?? null,
                     'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
-                ]
+                ],
+                'storage'
             );
 
             $rows[] = [
                 'entry_id'         => $entryId,
                 'language_id'      => (int) $translation['language_id'],
-                'slug'             => (string) $translation['slug'],
+                'slug'             => $slugGenerator->slugify((string) $translation['slug']),
                 'title'            => $translation['title'],
                 'excerpt'          => $translation['excerpt'] ?? null,
                 'featured_file_id' => $featuredImage['file_id'],
@@ -507,20 +563,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        $db = \Config\Database::connect();
-        $db->table('cms_entry_categories')->where('entry_id', $entryId)->delete();
-
-        if ($categoryIds !== []) {
-            $rows = [];
-            foreach ($categoryIds as $order => $categoryId) {
-                $rows[] = [
-                    'entry_id'    => $entryId,
-                    'category_id' => $categoryId,
-                    'sort_order'  => $order,
-                ];
-            }
-            $db->table('cms_entry_categories')->insertBatch($rows);
-        }
+        /** @var \App\Models\EntryCategoryModel $entryCategoryModel */
+        $entryCategoryModel = model(\App\Models\EntryCategoryModel::class);
+        $entryCategoryModel->replaceForEntry($entryId, $categoryIds);
     }
 
     /**
@@ -544,26 +589,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        $db = \Config\Database::connect();
-        $db->table('cms_entry_tags')->where('entry_id', $entryId)->delete();
-
-        if ($tagIds !== []) {
-            $rows = [];
-            foreach ($tagIds as $tagId) {
-                $rows[] = ['entry_id' => $entryId, 'tag_id' => $tagId];
-            }
-            $db->table('cms_entry_tags')->insertBatch($rows);
-        }
-    }
-
-    public function listPublic(PublicEntryIndexRequestDTO $dto): DataTransferObjectInterface
-    {
-        return $this->publicReader->listPublic($dto);
-    }
-
-    public function showPublic(PublicEntryShowRequestDTO $dto): DataTransferObjectInterface
-    {
-        return $this->publicReader->showPublic($dto);
+        /** @var \App\Models\EntryTagModel $entryTagModel */
+        $entryTagModel = model(\App\Models\EntryTagModel::class);
+        $entryTagModel->replaceForEntry($entryId, $tagIds);
     }
 
     public function createVersionSnapshot(int $entryId, string $note = ''): void
@@ -610,6 +638,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool
     {
+        $slug = (new \App\Libraries\Cms\SlugGenerator())->slugify($slug);
+
         return (new \App\Models\EntryTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
     }
 }

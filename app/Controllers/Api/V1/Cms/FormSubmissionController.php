@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api\V1\Cms;
 
+use App\DTO\Request\Cms\FormSubmissionImportRequestDTO;
 use App\DTO\Request\Cms\FormSubmissionIndexRequestDTO;
 use App\DTO\Request\Cms\FormSubmissionUpdateStatusRequestDTO;
 use App\Services\Cms\FormSubmissionService;
@@ -18,6 +19,10 @@ use dcardenasl\Ci4ApiCore\Http\ApiController;
  */
 class FormSubmissionController extends ApiController
 {
+    protected array $statusCodes = [
+        'import' => 201,
+    ];
+
     protected function resolveDefaultService(): FormSubmissionService
     {
         return service('formSubmissionService');
@@ -65,6 +70,21 @@ class FormSubmissionController extends ApiController
                 return $svc->updateStatus($id, $dto);
             },
             FormSubmissionUpdateStatusRequestDTO::class
+        );
+    }
+
+    public function import(): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (FormSubmissionImportRequestDTO $dto, SecurityContext $context): mixed {
+                if (! $context->hasPermission('cms.submissions.write')) {
+                    throw new AuthorizationException(lang('Api.forbidden'));
+                }
+                /** @var FormSubmissionService $svc */
+                $svc = service('formSubmissionService');
+                return $svc->import($dto);
+            },
+            FormSubmissionImportRequestDTO::class
         );
     }
 

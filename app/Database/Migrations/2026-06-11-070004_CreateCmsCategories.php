@@ -16,7 +16,6 @@ class CreateCmsCategories extends Migration
             'parent_id'     => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
             'sort_order'    => ['type' => 'INT', 'default' => 0],
             'is_active'     => ['type' => 'TINYINT', 'constraint' => 1, 'default' => 1],
-            'deleted_at'    => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addField('`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
         $this->forge->addField('`updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP');
@@ -25,9 +24,12 @@ class CreateCmsCategories extends Migration
         $this->forge->addKey(['collection_id', 'is_active', 'sort_order'], false, false, 'idx_cat_collection');
         $this->forge->addKey('parent_id', false, false, 'idx_cat_parent');
         $this->forge->addForeignKey('collection_id', 'cms_collections', 'id', '', 'CASCADE', 'fk_cat_collection');
-        $this->forge->addForeignKey('parent_id', 'cms_categories', 'id', '', 'CASCADE', 'fk_cat_parent');
-
         $this->forge->createTable('cms_categories', false, ['ENGINE' => 'InnoDB']);
+
+        // Add the self-reference after CREATE TABLE for MySQL/MariaDB
+        // compatibility; those engines may reject it in the initial DDL.
+        $this->forge->addForeignKey('parent_id', 'cms_categories', 'id', '', 'CASCADE', 'fk_cat_parent');
+        $this->forge->processIndexes('cms_categories');
 
         $this->forge->addField([
             'id'               => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],

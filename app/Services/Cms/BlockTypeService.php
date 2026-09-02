@@ -6,7 +6,8 @@ namespace App\Services\Cms;
 
 use App\Entities\BlockTypeEntity;
 use App\Interfaces\Cms\BlockTypeServiceInterface;
-use CodeIgniter\Database\BaseConnection;
+use App\Models\BlockInstanceModel;
+use App\Models\CollectionModel;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ConflictException;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
@@ -21,24 +22,24 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
 {
     private const ALLOWED_CONTENT_SOURCES = ['manual', 'page', 'collection', 'entry', 'container'];
 
-    /** @var BaseConnection<mixed, mixed> */
-    private BaseConnection $db;
+    private const ALLOWED_NAVIGATION_SOURCES = ['block_config', 'owner'];
+
+    private const ALLOWED_NAVIGATION_TARGETS = ['collection_index', 'listing_page', 'parent_page', 'slide_destination'];
 
     private bool $schemaChanged = false;
 
     /**
      * @param RepositoryInterface<BlockTypeEntity> $blockTypeRepository
-     * @param BaseConnection<mixed, mixed> $db
      */
     public function __construct(
         RepositoryInterface $blockTypeRepository,
         ResponseMapperInterface $responseMapper,
-        BaseConnection $db,
+        private readonly BlockInstanceModel $blockInstanceModel,
+        private readonly CollectionModel $collectionModel,
         private readonly \App\Libraries\Cms\FileReferenceSynchronizer $fileReferenceSynchronizer,
         private readonly \App\Libraries\Cms\OwnerUsageResolver $ownerUsageResolver,
     ) {
         parent::__construct($blockTypeRepository, $responseMapper);
-        $this->db = $db;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -79,13 +80,8 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
      */
     public function getUsages(int $blockTypeId): array
     {
-        $instancesResult = $this->db->table('cms_block_instances')
-            ->select('id, owner_type, owner_id')
-            ->where('block_id', $blockTypeId)
-            ->get();
-
         /** @var list<array{id: int|string, owner_type: string, owner_id: int|string}> $instances */
-        $instances = $instancesResult ? $instancesResult->getResultArray() : [];
+        $instances = $this->blockInstanceModel->findAllForBlockType($blockTypeId);
 
         $owners = array_map(
             static fn (array $instance): array => [
@@ -172,12 +168,9 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
             return;
         }
 
-        $result = $this->db->table('cms_block_instances')
-            ->select('id')
-            ->where('block_id', (int) $entity->id)
-            ->get();
+        $instances = $this->blockInstanceModel->findAllForBlockType((int) $entity->id);
 
-        foreach ($result ? $result->getResultArray() : [] as $row) {
+        foreach ($instances as $row) {
             $instanceId = (int) ($row['id'] ?? 0);
             if ($instanceId > 0) {
                 $this->fileReferenceSynchronizer->syncBlockInstance($instanceId);
@@ -221,23 +214,81 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
     private function assertValidSchemaDefinition(array $schemaDefinition): void
     {
         $contentSource = $schemaDefinition['content_source'] ?? null;
-        if ($contentSource === null) {
-            return;
-        }
-
-        if (! is_array($contentSource)) {
+        if ($contentSource !== null && ! is_array($contentSource)) {
             throw new ValidationException(
                 lang('Api.validationFailed'),
                 ['schema_definition' => lang('BlockTypes.invalid_content_source')]
             );
         }
 
-        $sourceType = (string) ($contentSource['type'] ?? '');
-        if ($sourceType === '' || ! in_array($sourceType, self::ALLOWED_CONTENT_SOURCES, true)) {
+        if (is_array($contentSource)) {
+            $sourceType = (string) ($contentSource['type'] ?? '');
+            if ($sourceType === '' || ! in_array($sourceType, self::ALLOWED_CONTENT_SOURCES, true)) {
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    ['schema_definition' => lang('BlockTypes.invalid_content_source')]
+                );
+            }
+        }
+
+        $navigation = $schemaDefinition['navigation'] ?? null;
+        if ($navigation !== null) {
+            if (! is_array($navigation)
+                || ! in_array((string) ($navigation['source'] ?? ''), self::ALLOWED_NAVIGATION_SOURCES, true)
+                || ! in_array((string) ($navigation['target'] ?? ''), self::ALLOWED_NAVIGATION_TARGETS, true)) {
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    ['schema_definition' => lang('BlockTypes.invalid_navigation')]
+                );
+            }
+        }
+
+        $fields = $schemaDefinition['fields'] ?? [];
+        if ($fields !== [] && ! is_array($fields)) {
             throw new ValidationException(
                 lang('Api.validationFailed'),
-                ['schema_definition' => lang('BlockTypes.invalid_content_source')]
+                ['schema_definition' => lang('BlockTypes.invalid_schema_fields')]
             );
+        }
+
+        foreach ((array) $fields as $fieldKey => $field) {
+            if (! is_array($field) || ! in_array((string) ($field['type'] ?? ''), ['entry_reference', 'entry_reference_list'], true)) {
+                continue;
+            }
+
+            $collections = $field['collection_keys'] ?? $field['allowed_collections'] ?? [];
+            if (isset($field['collection_key']) && is_string($field['collection_key'])) {
+                $collections = [$field['collection_key']];
+            }
+            $collections = is_array($collections)
+                ? array_values(array_filter(array_map(static fn (mixed $value): string => trim((string) $value), $collections)))
+                : [];
+
+            $min = isset($field['min_items']) ? max(0, (int) $field['min_items']) : 0;
+            $max = isset($field['max_items']) ? max(0, (int) $field['max_items']) : null;
+            if ($max !== null && $max < $min) {
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    ['schema_definition' => lang('BlockTypes.invalid_reference_limits', [(string) $fieldKey])]
+                );
+            }
+
+            if ($collections === []) {
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    ['schema_definition' => lang('BlockTypes.reference_collection_required', [(string) $fieldKey])]
+                );
+            }
+
+            foreach ($collections as $collectionKey) {
+                $exists = $this->collectionModel->existsByKey((string) $collectionKey);
+                if (! $exists) {
+                    throw new ValidationException(
+                        lang('Api.validationFailed'),
+                        ['schema_definition' => lang('BlockTypes.reference_collection_missing', [$collectionKey])]
+                    );
+                }
+            }
         }
     }
 }

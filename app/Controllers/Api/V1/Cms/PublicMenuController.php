@@ -29,18 +29,18 @@ class PublicMenuController extends ApiController
     public function show(string $menuKey): ResponseInterface
     {
         return $this->handleRequest(
-            function (array $dto, SecurityContext $context) use ($menuKey): ResponseInterface {
+            function (array $dto, SecurityContext $context) use ($menuKey): mixed {
                 // The API's static framework locale list must not decide CMS
                 // content language. The public web client sends the locale in
-                // Accept-Language after discovering it from the CMS.
+                // Accept-Language after discovering it from the CMS. Reading
+                // the header here (rather than via a RequestDTO) is
+                // deliberate — the base controller's request-data collector
+                // only merges query/body input, never headers, so this is
+                // HTTP-boundary code, not business logic that belongs in the
+                // Service.
                 $lang = Services::publicLocaleResolver()->resolve($this->request->getHeaderLine('Accept-Language'));
 
-                $data = $this->menuService->showPublic($menuKey, $lang);
-
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'data'   => $data,
-                ])->setStatusCode(200);
+                return $this->menuService->showPublic($menuKey, $lang);
             }
         );
     }

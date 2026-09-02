@@ -20,6 +20,11 @@ class ControllerDtoRequestContractsTest extends CIUnitTestCase
      */
     private const CONTROLLER_EXCEPTIONS = [
         'HealthController',
+        // Hub-initiated internal/files/* routes (usage-check, invalidate-cache).
+        // Gated by HubSignatureFilter (HMAC), not JWT/app-key — no SecurityContext
+        // to hand handleRequest(), and no client-supplied request body to
+        // validate via a DTO. Machine-to-machine, same shape as HealthController.
+        'InternalFileController',
     ];
 
     /**

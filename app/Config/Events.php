@@ -56,6 +56,10 @@ Events::on('pre_system', static function (): void {
     }
 });
 
+Events::on('DBQuery', static function (mixed $query): void {
+    \App\Support\PublicReadTelemetry::recordQuery($query);
+});
+
 /**
  * --------------------------------------------------------------------
  * User Domain Events

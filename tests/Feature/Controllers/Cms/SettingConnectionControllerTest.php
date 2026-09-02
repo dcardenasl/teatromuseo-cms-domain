@@ -10,10 +10,12 @@ use dcardenasl\Ci4ApiCore\Http\Client\IntrospectResult;
 use Tests\Support\ApiTestCase;
 
 /**
- * Characterization coverage for SettingConnectionController, written before
- * moving its model() access into SettingConnectionService (DOM-115) — locks
- * in the current `{ok, data}` response shape and behavior so the refactor
- * cannot silently change it.
+ * Coverage for SettingConnectionController. Originally written as
+ * characterization coverage before moving its model() access into
+ * SettingConnectionService (DOM-115); updated for LAYER-02 (2026-08-06) when
+ * the controller's non-standard `{ok, data}` response shape — a break from
+ * the `{status, data}` envelope every other endpoint in this fleet uses —
+ * was fixed to match `ApiResponse`'s standard envelope.
  *
  * @internal
  */
@@ -70,7 +72,7 @@ final class SettingConnectionControllerTest extends ApiTestCase
         $result->assertStatus(200);
         $body = json_decode((string) $result->response()->getBody(), true);
 
-        $this->assertTrue($body['ok']);
+        $this->assertSame('success', $body['status']);
         $this->assertSame([], $body['data']['items']);
         $this->assertSame(0, $body['data']['total']);
     }
@@ -86,7 +88,7 @@ final class SettingConnectionControllerTest extends ApiTestCase
         $create->assertStatus(201);
         $createBody = json_decode((string) $create->response()->getBody(), true);
 
-        $this->assertTrue($createBody['ok']);
+        $this->assertSame('success', $createBody['status']);
         $this->assertSame($this->settingId, $createBody['data']['setting_id']);
         $this->assertSame('block_type', $createBody['data']['entity_type']);
         $this->assertSame('hero_banner', $createBody['data']['entity_key']);

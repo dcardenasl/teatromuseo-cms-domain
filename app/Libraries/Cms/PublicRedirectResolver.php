@@ -40,15 +40,34 @@ class PublicRedirectResolver
      */
     public function resolve(array $segments): array
     {
+        return $this->resolveWithMetadata($segments)['redirect'];
+    }
+
+    /**
+     * Resolve a redirect without mutating the database and expose the manual
+     * redirect metadata required by the legacy HTTP tracking path.
+     *
+     * @param list<string> $segments
+     * @return array{
+     *     redirect: array{new_url: string, redirect_type: int},
+     *     manual: array{id: int, hit_count: int}|null
+     * }
+     */
+    public function resolveWithMetadata(array $segments): array
+    {
         $cleanPath = trim(rawurldecode(implode('/', $segments)), '/');
 
         $manual = $this->findManualRedirect($cleanPath);
         if ($manual !== null) {
-            $this->recordHit((int) $manual['id'], (int) $manual['hit_count']);
-
             return [
-                'new_url'       => (string) $manual['new_url'],
-                'redirect_type' => (int) $manual['redirect_type'],
+                'redirect' => [
+                    'new_url'       => (string) $manual['new_url'],
+                    'redirect_type' => (int) $manual['redirect_type'],
+                ],
+                'manual' => [
+                    'id'        => (int) $manual['id'],
+                    'hit_count' => (int) $manual['hit_count'],
+                ],
             ];
         }
 
@@ -56,7 +75,10 @@ class PublicRedirectResolver
         if ($history !== null) {
             $resolved = $this->resolveFromHistory($history);
             if ($resolved !== null) {
-                return $resolved;
+                return [
+                    'redirect' => $resolved,
+                    'manual'   => null,
+                ];
             }
         }
 
@@ -76,7 +98,7 @@ class PublicRedirectResolver
         return $result instanceof ResultInterface ? $result->getRowArray() : null;
     }
 
-    private function recordHit(int $redirectId, int $currentHitCount): void
+    public function recordHit(int $redirectId, int $currentHitCount): void
     {
         $this->db->table('cms_redirects')
             ->where('id', $redirectId)

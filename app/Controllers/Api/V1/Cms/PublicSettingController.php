@@ -29,12 +29,10 @@ class PublicSettingController extends ApiController
     {
         return $this->handleRequest(
             function (array $dto, SecurityContext $context): mixed {
-                $result = $this->settingService->listPublic($this->request->getHeaderLine('Accept-Language'));
-
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'data'   => $result,
-                ])->setStatusCode(200);
+                // Header read is HTTP-boundary code (see PublicMenuController
+                // for why this can't move into a RequestDTO); the actual
+                // locale fallback logic lives in SettingService::listPublic().
+                return $this->settingService->listPublic($this->request->getHeaderLine('Accept-Language'));
             }
         );
     }

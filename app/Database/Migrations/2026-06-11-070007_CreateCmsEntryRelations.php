@@ -41,11 +41,13 @@ class CreateCmsEntryRelations extends Migration
             'related_entry_id' => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true],
             'relation_type'    => ['type' => 'ENUM', 'constraint' => ['related', 'recommended', 'prerequisite', 'sequel'], 'default' => 'related'],
             'sort_order'       => ['type' => 'INT', 'default' => 0],
+            'source_block_instance_id' => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
         ]);
         $this->forge->addField('CONSTRAINT `chk_related_not_self` CHECK (`entry_id` <> `related_entry_id`)');
 
         $this->forge->addPrimaryKey(['entry_id', 'related_entry_id']);
         $this->forge->addKey('related_entry_id', false, false, 'idx_related_target');
+        $this->forge->addKey('source_block_instance_id', false, false, 'idx_related_source_block');
         $this->forge->addForeignKey('entry_id', 'cms_entries', 'id', '', 'CASCADE', 'fk_related_entry');
         $this->forge->addForeignKey('related_entry_id', 'cms_entries', 'id', '', 'CASCADE', 'fk_related_target');
 

@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\DTO\Response\Cms\CollectionResponseDTO;
 use App\Entities\CollectionEntity;
 use App\Entities\LanguageEntity;
+use App\Interfaces\Cms\AdminListProjectionRepositoryInterface;
 use App\Interfaces\Cms\CollectionServiceInterface;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasDeferredTranslations;
+use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -25,6 +30,8 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
+    private ?AdminListProjectionRepositoryInterface $collectionListRepository;
+
     /**
      * @param RepositoryInterface<CollectionEntity> $collectionRepository
      * @param RepositoryInterface<LanguageEntity> $languageRepository
@@ -35,11 +42,43 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
         private readonly RepositoryInterface $languageRepository,
         private readonly PublicCollectionReader $publicCollectionReader,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?AdminListProjectionRepositoryInterface $collectionListRepository = null
     ) {
         parent::__construct($collectionRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->collectionListRepository = $collectionListRepository;
+    }
+
+    public function index(DataTransferObjectInterface $request, ?\dcardenasl\Ci4ApiCore\Dto\SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->collectionListRepository === null) {
+            return parent::index($request, $context);
+        }
+
+        $result = $this->collectionListRepository->paginateAdminList(
+            $requestData,
+            max(1, (int) ($requestData['page'] ?? 1)),
+            min(1000, max(1, (int) ($requestData['per_page'] ?? 20))),
+        );
+        $data = array_map(static function (array $row): CollectionResponseDTO {
+            $row['translations'] = AdminListProjectionDecoder::translations(
+                $row['translations_data'] ?? null,
+                ['name', 'slug'],
+            );
+            unset($row['translations_data']);
+
+            return CollectionResponseDTO::fromArray($row);
+        }, $result['data']);
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
     }
 
     /**
@@ -190,15 +229,16 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     {
         /** @var \App\Models\CollectionTranslationModel $translationModel */
         $translationModel = model(\App\Models\CollectionTranslationModel::class);
+        $slugGenerator = new \App\Libraries\Cms\SlugGenerator();
 
         ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
             $translationModel,
             'collection_id',
             $collectionId,
             $translations,
-            static fn (array $translation): array => [
+            fn (array $translation): array => [
                 'language_id'              => (int) $translation['language_id'],
-                'slug'                     => isset($translation['slug']) ? trim((string) $translation['slug'], " \t\n\r\0\x0B/") : null,
+                'slug'                     => isset($translation['slug']) ? $slugGenerator->slugify((string) $translation['slug']) : null,
                 'name'                     => (string) $translation['name'],
                 'description'              => $translation['description'] ?? null,
                 'listing_title'            => $translation['listing_title'] ?? null,
@@ -223,7 +263,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
                 continue;
             }
 
-            $slug = trim((string) ($translation['slug'] ?? ''), " \t\n\r\0\x0B/");
+            $slug = (new \App\Libraries\Cms\SlugGenerator())->slugify((string) ($translation['slug'] ?? ''));
             $languageId = (int) ($translation['language_id'] ?? 0);
 
             if ($slug === '' || $languageId <= 0) {
@@ -241,6 +281,8 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
 
     public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool
     {
+        $slug = (new \App\Libraries\Cms\SlugGenerator())->slugify($slug);
+
         return (new \App\Models\CollectionTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
     }
 }

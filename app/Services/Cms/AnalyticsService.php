@@ -7,6 +7,13 @@ namespace App\Services\Cms;
 use App\DTO\Request\Cms\TrackEventRequestDTO;
 use App\Models\PageViewModel;
 
+/**
+ * Owns page-view analytics: period-window resolution, aggregation, and
+ * response shaping (percentages, zero-filled breakdowns). PageViewModel
+ * (LAYER-05, 2026-08-06) was reduced to a thin Active Record model that
+ * only executes scoped queries and returns raw rows/counts — this class is
+ * where that data becomes the API-facing analytics contract.
+ */
 class AnalyticsService
 {
     private const ALLOWED_PERIODS = ['1h', '24h', '7d', '30d'];
@@ -40,15 +47,17 @@ class AnalyticsService
     }
 
     /**
-     * @return array{total_views: int, unique_visitors: int, top_page: string|null, top_referrer: string|null, period: string}
+     * @return array{total_views: int, unique_visitors: int, top_page: string|null, top_page_title: string|null, top_referrer: string|null, period: string}
      */
     public function getOverview(string $period): array
     {
-        $period      = $this->normalizePeriod($period);
-        $totalViews  = $this->model->getTotalViews($period);
-        $uniqueVis   = $this->model->getUniqueVisitors($period);
-        $topPages    = $this->model->getTopPages($period, 1);
-        $topReferrers = $this->model->getTopReferrers($period, 1);
+        $period = $this->normalizePeriod($period);
+        $since  = $this->periodToDatetime($period);
+
+        $totalViews   = $this->model->countSince($since);
+        $uniqueVis    = $this->model->countDistinctSessionsSince($since);
+        $topPages     = $this->model->groupByUrlSince($since, 1);
+        $topReferrers = $this->model->groupByReferrerDomainSince($since, 1);
 
         return [
             'total_views'      => $totalViews,
@@ -66,9 +75,16 @@ class AnalyticsService
     public function getTopPages(string $period, int $limit = 10): array
     {
         $period = $this->normalizePeriod($period);
+        $since  = $this->periodToDatetime($period);
+        $total  = $this->model->countSince($since);
+
+        $rows = $this->model->groupByUrlSince($since, min($limit, 50));
 
         return [
-            'data'   => $this->model->getTopPages($period, min($limit, 50)),
+            'data'   => array_map(
+                fn (array $row): array => [...$row, 'percentage' => $this->percentageOf($row['views'], $total)],
+                $rows
+            ),
             'period' => $period,
         ];
     }
@@ -79,9 +95,16 @@ class AnalyticsService
     public function getTopReferrers(string $period, int $limit = 10): array
     {
         $period = $this->normalizePeriod($period);
+        $since  = $this->periodToDatetime($period);
+        $total  = $this->model->countSince($since);
+
+        $rows = $this->model->groupByReferrerDomainSince($since, min($limit, 50));
 
         return [
-            'data'   => $this->model->getTopReferrers($period, min($limit, 50)),
+            'data'   => array_map(
+                fn (array $row): array => [...$row, 'percentage' => $this->percentageOf($row['views'], $total)],
+                $rows
+            ),
             'period' => $period,
         ];
     }
@@ -91,8 +114,15 @@ class AnalyticsService
      */
     public function getDeviceBreakdown(string $period): array
     {
-        $period    = $this->normalizePeriod($period);
-        $breakdown = $this->model->getDeviceBreakdown($period);
+        $period = $this->normalizePeriod($period);
+        $since  = $this->periodToDatetime($period);
+
+        $breakdown = ['desktop' => 0, 'mobile' => 0, 'tablet' => 0, 'bot' => 0, 'unknown' => 0];
+        foreach ($this->model->groupByDeviceTypeSince($since) as $row) {
+            if (array_key_exists($row['device_type'], $breakdown)) {
+                $breakdown[$row['device_type']] = $row['total'];
+            }
+        }
 
         return [
             'desktop' => $breakdown['desktop'],
@@ -110,15 +140,36 @@ class AnalyticsService
     public function getTimeseries(string $period): array
     {
         $period = $this->normalizePeriod($period);
+        $since  = $this->periodToDatetime($period);
+        // Hourly granularity only makes sense for short windows — daily
+        // granularity over a 1h/24h window would collapse everything into
+        // a single bucket.
+        $hourly = in_array($period, ['1h', '24h'], true);
 
         return [
-            'data'   => $this->model->getDailyTrend($period),
+            'data'   => $this->model->groupByPeriod($since, $hourly),
             'period' => $period,
         ];
+    }
+
+    private function percentageOf(int $count, int $total): float
+    {
+        return $total > 0 ? round($count / $total * 100, 1) : 0.0;
     }
 
     private function normalizePeriod(string $period): string
     {
         return in_array($period, self::ALLOWED_PERIODS, true) ? $period : self::DEFAULT_PERIOD;
+    }
+
+    private function periodToDatetime(string $period): string
+    {
+        return match ($period) {
+            '1h'  => date('Y-m-d H:i:s', strtotime('-1 hour')),
+            '24h' => date('Y-m-d H:i:s', strtotime('-24 hours')),
+            '7d'  => date('Y-m-d H:i:s', strtotime('-7 days')),
+            '30d' => date('Y-m-d H:i:s', strtotime('-30 days')),
+            default => date('Y-m-d H:i:s', strtotime('-7 days')),
+        };
     }
 }

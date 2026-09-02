@@ -9,6 +9,7 @@ use CodeIgniter\I18n\Time;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use Config\Services;
 use Tests\Support\Fixtures\CmsFixtureFactory;
 
 /**
@@ -29,6 +30,7 @@ final class ScheduledPublishingJobTest extends CIUnitTestCase
 
     protected function setUp(): void
     {
+        Services::reset();
         parent::setUp();
 
         $this->db->disableForeignKeyChecks();
@@ -51,6 +53,12 @@ final class ScheduledPublishingJobTest extends CIUnitTestCase
             'sort_order'     => 1,
         ]);
         $this->collectionId = $this->db->insertID();
+    }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        Services::reset();
     }
 
     public function testPageScheduledInPastGetsPublished(): void

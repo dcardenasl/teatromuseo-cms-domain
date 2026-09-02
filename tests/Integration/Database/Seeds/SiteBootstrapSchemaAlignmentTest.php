@@ -53,6 +53,7 @@ final class SiteBootstrapSchemaAlignmentTest extends CIUnitTestCase
             'cms_pages',
             'cms_collection_translations',
             'cms_collections',
+            'cms_setting_connections',
             'cms_setting_translations',
             'cms_settings',
             'cms_languages',
@@ -106,7 +107,52 @@ final class SiteBootstrapSchemaAlignmentTest extends CIUnitTestCase
         }
 
         $this->assertDemoContentContainsNoTemplateTokens();
+        $this->assertCanonicalSiteSettings();
         $this->assertSocialSettingsContainValidUrls();
+    }
+
+    private function assertCanonicalSiteSettings(): void
+    {
+        $keys = array_column(
+            $this->db->table('cms_settings')
+                ->select('setting_key')
+                ->orderBy('setting_key', 'ASC')
+                ->get()
+                ->getResultArray(),
+            'setting_key'
+        );
+
+        $this->assertSame([
+            'analytics_id',
+            'analytics_provider',
+            'favicon',
+            'footer_legal_menu_layout',
+            'footer_menu_layout',
+            'recaptcha_secret_key',
+            'recaptcha_site_key',
+            'site_copyright',
+            'site_description',
+            'site_logo',
+            'site_name',
+            'site_tagline',
+            'social_facebook',
+            'social_instagram',
+            'social_youtube',
+        ], $keys);
+
+        $analyticsProvider = $this->db->table('cms_settings')
+            ->where('setting_key', 'analytics_provider')
+            ->get()
+            ->getRowArray();
+
+        $this->assertIsArray($analyticsProvider);
+        $this->assertSame('select', $analyticsProvider['input_type'] ?? null);
+        $analyticsOptions = json_decode((string) ($analyticsProvider['options_json'] ?? '[]'), true);
+        $this->assertIsArray($analyticsOptions);
+        $this->assertSame(
+            ['none', 'ga4', 'plausible', 'fathom'],
+            array_column($analyticsOptions, 'value')
+        );
     }
 
     private function assertDemoContentContainsNoTemplateTokens(): void
@@ -134,10 +180,14 @@ final class SiteBootstrapSchemaAlignmentTest extends CIUnitTestCase
         $rows = $this->db->table('cms_settings')
             ->select('setting_key, setting_value')
             ->where('setting_group', 'social')
+            ->orderBy('setting_key', 'ASC')
             ->get()
             ->getResultArray();
 
-        $this->assertCount(8, $rows);
+        $this->assertSame(
+            ['social_facebook', 'social_instagram', 'social_youtube'],
+            array_column($rows, 'setting_key')
+        );
         foreach ($rows as $row) {
             $url = (string) ($row['setting_value'] ?? '');
             $this->assertNotFalse(filter_var($url, FILTER_VALIDATE_URL), (string) ($row['setting_key'] ?? 'social setting'));

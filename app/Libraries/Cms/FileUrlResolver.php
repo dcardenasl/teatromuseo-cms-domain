@@ -22,9 +22,15 @@ class FileUrlResolver
 {
     private HubClient $hubClient;
 
-    public function __construct(HubClient $hubClient)
+    private string $publicBaseUrl = '';
+
+    public function __construct(HubClient $hubClient, ?string $publicBaseUrl = null)
     {
         $this->hubClient = $hubClient;
+        $this->publicBaseUrl = rtrim(
+            trim($publicBaseUrl ?? (string) (config('Hub')->publicUrl ?? config('Hub')->url)),
+            '/'
+        );
     }
 
     // ─── Public API (interface unchanged) ────────────────────────────────────
@@ -39,6 +45,27 @@ class FileUrlResolver
         $row = $map[$fileId] ?? null;
 
         return $row !== null ? $this->resolveFromRow($row, $context) : null;
+    }
+
+    /**
+     * Resolve a stored local path for a public response without persisting the
+     * deployment host back into CMS data.
+     */
+    public function publicUrl(?string $url): ?string
+    {
+        if ($this->publicBaseUrl === '') {
+            return $url !== null ? trim($url) : null;
+        }
+
+        return $this->normalizePublicUrl($url);
+    }
+
+    /**
+     * Convert a local file URL into its portable storage representation.
+     */
+    public function storageUrl(?string $url): ?string
+    {
+        return $this->normalizeStoredUrl($url);
     }
 
     /**
@@ -97,6 +124,9 @@ class FileUrlResolver
                 $decoded  = json_decode($variants, true);
                 $variants = is_array($decoded) ? $decoded : null;
             }
+            if (is_array($variants)) {
+                $variants = $this->normalizeVariants($variants, $context);
+            }
 
             $result[(int) $fileId] = [
                 'url'      => $url,
@@ -117,16 +147,20 @@ class FileUrlResolver
     {
         $normalizedFileId = is_numeric($fileId) ? (int) $fileId : null;
 
+        if ($context === 'storage') {
+            return $this->normalizeStoredUrl($currentUrl);
+        }
+
         if ($normalizedFileId !== null && $normalizedFileId > 0) {
             $resolved = $this->resolve($normalizedFileId, $context);
             if ($resolved !== null && $resolved !== '') {
                 return $resolved;
             }
 
-            return $this->normalizeUrl($currentUrl);
+            return $this->normalizePublicUrl($currentUrl);
         }
 
-        return $this->normalizeUrl($currentUrl);
+        return $this->normalizePublicUrl($currentUrl);
     }
 
     /**
@@ -134,29 +168,30 @@ class FileUrlResolver
      *
      * Relational persistence columns are projected into one public contract.
      *
-     * @param  array<string, mixed> $translation
+     * @param array<string, mixed> $translation
+     * @param array<int, array<string, mixed>>|null $metaMap
      * @return array<string, mixed>
      */
-    public function normalizeEntryTranslation(array $translation, string $context = 'public'): array
+    public function normalizeEntryTranslation(array $translation, string $context = 'public', ?array $metaMap = null): array
     {
         $featuredImage = $translation['featured_image'] ?? null;
         if (is_array($featuredImage) && $featuredImage !== []) {
-            $translation['featured_image'] = $this->normalizeMediaReference($featuredImage, $context);
+            $translation['featured_image'] = $this->normalizeMediaReference($featuredImage, $context, $metaMap);
         } else {
             $translation['featured_image'] = $this->normalizeMediaReference([
                 'file_id' => $translation['featured_file_id'] ?? null,
                 'url'     => isset($translation['featured_image_url']) ? (string) $translation['featured_image_url'] : null,
-            ], $context);
+            ], $context, $metaMap);
         }
 
         $ogImage = $translation['og_image'] ?? null;
         if (is_array($ogImage) && $ogImage !== []) {
-            $translation['og_image'] = $this->normalizeMediaReference($ogImage, $context);
+            $translation['og_image'] = $this->normalizeMediaReference($ogImage, $context, $metaMap);
         } else {
             $translation['og_image'] = $this->normalizeMediaReference([
                 'file_id' => $translation['og_image_file_id'] ?? null,
                 'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
-            ], $context);
+            ], $context, $metaMap);
         }
 
         unset(
@@ -300,10 +335,11 @@ class FileUrlResolver
     /**
      * Normalize a media_reference payload into the canonical nested array.
      *
-     * @param  mixed $reference
+     * @param mixed $reference
+     * @param array<int, array<string, mixed>>|null $metaMap
      * @return array{source_kind: string, file_id: int|null, url: string|null, variants: array<string, mixed>|null}
      */
-    public function normalizeMediaReference(mixed $reference, string $context = 'public'): array
+    public function normalizeMediaReference(mixed $reference, string $context = 'public', ?array $metaMap = null): array
     {
         if (is_string($reference) || is_int($reference)) {
             $reference = ['url' => (string) $reference];
@@ -314,9 +350,17 @@ class FileUrlResolver
         }
 
         $sourceKindRaw = strtolower(trim((string) ($reference['source_kind'] ?? '')));
-        $url = isset($reference['url']) ? $this->normalizeUrl($reference['url']) : null;
+        $url = isset($reference['url'])
+            ? ($context === 'storage'
+                ? $this->normalizeStoredUrl($reference['url'])
+                : $this->normalizePublicUrl($reference['url']))
+            : null;
         $fileId = $this->resolveFileIdFromValue($reference['file_id'] ?? null, $url);
         $variants = is_array($reference['variants'] ?? null) ? $reference['variants'] : null;
+
+        if ($variants !== null) {
+            $variants = $this->normalizeVariants($variants, $context);
+        }
 
         if ($sourceKindRaw === 'external_url') {
             return [
@@ -328,18 +372,24 @@ class FileUrlResolver
         }
 
         if ($sourceKindRaw === 'hub_file' || $fileId !== null) {
-            if ($variants === null && $fileId !== null) {
-                $map = $this->hubClient->resolvePublicFileMeta([$fileId]);
+            if ($context !== 'storage' && $variants === null && $fileId !== null) {
+                $map = $metaMap ?? $this->hubClient->resolvePublicFileMeta([$fileId]);
                 $row = $map[$fileId] ?? null;
+                if ($row !== null && isset($row['url']) && is_string($row['url'])) {
+                    $url = $row['url'];
+                }
                 if ($row !== null && isset($row['variants'])) {
                     $variants = is_string($row['variants']) ? json_decode($row['variants'], true) : $row['variants'];
+                    if (is_array($variants)) {
+                        $variants = $this->normalizeVariants($variants, $context);
+                    }
                 }
             }
 
             return [
                 'source_kind' => 'hub_file',
                 'file_id' => $fileId,
-                'url' => $this->resolveUrlValue($fileId, $url, $context),
+                'url' => $metaMap === null ? $this->resolveUrlValue($fileId, $url, $context) : $url,
                 'variants' => $variants,
             ];
         }
@@ -396,7 +446,7 @@ class FileUrlResolver
     private function resolveFromRow(array $row, string $context): ?string
     {
         if ($context === 'original') {
-            return $this->normalizeUrl($row['url'] ?? null);
+            return $this->normalizePublicUrl($row['url'] ?? null);
         }
 
         $variants = $row['variants'] ?? null;
@@ -411,14 +461,14 @@ class FileUrlResolver
                     continue;
                 }
 
-                $variantUrl = $this->normalizeUrl($variants[$variantKey]['url'] ?? null);
+                $variantUrl = $this->normalizePublicUrl($variants[$variantKey]['url'] ?? null);
                 if ($variantUrl !== null) {
                     return $variantUrl;
                 }
             }
         }
 
-        return $this->normalizeUrl($row['url'] ?? null);
+        return $this->normalizePublicUrl($row['url'] ?? null);
     }
 
     /** @return list<string> */
@@ -431,7 +481,7 @@ class FileUrlResolver
         };
     }
 
-    private function normalizeUrl(int|string|null $value): ?string
+    private function normalizeStoredUrl(int|string|null $value): ?string
     {
         if ($value === null) {
             return null;
@@ -439,7 +489,86 @@ class FileUrlResolver
 
         $url = trim((string) $value);
 
-        return $url !== '' ? $url : null;
+        if ($url === '') {
+            return null;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
+        if (! is_string($path) || ! $this->isLocalUploadPath($path)) {
+            return $url;
+        }
+
+        return '/uploads/'
+            . ltrim(substr($path, strpos($path, '/uploads/') + 9), '/')
+            . $this->urlSuffix($url);
+    }
+
+    private function normalizePublicUrl(int|string|null $value): ?string
+    {
+        $storedUrl = $this->normalizeStoredUrl($value);
+        if ($storedUrl === null) {
+            return null;
+        }
+
+        $path = parse_url($storedUrl, PHP_URL_PATH);
+        if (! is_string($path)) {
+            return $storedUrl;
+        }
+
+        if (str_starts_with('/' . ltrim($path, '/'), '/files/')) {
+            // A file ID is not itself a public binary URL. If the Hub did not
+            // resolve it, returning a fabricated /files/{id}/view link only
+            // creates a broken asset in every consuming application.
+            return null;
+        }
+
+        if (! $this->isLocalUploadPath($path) || $this->publicBaseUrl === '') {
+            return $storedUrl;
+        }
+
+        return $this->publicBaseUrl . '/uploads/'
+            . ltrim(substr($path, strpos($path, '/uploads/') + 9), '/')
+            . $this->urlSuffix($storedUrl);
+    }
+
+    private function isLocalUploadPath(string $path): bool
+    {
+        return str_starts_with('/' . ltrim($path, '/'), '/uploads/');
+    }
+
+    private function urlSuffix(string $url): string
+    {
+        $suffix = '';
+        $query = parse_url($url, PHP_URL_QUERY);
+        $fragment = parse_url($url, PHP_URL_FRAGMENT);
+
+        if (is_string($query) && $query !== '') {
+            $suffix .= '?' . $query;
+        }
+        if (is_string($fragment) && $fragment !== '') {
+            $suffix .= '#' . $fragment;
+        }
+
+        return $suffix;
+    }
+
+    /**
+     * @param array<string, mixed> $variants
+     * @return array<string, mixed>
+     */
+    private function normalizeVariants(array $variants, string $context): array
+    {
+        foreach ($variants as $key => $variant) {
+            if (! is_array($variant) || ! array_key_exists('url', $variant)) {
+                continue;
+            }
+
+            $variants[$key]['url'] = $context === 'storage'
+                ? $this->normalizeStoredUrl($variant['url'])
+                : $this->normalizePublicUrl($variant['url']);
+        }
+
+        return $variants;
     }
 
     /**

@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\DTO\Response\Cms\PageResponseDTO;
 use App\Entities\PageEntity;
+use App\Interfaces\Cms\AdminListProjectionRepositoryInterface;
 use App\Interfaces\Cms\PageServiceInterface;
+use App\Libraries\Cms\BlockInstancePurger;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasDeferredTranslations;
+use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -30,7 +36,11 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
     private FileReferenceSynchronizer $fileReferenceSynchronizer;
 
+    private BlockInstancePurger $blockInstancePurger;
+
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
+    private ?AdminListProjectionRepositoryInterface $pageListRepository;
 
     /**
      * @param RepositoryInterface<PageEntity> $pageRepository
@@ -43,14 +53,48 @@ class PageService extends BaseCrudService implements PageServiceInterface
         FileUrlResolver $fileUrlResolver,
         FileReferenceSynchronizer $fileReferenceSynchronizer,
         private readonly PublicPageReader $publicPageReader,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        BlockInstancePurger $blockInstancePurger,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?AdminListProjectionRepositoryInterface $pageListRepository = null
     ) {
         parent::__construct($pageRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder;
         $this->cacheInvalidator     = $cacheInvalidator;
         $this->fileUrlResolver      = $fileUrlResolver;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
+        $this->blockInstancePurger = $blockInstancePurger;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->pageListRepository = $pageListRepository;
+    }
+
+    public function index(DataTransferObjectInterface $request, ?\dcardenasl\Ci4ApiCore\Dto\SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->pageListRepository === null) {
+            return parent::index($request, $context);
+        }
+
+        $result = $this->pageListRepository->paginateAdminList(
+            $requestData,
+            max(1, (int) ($requestData['page'] ?? 1)),
+            min(1000, max(1, (int) ($requestData['per_page'] ?? 20))),
+        );
+        $data = array_map(static function (array $row): PageResponseDTO {
+            $row['translations'] = AdminListProjectionDecoder::translations(
+                $row['translations_data'] ?? null,
+                ['title', 'slug'],
+            );
+            unset($row['translations_data']);
+
+            return PageResponseDTO::fromArray($row);
+        }, $result['data']);
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
     }
 
     /**
@@ -67,6 +111,14 @@ class PageService extends BaseCrudService implements PageServiceInterface
     public function showPublic(string $lang, string $slug, bool $preview): array
     {
         return $this->publicPageReader->showPublic($lang, $slug, $preview);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function showPublicByType(string $lang, string $type): array
+    {
+        return $this->publicPageReader->showPublicByType($lang, $type);
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -140,6 +192,11 @@ class PageService extends BaseCrudService implements PageServiceInterface
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
+        // cms_pages is soft-deleted, but cms_block_instances has no such column
+        // (BlockInstanceModel::$useSoftDeletes = false) — leaving them behind turns
+        // them into orphans that still hold cms_file_references rows, which blocks
+        // Hub file deletion with a 409 "in use" for files nothing can reach anymore.
+        $this->blockInstancePurger->purgeForOwner('page', (int) $entity->id);
         $this->fileReferenceSynchronizer->removeResourceReferences('page', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['pages', 'collections']);
     }
@@ -195,15 +252,17 @@ class PageService extends BaseCrudService implements PageServiceInterface
     {
         /** @var \App\Models\PageTranslationModel $translationModel */
         $translationModel = model(\App\Models\PageTranslationModel::class);
+        $slugGenerator = new \App\Libraries\Cms\SlugGenerator();
 
         foreach ($translations as $translation) {
             $langId = (int) $translation['language_id'];
-            $slug = (string) $translation['slug'];
+            $slug = $slugGenerator->slugify((string) $translation['slug']);
             $ogImage = $this->fileUrlResolver->normalizeMediaReference(
                 $translation['og_image'] ?? [
                     'file_id' => $translation['og_image_file_id'] ?? null,
                     'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
-                ]
+                ],
+                'storage'
             );
 
             $existing = $translationModel
@@ -232,7 +291,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
         $rows = [];
         foreach ($translations as $translation) {
             $langId = (int) $translation['language_id'];
-            $newSlug = (string) $translation['slug'];
+            $newSlug = $slugGenerator->slugify((string) $translation['slug']);
 
             // Record redirection if slug changed
             if (isset($currentSlugs[$langId]) && $currentSlugs[$langId] !== $newSlug) {
@@ -460,6 +519,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
     public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool
     {
+        $slug = (new \App\Libraries\Cms\SlugGenerator())->slugify($slug);
+
         return (new \App\Models\PageTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
     }
 }

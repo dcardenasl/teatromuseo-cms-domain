@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api\V1\Cms;
 
+use App\DTO\Request\Cms\PublicPageShowRequestDTO;
 use App\Interfaces\Cms\PageServiceInterface;
 use App\Libraries\Cms\PreviewToken;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -31,13 +32,27 @@ class PublicPageController extends ApiController
     public function index(string $lang): ResponseInterface
     {
         return $this->handleRequest(
-            function (array $dto, SecurityContext $context) use ($lang): ResponseInterface {
-                $data = $this->pageService->listPublic($lang);
+            function (array $dto, SecurityContext $context) use ($lang): mixed {
+                return $this->pageService->listPublic($lang);
+            }
+        );
+    }
 
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'data'   => $data,
-                ])->setStatusCode(200);
+    /**
+     * Resolve a singleton template page by its page_type. Whitelisted to
+     * template types only — the database enforces one published page per
+     * type via the type_singleton generated column.
+     *
+     * @param string $lang Target language code (e.g. 'es')
+     * @param string $type Template page type (e.g. 'template_catalog_item')
+     */
+    public function byType(string $lang, string $type): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (array $dto, SecurityContext $context) use ($lang, $type): array {
+                $data = $this->pageService->showPublicByType($lang, $type);
+
+                return ['status' => 'success', 'data' => $data];
             }
         );
     }
@@ -51,27 +66,23 @@ class PublicPageController extends ApiController
     public function show(string $lang, string $slug): ResponseInterface
     {
         return $this->handleRequest(
-            function (array $dto, SecurityContext $context) use ($lang, $slug): ResponseInterface {
+            function (PublicPageShowRequestDTO $dto, SecurityContext $context) use ($lang, $slug): array {
                 // Slug resolution itself is published-only (findPageBySlugAndParent),
                 // so a signed preview link must be verified against lang+slug —
                 // before we even know the page ID — to be allowed to bypass it.
-                $previewExpiresRaw = $this->request->getGet('preview_expires');
-                $previewSigRaw = $this->request->getGet('preview_sig');
-                $preview = $this->request->getGet('preview') === '1'
+                $preview = $dto->previewRequested
                     && PreviewToken::verify(
                         'page',
                         $lang . ':' . trim($slug, '/'),
-                        is_string($previewExpiresRaw) ? $previewExpiresRaw : null,
-                        is_string($previewSigRaw) ? $previewSigRaw : null
+                        $dto->previewExpires,
+                        $dto->previewSig
                     );
 
                 $data = $this->pageService->showPublic($lang, $slug, $preview);
 
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'data'   => $data,
-                ])->setStatusCode(200);
-            }
+                return ['status' => 'success', 'data' => $data];
+            },
+            PublicPageShowRequestDTO::class
         );
     }
 }

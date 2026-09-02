@@ -18,5 +18,12 @@ interface PageServiceInterface extends CrudServiceContract
      */
     public function showPublic(string $lang, string $slug, bool $preview): array;
 
+    /**
+     * Resolve a singleton template page by its page_type.
+     *
+     * @return array<string, mixed>
+     */
+    public function showPublicByType(string $lang, string $type): array;
+
     public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool;
 }

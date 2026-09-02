@@ -19,13 +19,47 @@ class PrepareTestDatabase extends BaseCommand
     protected $description = 'Drop all tables in the tests database and rerun the App migrations.';
     protected $usage = 'tests:prepare-db';
 
+    /**
+     * Maximum attempts for the drop+migrate sequence. Local MySQL instances
+     * shared by several concurrently-running dev projects/test suites have
+     * been observed to intermittently surface transient DDL errors ("Failed
+     * to open the referenced table ...", "table already exists") while under
+     * contention, unrelated to the migrations themselves. Retrying the whole
+     * sequence is the pragmatic mitigation tracked as TEST-01 in TASKS.md;
+     * a genuine migration/schema bug still fails after exhausting retries.
+     */
+    private const MAX_ATTEMPTS = 8;
+
     public function run(array $params)
     {
         CLI::write('Preparing test database (group "tests").');
 
+        for ($attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++) {
+            try {
+                if ($this->prepare()) {
+                    CLI::write('Test database prepared.', 'green');
+                    return EXIT_SUCCESS;
+                }
+
+                CLI::error('Post-migration verification failed. Inspect the database and rerun the command.');
+            } catch (\Throwable $e) {
+                CLI::error('Attempt ' . $attempt . '/' . self::MAX_ATTEMPTS . ' failed: ' . $e->getMessage());
+            }
+
+            if ($attempt < self::MAX_ATTEMPTS) {
+                CLI::write('Retrying test database preparation...', 'yellow');
+                usleep(500_000 * $attempt);
+            }
+        }
+
+        return EXIT_ERROR;
+    }
+
+    private function prepare(): bool
+    {
         $db = $this->connectToTestsDatabase();
         if ($db === null) {
-            return EXIT_ERROR;
+            return false;
         }
 
         $isSqlite = strtolower($db->DBDriver) === 'sqlite3';
@@ -35,29 +69,22 @@ class PrepareTestDatabase extends BaseCommand
             $db->close();
             $db = $this->connectToTestsDatabase();
             if ($db === null) {
-                return EXIT_ERROR;
+                return false;
             }
         }
         $this->resetMigrationHistory($db);
         $this->migrateAppSchema($db);
-        $ready = $this->ensureExpectedTablesPresent($db);
 
-        if (! $ready) {
-            CLI::error('Post-migration verification failed. Inspect the database and rerun the command.');
-            return EXIT_ERROR;
-        }
-
-        CLI::write('Test database prepared.', 'green');
-        return EXIT_SUCCESS;
+        return $this->ensureExpectedTablesPresent($db);
     }
 
     /**
      * @return BaseConnection<object, object>|null
      */
-    private function connectToTestsDatabase(): ?BaseConnection
+    private function connectToTestsDatabase(bool $getShared = false): ?BaseConnection
     {
         try {
-            $connection = Database::connect('tests');
+            $connection = Database::connect('tests', $getShared);
             $connection->initialize();
             return $connection;
         } catch (DatabaseException $e) {
@@ -85,19 +112,8 @@ class PrepareTestDatabase extends BaseCommand
         if ($driver === 'mysqli' || $driver === 'mysql') {
             $database = (string) $db->database;
             if (! str_ends_with($database, '_test')) {
-                throw new \RuntimeException('Refusing to recreate a database whose name does not end in `_test`.');
+                throw new \RuntimeException('Refusing to drop tables in a database whose name does not end in `_test`.');
             }
-
-            $identifier = $db->escapeIdentifiers($database);
-            $db->query('DROP DATABASE IF EXISTS ' . $identifier);
-            $db->query(
-                'CREATE DATABASE ' . $identifier
-                . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci'
-            );
-            $db->query('USE ' . $identifier);
-            $db->resetDataCache();
-            CLI::write('Recreated the MySQL test database.');
-            return;
         }
 
         $db->resetDataCache();
@@ -107,6 +123,12 @@ class PrepareTestDatabase extends BaseCommand
         // Drop the migration ledger with the schema. Keeping and truncating it
         // separately allowed stale connection metadata to preserve partial
         // history after a failed run, producing duplicate migration execution.
+        //
+        // Table-by-table DROP TABLE (rather than DROP DATABASE + CREATE DATABASE)
+        // avoids schema-level recreation churn on a MySQL instance shared with
+        // other running projects/test suites, where it was observed to
+        // intermittently surface "Failed to open the referenced table" on an
+        // otherwise-correct migration order.
         if (empty($tables)) {
             CLI::write('No tables found to drop.');
             return;

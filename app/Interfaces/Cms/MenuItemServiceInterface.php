@@ -17,4 +17,11 @@ interface MenuItemServiceInterface extends CrudServiceContract
      * @return string|null Relative URL (e.g., '/pages/slug', '/colecciones'), or null if unresolved
      */
     public function resolveLink(MenuItemEntity $item, string $lang): ?string;
+
+    /**
+     * Resolve domain-owned destinations without leaking CMS page slugs.
+     *
+     * @return array{route_key: string|null, target_type: string|null, target_id: int|null}
+     */
+    public function resolvePublicNavigation(MenuItemEntity $item, string $lang): array;
 }

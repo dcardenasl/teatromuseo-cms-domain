@@ -8,6 +8,11 @@ return [
     'delete_success' => 'BlockType eliminado(a) exitosamente.',
     'not_found'      => 'BlockType no encontrado(a).',
     'invalid_content_source' => 'El origen de contenido seleccionado no es válido.',
+    'invalid_navigation' => 'La definición de navegación del bloque no es válida.',
+    'invalid_schema_fields' => 'La definición de campos del schema no es válida.',
+    'invalid_reference_limits' => 'El campo de referencia {0} tiene límites de elementos inválidos.',
+    'reference_collection_required' => 'El campo de referencia {0} debe declarar al menos una colección.',
+    'reference_collection_missing' => 'La colección de referencia {0} no existe.',
     'fields'         => [
         'block_key' => 'Block Key',
         'block_key_placeholder' => 'Ingresa Block Key',

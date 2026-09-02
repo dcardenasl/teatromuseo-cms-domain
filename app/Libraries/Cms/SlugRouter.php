@@ -57,7 +57,7 @@ class SlugRouter
                 ->where('page_type', 'home')
                 ->where('deleted_at IS NULL');
             if (!$includeUnpublished) {
-                $builder->where('status', 'published');
+                $this->applyPublicPageVisibility($builder);
             }
             $result = $builder->get();
             if ($result !== false) {
@@ -148,6 +148,15 @@ class SlugRouter
             ->join('cms_page_translations pt', 'p.id = pt.page_id AND pt.language_id = ' . $langId)
             ->where('p.id', $pageId)
             ->where('p.deleted_at IS NULL')
+            ->where('p.status', 'published')
+            ->groupStart()
+                ->where('p.published_at IS NULL')
+                ->orWhere('p.published_at <=', date('Y-m-d H:i:s'))
+            ->groupEnd()
+            ->groupStart()
+                ->where('p.scheduled_at IS NULL')
+                ->orWhere('p.scheduled_at <=', date('Y-m-d H:i:s'))
+            ->groupEnd()
             ->get();
 
         if ($query === false) {
@@ -171,7 +180,7 @@ class SlugRouter
             ->where('pt.language_id', $langId)
             ->where('p.deleted_at IS NULL');
         if (!$includeUnpublished) {
-            $builder->where('p.status', 'published');
+            $this->applyPublicPageVisibility($builder, 'p.');
         }
 
         if ($parentId === null) {
@@ -187,6 +196,19 @@ class SlugRouter
         $result = $query->getRow();
 
         return $result ? (int) $result->id : null;
+    }
+
+    private function applyPublicPageVisibility(object $builder, string $prefix = ''): void
+    {
+        $builder->where($prefix . 'status', 'published')
+            ->groupStart()
+                ->where($prefix . 'published_at IS NULL')
+                ->orWhere($prefix . 'published_at <=', date('Y-m-d H:i:s'))
+            ->groupEnd()
+            ->groupStart()
+                ->where($prefix . 'scheduled_at IS NULL')
+                ->orWhere($prefix . 'scheduled_at <=', date('Y-m-d H:i:s'))
+            ->groupEnd();
     }
 
     /**

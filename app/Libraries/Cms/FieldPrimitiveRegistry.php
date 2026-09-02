@@ -18,6 +18,8 @@ final class FieldPrimitiveRegistry
         'select',
         'date',
         'datetime',
+        'entry_reference',
+        'entry_reference_list',
     ];
 
     /** @var array<string, string> */
@@ -41,6 +43,8 @@ final class FieldPrimitiveRegistry
         'date' => 'date',
         'datetime' => 'datetime',
         'date_time' => 'datetime',
+        'entry_reference' => 'entry_reference',
+        'entry_reference_list' => 'entry_reference_list',
     ];
 
     /**
@@ -69,5 +73,10 @@ final class FieldPrimitiveRegistry
     public function isTranslatable(string $primitive): bool
     {
         return in_array($primitive, ['text', 'textarea', 'richtext', 'url'], true);
+    }
+
+    public function isEntryReference(string $primitive): bool
+    {
+        return in_array($primitive, ['entry_reference', 'entry_reference_list'], true);
     }
 }

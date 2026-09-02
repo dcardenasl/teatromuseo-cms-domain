@@ -17,7 +17,7 @@ class CmsSocialLinksChildrenSeeder extends Seeder
 
     public function run(): void
     {
-        $langIds = $this->langIds(['es', 'en']);
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
         if (! isset($langIds['es'], $langIds['en'])) {
             echo "CmsSocialLinksChildrenSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
@@ -35,8 +35,6 @@ class CmsSocialLinksChildrenSeeder extends Seeder
             return;
         }
 
-        $this->resetSocialLinksChildren($socialLinksInstanceId);
-
         $contactPageId = $this->contactPageId();
         if ($contactPageId === null) {
             echo "CmsSocialLinksChildrenSeeder: contact page not found.\n";
@@ -48,14 +46,20 @@ class CmsSocialLinksChildrenSeeder extends Seeder
                 'sort_order' => 1,
                 'config' => [
                     'network' => 'youtube',
-                    'url'     => 'https://www.youtube.com/@bencord',
+                    'url'     => 'https://www.youtube.com/user/Teatromuseo1',
                 ],
                 'data' => [
                     'es' => [
-                        'handle' => '@bencord',
+                        'handle' => '@Teatromuseo1',
                     ],
                     'en' => [
-                        'handle' => '@bencord',
+                        'handle' => '@Teatromuseo1',
+                    ],
+                    'fr' => [
+                        'handle' => '@Teatromuseo1',
+                    ],
+                    'pt' => [
+                        'handle' => '@Teatromuseo1',
                     ],
                 ],
             ],
@@ -63,14 +67,20 @@ class CmsSocialLinksChildrenSeeder extends Seeder
                 'sort_order' => 2,
                 'config' => [
                     'network' => 'facebook',
-                    'url'     => 'https://www.facebook.com/TeatroColonOficial/',
+                    'url'     => 'https://www.facebook.com/teatromuseo/',
                 ],
                 'data' => [
                     'es' => [
-                        'handle' => 'TeatroColonOficial',
+                        'handle' => 'teatromuseo',
                     ],
                     'en' => [
-                        'handle' => 'TeatroColonOficial',
+                        'handle' => 'teatromuseo',
+                    ],
+                    'fr' => [
+                        'handle' => 'teatromuseo',
+                    ],
+                    'pt' => [
+                        'handle' => 'teatromuseo',
                     ],
                 ],
             ],
@@ -78,14 +88,20 @@ class CmsSocialLinksChildrenSeeder extends Seeder
                 'sort_order' => 3,
                 'config' => [
                     'network' => 'instagram',
-                    'url'     => 'https://www.instagram.com/teatrodelinstinto/',
+                    'url'     => 'https://www.instagram.com/teatromuseo/',
                 ],
                 'data' => [
                     'es' => [
-                        'handle' => '@teatrodelinstinto',
+                        'handle' => '@teatromuseo',
                     ],
                     'en' => [
-                        'handle' => '@teatrodelinstinto',
+                        'handle' => '@teatromuseo',
+                    ],
+                    'fr' => [
+                        'handle' => '@teatromuseo',
+                    ],
+                    'pt' => [
+                        'handle' => '@teatromuseo',
                     ],
                 ],
             ],
@@ -116,23 +132,6 @@ class CmsSocialLinksChildrenSeeder extends Seeder
                 $this->upsertTranslation($instanceId, $langId, $data);
             }
         }
-    }
-
-    private function resetSocialLinksChildren(int $parentInstanceId): void
-    {
-        $instances = $this->db->table('cms_block_instances')
-            ->select('id')
-            ->where('parent_instance_id', $parentInstanceId)
-            ->get()
-            ->getResultArray();
-
-        if ($instances === []) {
-            return;
-        }
-
-        $instanceIds = array_map(static fn (array $row): int => (int) $row['id'], $instances);
-        $this->db->table('cms_block_instance_translations')->whereIn('instance_id', $instanceIds)->delete();
-        $this->db->table('cms_block_instances')->whereIn('id', $instanceIds)->delete();
     }
 
     private function socialLinksInstanceId(): ?int

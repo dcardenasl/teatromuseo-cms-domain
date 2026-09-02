@@ -17,6 +17,9 @@ readonly class TagUpdateRequestDTO extends BaseRequestDTO
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'))]
     public ?array $translations;
 
+    /** @var array<string, mixed> */
+    private array $mappedFields;
+
     /**
      * @return array<string, string>
      */
@@ -29,12 +32,28 @@ readonly class TagUpdateRequestDTO extends BaseRequestDTO
     }
 
     /**
+     * NOT NULL columns (is_active) never accept an explicit null —
+     * treated the same as omitting the field, matching the DB constraint.
+     * The bug this fixes is array_filter() silently dropping every null,
+     * which made it impossible to ever clear a nullable field via update
+     * elsewhere in this DTO family.
+     *
      * @param array<string, mixed> $data
      */
     protected function map(array $data): void
     {
-        $this->is_active = isset($data['is_active']) ? (bool) $data['is_active'] : null;
-        $this->translations = $data['translations'] ?? null;
+        $this->is_active = array_key_exists('is_active', $data) && $data['is_active'] !== null ? (bool) $data['is_active'] : null;
+        $this->translations = array_key_exists('translations', $data) ? $data['translations'] : null;
+
+        $mappedFields = [];
+        if ($this->is_active !== null) {
+            $mappedFields['is_active'] = $this->is_active;
+        }
+        if ($this->translations !== null) {
+            $mappedFields['translations'] = $this->translations;
+        }
+
+        $this->mappedFields = $mappedFields;
     }
 
     /**
@@ -42,14 +61,6 @@ readonly class TagUpdateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        $result = array_filter([
-            'is_active' => $this->is_active,
-        ], static fn (mixed $value): bool => $value !== null);
-
-        if ($this->translations !== null) {
-            $result['translations'] = $this->translations;
-        }
-
-        return $result;
+        return $this->mappedFields;
     }
 }

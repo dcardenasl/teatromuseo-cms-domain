@@ -6,6 +6,29 @@ namespace Config;
 
 trait CmsDomainServices
 {
+    public static function sortOrderBatchService(bool $getShared = true): \App\Services\Cms\SortOrderBatchService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('sortOrderBatchService');
+        }
+
+        return new \App\Services\Cms\SortOrderBatchService(
+            \Config\Database::connect(),
+            static::cacheInvalidationClient(),
+        );
+    }
+
+    public static function dashboardSummaryService(bool $getShared = true): \App\Services\Admin\DashboardSummaryService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('dashboardSummaryService');
+        }
+
+        return new \App\Services\Admin\DashboardSummaryService(
+            static::dashboardSummaryRepository()
+        );
+    }
+
     public static function languageResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
         if ($getShared) {
@@ -55,7 +78,8 @@ trait CmsDomainServices
             static::fileUrlResolver(),
             static::publicLocaleResolver(),
             static::requestDtoFactory(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::settingListRepository()
         );
     }
 
@@ -97,6 +121,15 @@ trait CmsDomainServices
         return new \App\Libraries\Cms\FileReferenceSynchronizer(static::fileUrlResolver());
     }
 
+    public static function blockInstancePurger(bool $getShared = true): \App\Libraries\Cms\BlockInstancePurger
+    {
+        if ($getShared) {
+            return static::getSharedInstance('blockInstancePurger');
+        }
+
+        return new \App\Libraries\Cms\BlockInstancePurger();
+    }
+
     public static function fileUsageService(bool $getShared = true): \App\Services\Cms\FileUsageService
     {
         if ($getShared) {
@@ -135,7 +168,11 @@ trait CmsDomainServices
             return static::getSharedInstance('blockInstanceSerializer');
         }
 
-        return new \App\Libraries\Cms\BlockInstanceSerializer(static::fileUrlResolver());
+        return new \App\Libraries\Cms\BlockInstanceSerializer(
+            static::fileUrlResolver(),
+            static::entryReferenceResolver(),
+            new \App\Libraries\Cms\BlockNavigationResolver(static::slugRouter())
+        );
     }
 
     public static function publicEntryReader(bool $getShared = true): \App\Services\Cms\PublicEntryReader
@@ -189,7 +226,23 @@ trait CmsDomainServices
             static::fileUrlResolver(),
             static::fileReferenceSynchronizer(),
             static::publicPageReader(),
-            static::translationSynchronizer()
+            static::blockInstancePurger(),
+            static::translationSynchronizer(),
+            static::pageListRepository()
+        );
+    }
+
+    public static function pageQualityService(bool $getShared = true): \App\Interfaces\Cms\PageQualityServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('pageQualityService');
+        }
+
+        return new \App\Services\Cms\PageQualityService(
+            model(\App\Models\PageModel::class),
+            model(\App\Models\PageTranslationModel::class),
+            model(\App\Models\LanguageModel::class),
+            model(\App\Models\BlockInstanceModel::class),
         );
     }
 
@@ -235,7 +288,8 @@ trait CmsDomainServices
             new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuItemModel::class)),
             static::translationResolver(),
             static::menuItemService(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::menuListRepository()
         );
     }
     public static function menuItemResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
@@ -250,7 +304,7 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('menuItemService');
         }
-        return new \App\Services\Cms\MenuItemService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuItemModel::class)), static::menuItemResponseMapper(), static::cacheInvalidationClient(), static::translationResolver(), static::slugRouter(), static::translationSynchronizer());
+        return new \App\Services\Cms\MenuItemService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuItemModel::class)), static::menuItemResponseMapper(), static::cacheInvalidationClient(), static::translationResolver(), static::slugRouter(), static::translationSynchronizer(), new \App\Libraries\Cms\PublicNavigationResolver());
     }
     public static function blockTypeResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -267,7 +321,8 @@ trait CmsDomainServices
         return new \App\Services\Cms\BlockTypeService(
             new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockTypeModel::class)),
             static::blockTypeResponseMapper(),
-            \Config\Database::connect(),
+            model(\App\Models\BlockInstanceModel::class),
+            model(\App\Models\CollectionModel::class),
             static::fileReferenceSynchronizer(),
             static::ownerUsageResolver()
         );
@@ -297,8 +352,47 @@ trait CmsDomainServices
             static::fileUrlResolver(),
             static::fileReferenceSynchronizer(),
             static::cacheInvalidationClient(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::blockReferenceValidator(),
+            static::entryRelationSynchronizer(),
+            static::entryFacetValueSynchronizer()
         );
+    }
+
+    public static function blockReferenceValidator(bool $getShared = true): \App\Libraries\Cms\BlockReferenceValidator
+    {
+        if ($getShared) {
+            return static::getSharedInstance('blockReferenceValidator');
+        }
+
+        return new \App\Libraries\Cms\BlockReferenceValidator(\Config\Database::connect());
+    }
+
+    public static function entryReferenceResolver(bool $getShared = true): \App\Libraries\Cms\EntryReferenceResolver
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryReferenceResolver');
+        }
+
+        return new \App\Libraries\Cms\EntryReferenceResolver(\Config\Database::connect());
+    }
+
+    public static function entryRelationSynchronizer(bool $getShared = true): \App\Libraries\Cms\EntryRelationSynchronizer
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryRelationSynchronizer');
+        }
+
+        return new \App\Libraries\Cms\EntryRelationSynchronizer(\Config\Database::connect());
+    }
+
+    public static function entryFacetValueSynchronizer(bool $getShared = true): \App\Libraries\Cms\EntryFacetValueSynchronizer
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryFacetValueSynchronizer');
+        }
+
+        return new \App\Libraries\Cms\EntryFacetValueSynchronizer(\Config\Database::connect());
     }
     public static function collectionResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -318,7 +412,8 @@ trait CmsDomainServices
             static::cacheInvalidationClient(),
             new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\LanguageModel::class)),
             static::publicCollectionReader(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::collectionListRepository()
         );
     }
 
@@ -347,25 +442,28 @@ trait CmsDomainServices
             return static::getSharedInstance('entryBlockTemplateInitializer');
         }
 
-        return new \App\Services\Cms\EntryBlockTemplateInitializer();
+        return new \App\Services\Cms\EntryBlockTemplateInitializer(static::entryFacetValueSynchronizer());
     }
     public static function entryService(bool $getShared = true): \App\Interfaces\Cms\EntryServiceInterface
     {
         if ($getShared) {
             return static::getSharedInstance('entryService');
         }
+        $entryRepository = static::entryListRepository();
+
         return new \App\Services\Cms\EntryService(
-            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\EntryModel::class)),
+            $entryRepository,
             static::entryResponseMapper(),
             static::slugRedirectRecorder(),
             static::cacheInvalidationClient(),
             static::fileUrlResolver(),
             static::fileReferenceSynchronizer(),
             static::translationResolver(),
-            static::publicEntryReader(),
             static::entryTaxonomyPivotResolver(),
             static::entryBlockTemplateInitializer(),
-            static::translationSynchronizer()
+            static::blockInstancePurger(),
+            static::translationSynchronizer(),
+            $entryRepository
         );
     }
     public static function categoryResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
@@ -385,7 +483,8 @@ trait CmsDomainServices
             static::categoryResponseMapper(),
             static::translationResolver(),
             static::cacheInvalidationClient(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::categoryListRepository()
         );
     }
     public static function tagResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
@@ -400,7 +499,7 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('tagService');
         }
-        return new \App\Services\Cms\TagService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\TagModel::class)), static::tagResponseMapper(), static::cacheInvalidationClient(), static::translationResolver(), static::translationSynchronizer());
+        return new \App\Services\Cms\TagService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\TagModel::class)), static::tagResponseMapper(), static::cacheInvalidationClient(), static::translationResolver(), static::translationSynchronizer(), static::tagListRepository());
     }
     public static function redirectResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -497,8 +596,28 @@ trait CmsDomainServices
         }
 
         return new \App\Libraries\Cms\CacheInvalidationClient(
-            queueManager: static::cacheQueueManager(),
-            queueName: config('Queue')->defaultQueue,
+            outbox: static::cacheInvalidationOutbox(),
+        );
+    }
+
+    public static function cacheInvalidationOutbox(bool $getShared = true): \App\Libraries\Cms\CacheInvalidationOutbox
+    {
+        if ($getShared) {
+            return static::getSharedInstance('cacheInvalidationOutbox');
+        }
+
+        return new \App\Libraries\Cms\CacheInvalidationOutbox(\Config\Database::connect());
+    }
+
+    public static function cacheInvalidationOutboxDispatcher(bool $getShared = true): \App\Libraries\Cms\CacheInvalidationOutboxDispatcher
+    {
+        if ($getShared) {
+            return static::getSharedInstance('cacheInvalidationOutboxDispatcher');
+        }
+
+        return new \App\Libraries\Cms\CacheInvalidationOutboxDispatcher(
+            static::cacheInvalidationOutbox(),
+            new \App\Libraries\Cms\CacheInvalidationClient(dispatch: false),
         );
     }
 
@@ -570,6 +689,7 @@ trait CmsDomainServices
             \Config\Database::connect(),
             static::ownerUsageResolver(),
             static::formFieldService(),
+            model(\App\Models\FormSubmissionModel::class),
             static::translationSynchronizer(),
         );
     }
@@ -623,6 +743,17 @@ trait CmsDomainServices
 
         return new \App\Services\Cms\AnalyticsService(
             new \App\Models\PageViewModel()
+        );
+    }
+
+    public static function requestMetricsService(bool $getShared = true): \App\Services\System\RequestMetricsService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('requestMetricsService');
+        }
+
+        return new \App\Services\System\RequestMetricsService(
+            model(\App\Models\RequestLogModel::class)
         );
     }
 }

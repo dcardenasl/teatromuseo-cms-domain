@@ -45,11 +45,11 @@ Browser/SPA → Website Builder (here)    → Database (this app's tables)
 ## Essential commands
 
 ```bash
-# Dev server (default port 8090 to avoid colliding with hub on :8080 / admin on :8082)
+# Dev server (default port 8190 to avoid colliding with hub on :8180 / admin on :8182)
 # IMPORTANT: CI4 spark serve requires a SPACE before the port — equals sign is silently ignored:
-#   php spark serve --port 8090   ✅
-#   php spark serve --port=8090   ❌ (starts on :8080 without warning, collides with hub)
-php spark serve --port 8090
+#   php spark serve --port 8190   ✅
+#   php spark serve --port=8190   ❌ (starts on :8180 without warning, collides with hub)
+php spark serve --port 8190
 
 # Tests
 # Prefer `composer test*` (passes --no-coverage). Bare `vendor/bin/phpunit` triggers a
@@ -139,7 +139,7 @@ module needs distinct read/write codes.
 
 | Variable | Purpose |
 |---|---|
-| `hub.url` | Base URL of the hub (e.g. `http://localhost:8080`) |
+| `hub.url` | Base URL of the hub (e.g. `http://localhost:8180`) |
 | `hub.apiKey` | X-App-Key bound to this app's `applications` row in the hub |
 | `hub.appCode` | Application code as registered in the hub |
 | `hub.introspectCacheTtl` | (optional) TTL in seconds for cached introspect responses, default 30 |
@@ -213,6 +213,16 @@ return type doesn't expose (e.g. `BlockInstanceService::blockTypeById()`,
 guardrail on a *new* violation — it's for this one specific typing problem, not
 a loophole.
 
+## Cross-repo public-read contract
+
+`teatromuseo-bff/app/PublicRead/Cms/` owns the migrated public-read contract.
+If a CMS migration changes a table, column, relation, or publication rule used
+by that BFF code, notify and update `teatromuseo-bff` in the same session (or
+open an explicit follow-up before merging). There is no cross-repository CI
+that detects this schema/reader drift automatically. The BFF remains
+SELECT-only and must not be made dependent on this application or on a shared
+public-read Composer package.
+
 ## Common pitfalls
 
 - ❌ Issuing JWTs from this app — that's the hub's job, always.
@@ -245,15 +255,18 @@ a loophole.
   shallow cast only converts the outer object, leaving nested values (e.g.
   `$schema['fields']['heading']`) as `stdClass`, which then silently fail any
   downstream `is_array()` check and get treated as empty. Always go through
-  `App\Libraries\Cms\JsonCastNormalizer::toArray()` instead, which handles the
-  string/object/array shapes correctly via a full `json_encode`/`json_decode`
-  round-trip. (Root-caused 2026-07-21 during DOM-122: this exact bug shipped in
-  `WizardConfigService`'s first draft and would have made the wizard's block
-  editor always see empty `fields`/`config_fields` — caught only because a
-  characterization test with real fixtures was written before trusting the
-  refactor. `BlockSchemaIntrospector::introspect()` now self-normalizes via this
-  helper too, so passing it a raw un-normalized Entity property can no longer
-  silently misbehave.)
+  `dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer::toArray()` instead, which
+  handles the string/object/array shapes correctly via a full
+  `json_encode`/`json_decode` round-trip. (Root-caused 2026-07-21 during DOM-122:
+  this exact bug shipped in `WizardConfigService`'s first draft and would have
+  made the wizard's block editor always see empty `fields`/`config_fields` —
+  caught only because a characterization test with real fixtures was written
+  before trusting the refactor. `BlockSchemaIntrospector::introspect()` now
+  self-normalizes via this helper too, so passing it a raw un-normalized Entity
+  property can no longer silently misbehave. This app carried a local copy of
+  the normalizer until 2026-08-06, when `ci4-api-core` v1.3.0 added the missing
+  JSON-string branch and the local copy — byte-for-byte the same semantics —
+  was deleted in favor of the shared one.)
 
 ## Where to read next
 

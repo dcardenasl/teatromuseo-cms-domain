@@ -15,6 +15,7 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
     public ?string $search;
     public string $sort;
     public ?int $collection_id;
+    public string $projection;
 
     /**
      * @return array<string, string>
@@ -27,6 +28,7 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
             'search'        => 'permit_empty|string|max_length[100]',
             'sort'          => 'permit_empty|max_length[100]',
             'collection_id' => 'permit_empty|integer',
+            'projection'    => 'permit_empty|in_list[full,list]',
         ];
     }
 
@@ -41,6 +43,7 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
         $this->sort = (string) ($data['sort'] ?? '');
         $collectionId = $data['collection_id'] ?? ($data['filter']['collection_id'] ?? null);
         $this->collection_id = $collectionId !== null && $collectionId !== '' ? (int) $collectionId : null;
+        $this->projection = (string) ($data['projection'] ?? 'full');
     }
 
     /**
@@ -53,6 +56,7 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
             'per_page' => $this->per_page,
             'search' => $this->search,
             'sort' => $this->sort,
+            'projection' => $this->projection,
         ];
 
         if ($this->collection_id !== null) {

@@ -16,14 +16,14 @@ class CreateCmsPages extends Migration
             'collection_id' => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
             'page_type'     => [
                 'type' => 'ENUM',
-                'constraint' => ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'collection_index'],
+                'constraint' => ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'catalog_listing', 'collection_index', 'template_catalog_item', 'template_event_item'],
                 'default' => 'generic',
             ],
         ]);
         // Generated column — forge doesn't support GENERATED ALWAYS AS syntax
         $this->forge->addField(
-            "`type_singleton` VARCHAR(20) GENERATED ALWAYS AS (" .
-            "CASE WHEN `page_type` IN ('home','404','500','maintenance','contact','privacy','terms') " .
+            "`type_singleton` VARCHAR(30) GENERATED ALWAYS AS (" .
+            "CASE WHEN `page_type` IN ('home','404','500','maintenance','contact','privacy','terms','about','history','events','catalog_listing','template_catalog_item','template_event_item') " .
             "AND `deleted_at` IS NULL THEN `page_type` ELSE NULL END) STORED"
         );
         $this->forge->addField([
@@ -45,10 +45,14 @@ class CreateCmsPages extends Migration
         $this->forge->addKey(['parent_id', 'sort_order'], false, false, 'idx_page_parent_sort');
         $this->forge->addKey('collection_id', false, false, 'idx_page_collection_id');
         $this->forge->addKey(['status', 'deleted_at'], false, false, 'idx_page_status');
-        $this->forge->addForeignKey('parent_id', 'cms_pages', 'id', '', 'CASCADE', 'fk_page_parent');
         $this->forge->addForeignKey('collection_id', 'cms_collections', 'id', '', 'CASCADE', 'fk_page_collection');
 
         $this->forge->createTable('cms_pages', false, ['ENGINE' => 'InnoDB']);
+
+        // Add the self-reference after CREATE TABLE for MySQL/MariaDB
+        // compatibility; those engines may reject it in the initial DDL.
+        $this->forge->addForeignKey('parent_id', 'cms_pages', 'id', '', 'CASCADE', 'fk_page_parent');
+        $this->forge->processIndexes('cms_pages');
 
         $this->forge->addField([
             'id'               => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],

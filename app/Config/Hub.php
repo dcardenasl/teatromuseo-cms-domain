@@ -21,6 +21,13 @@ class Hub extends BaseConfig
     public string $url = '';
 
     /**
+     * Public origin used when delivering Hub-owned uploads to browsers.
+     * Keep this separate from `url`: the domain app may reach the Hub through
+     * an internal hostname while visitors need a public HTTPS origin.
+     */
+    public string $publicUrl = '';
+
+    /**
      * App-key used in the X-App-Key header for hub calls. Created from the hub
      * with `php spark apps:bootstrap <code>` (which also creates the API Key
      * bound to the application).
@@ -69,6 +76,15 @@ class Hub extends BaseConfig
      */
     public string $adminToken = '';
 
+    /**
+     * Shared secret used to verify HMAC-signed calls the Hub makes *into*
+     * this domain app (internal/files/* usage-check and invalidate-cache
+     * routes — see HubSignatureFilter). Configured identically on the Hub
+     * and every domain app. Optional: unset disables those routes (they
+     * fail closed), it does not fail application boot like hub.url/apiKey.
+     */
+    public string $internalSecret = '';
+
     public function __construct()
     {
         parent::__construct();
@@ -84,6 +100,9 @@ class Hub extends BaseConfig
             );
         }
         $this->url = $url;
+
+        $publicUrl = env('HUB_PUBLIC_URL') ?: env('hub.publicUrl') ?: $url;
+        $this->publicUrl = rtrim(trim((string) $publicUrl), '/');
 
         // API key for hub calls (X-App-Key header)
         $apiKey = env('HUB_API_KEY') ?: env('hub.apiKey');
@@ -116,5 +135,7 @@ class Hub extends BaseConfig
         if ($ttl !== null && $ttl !== false && $ttl !== '') {
             $this->introspectCacheTtl = (int) $ttl;
         }
+
+        $this->internalSecret = (string) (env('HUB_INTERNAL_SECRET') ?: env('hub.internalSecret') ?: '');
     }
 }

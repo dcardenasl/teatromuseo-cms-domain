@@ -1,59 +1,85 @@
-# ci4-website-builder
+# AGENTS.md — `teatromuseo-cms-domain`
 
-Website builder app template (port 8090). Owns its own business logic and database tables.
-Delegates auth and IAM to a central hub (`ci4-api-starter`). Never issues JWTs.
+## Purpose and boundaries
 
-## Entry Points
+This is the Editorial CMS domain application, served locally on port `8190`.
+It owns pages, blocks, entries, collections, menus, taxonomy, forms, and
+editorial settings in its own database.
 
-- `app/Filters/DomainAuthFilter.php` — Alias `domainauth`; replaces `jwtauth`; calls `HubClient::introspect()`
-- `app/Libraries/Hub/HubClient.php` — Only place that talks to the hub (introspection + service token)
-- `app/Config/DomainPermissions.php` — Permission catalog for this domain (dot-separated codes)
-- `app/Commands/SyncPermissions.php` — `php spark domain:sync-permissions`
-- `app/Config/Scaffolding.php` — Overrides `protectedRouteFilters` to `['domainauth', 'permission:items.read', 'throttle']`
+The central Hub is `teatromuseo-api` on port `8180`:
 
-## Contracts & Invariants
+- This application never issues JWTs and never stores users or IAM tables.
+- `DomainAuthFilter` (`domainauth`) delegates bearer-token introspection to
+  `App\Libraries\Hub\HubClient`.
+- `HubClient` is the only application class allowed to call Hub URLs.
+- `/api/v1/public/*` routes are for the public Web application and use the
+  `webappkey` filter; they do not require a user JWT.
 
-- Website builder app never issues JWTs — that's the hub's job, always.
-- `DomainAuthFilter` (alias `domainauth`) replaces `jwtauth` on all protected routes.
-- `HubClient` is the only place that calls the hub — never call hub URLs directly from controllers.
-- Permission codes use `.` separator — never `:` (CI4 filter parser splits on `:`).
-- `php spark serve --port 8090` — always use SPACE before port, never `=` sign (spark silently ignores `=`).
+Read this repository's `CLAUDE.md` and `TASKS.md` before editing. Check the
+repository status first and keep unrelated work intact.
+
+## Important entry points
+
+- `app/Filters/DomainAuthFilter.php` — `domainauth` filter.
+- `app/Filters/WebAppKeyRequiredFilter.php` — public Web app-key filter.
+- `app/Libraries/Hub/HubClient.php` — Hub introspection and service calls.
+- `app/Config/DomainPermissions.php` — CMS permission catalog.
+- `app/Commands/SyncPermissions.php` — `php spark domain:sync-permissions`.
+- `app/Config/Scaffolding.php` — CRUD generator configuration.
+- `app/Config/Routes/v1/cms.php` — CMS and public CMS routes.
+
+Permission codes use a dot separator, for example `cms.pages.read`. Never use
+`:` inside a permission code because CodeIgniter parses colons as filter
+arguments.
 
 ## Commands
 
+Run these from this repository root:
+
 ```bash
-php spark serve --port 8090       # Note: SPACE not =
-vendor/bin/phpunit
+composer install
+php spark serve --port 8190
+
+php spark migrate
+php spark domain:sync-permissions
+
+bash vendor/bin/make-crud.sh ResourceName Cms 'field:type:rules,...' yes [route]
+php spark module:check ResourceName --domain Cms
+php spark swagger:generate
+
+composer test:unit
+composer test:integration
+composer test:feature
 composer quality
-php spark migrate
-php spark domain:sync-permissions --admin-token=<jwt>
-bash vendor/bin/make-crud.sh ResourceName Domain 'field:type' yes
+composer cs-fix
 ```
 
-## Patterns
+The primary permission sync uses this domain's `X-App-Key` and is idempotent;
+it does not require a superadmin JWT. `--admin-token` is only needed for the
+optional `--mirror-to-self` or `--assign-to-role` operations.
 
-Adding a new CRUD module:
-```bash
-bash vendor/bin/make-crud.sh ResourceName Domain 'field:type' yes
-php spark migrate
-pkill -f 'spark serve'; php spark serve --port 8090 &
-```
-Generated routes automatically use `domainauth + permission:items.read + throttle`.
+After scaffolding a resource, run its migration, validate the generated module,
+regenerate Swagger, and restart `php spark serve`; route files are not
+hot-reloaded.
 
-Adding a new permission:
-1. Append to `app/Config/DomainPermissions.php`.
-2. Run `php spark domain:sync-permissions`.
-3. Attach the permission to the appropriate role in the hub admin panel.
+## Architecture rules
+
+- Controllers orchestrate HTTP and DTOs; business decisions belong in services.
+- Request DTOs are validated by their constructors before reaching services.
+- Services remain HTTP-agnostic and use the repository/model layer for data.
+- Use the generated per-resource auth and permission filters; do not bypass
+  `DomainAuthFilter` for protected routes.
+- Keep public routes app-key-gated and free of user-session assumptions.
+- Keep content lifecycle, block validation, taxonomy, and translation behavior
+  in CMS services, not in controllers or views.
+- Add tests for every behavior change, including public endpoint contracts,
+  editor/admin permission boundaries, and dynamic-template behavior.
 
 ## Anti-patterns
 
-- Don't issue JWTs from this app.
-- Don't call `Services::userModel()` or IAM services — those only exist in the hub.
-- Don't hardcode permission strings — use `DomainPermissions::PERMISSIONS` and sync.
-- Don't store tokens in `localStorage` — pass via `Authorization` header (SPAs) or PHP sessions (admin layer).
-
-## Related Context
-
-- Detailed reference: `CLAUDE.md` (this repo)
-- Hub API it delegates to: `dcardenasl/ci4-api-starter`
-- Runtime base classes: `dcardenasl/ci4-api-core` package
+- Do not issue JWTs or implement a local JWT secret.
+- Do not call Hub endpoints directly from controllers or services outside
+  `HubClient`.
+- Do not use `Services::userModel()` or copy Hub IAM services into this app.
+- Do not hardcode permission strings when a permission catalog constant exists.
+- Do not put business logic in views or commit `.env` files and credentials.

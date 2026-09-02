@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\DTO\Response\Cms\MenuResponseDTO;
 use App\Entities\MenuEntity;
 use App\Entities\MenuItemEntity;
+use App\Interfaces\Cms\AdminListProjectionRepositoryInterface;
 use App\Interfaces\Cms\MenuItemServiceInterface;
 use App\Interfaces\Cms\MenuServiceInterface;
 use App\Libraries\Cms\TranslationResolver;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasDeferredTranslations;
+use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
@@ -28,6 +33,8 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
+    private ?AdminListProjectionRepositoryInterface $menuListRepository;
+
     /**
      * @param RepositoryInterface<MenuEntity> $menuRepository
      * @param RepositoryInterface<MenuItemEntity> $menuItemRepository
@@ -39,11 +46,43 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
         private readonly RepositoryInterface $menuItemRepository,
         private readonly TranslationResolver $translationResolver,
         private readonly MenuItemServiceInterface $menuItemService,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?AdminListProjectionRepositoryInterface $menuListRepository = null
     ) {
         parent::__construct($menuRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->menuListRepository = $menuListRepository;
+    }
+
+    public function index(DataTransferObjectInterface $request, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->menuListRepository === null) {
+            return parent::index($request, $context);
+        }
+
+        $result = $this->menuListRepository->paginateAdminList(
+            $requestData,
+            max(1, (int) ($requestData['page'] ?? 1)),
+            min(1000, max(1, (int) ($requestData['per_page'] ?? 20))),
+        );
+        $data = array_map(static function (array $row): MenuResponseDTO {
+            $row['translations'] = AdminListProjectionDecoder::translations(
+                $row['translations_data'] ?? null,
+                ['name'],
+            );
+            unset($row['translations_data']);
+
+            return MenuResponseDTO::fromArray($row);
+        }, $result['data']);
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
     }
 
     /**
@@ -77,6 +116,7 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
             if ($item instanceof MenuItemEntity) {
                 $resolved = $this->translationResolver->resolve('menu_item', (int) $item->id, $lang);
                 $customUrl = $this->menuItemService->resolveLink($item, $lang);
+                $navigation = $this->menuItemService->resolvePublicNavigation($item, $lang);
 
                 if ($customUrl === null && $item->link_type === 'custom_url') {
                     $customUrl = $resolved['custom_url'] ?? null;
@@ -85,6 +125,7 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
                 $flatList[] = array_merge($item->toArray(), [
                     'label'       => $resolved['label'] ?? '',
                     'custom_url'  => $customUrl,
+                    'navigation'  => $navigation,
                     'is_fallback' => $resolved['is_fallback'] ?? false,
                 ]);
             }

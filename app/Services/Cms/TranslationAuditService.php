@@ -37,6 +37,9 @@ use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
  */
 class TranslationAuditService implements TranslationAuditServiceInterface
 {
+    /** @var list<string> States that need review but do not prove missing translation work. */
+    private const REVIEW_ONLY_STATUSES = ['untranslated', 'outdated'];
+
     /**
      * @var list<array{
      *   type: string,
@@ -116,7 +119,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
 
         $totalElements = $this->countAuditableResources();
         $missingCounts = [];
-        foreach ($this->getMissingTranslationsReport() as $issue) {
+        foreach ($this->getMissingTranslationsReport(['scope' => 'actionable']) as $issue) {
             $languageId = (int) ($issue['language_id'] ?? 0);
             if ($languageId > 0) {
                 $missingCounts[$languageId] = ($missingCounts[$languageId] ?? 0) + 1;
@@ -153,22 +156,31 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             return [];
         }
 
+        $defaultLanguageId = $this->getDefaultLanguageId();
+
         $issues = [];
         foreach ($this->simpleResources as $descriptor) {
-            $issues = array_merge($issues, $this->auditSimpleResources($descriptor, $activeLanguages, $filters));
+            $issues = array_merge($issues, $this->auditSimpleResources($descriptor, $activeLanguages, $filters, $defaultLanguageId));
         }
         $issues = array_merge($issues, $this->auditSettingTranslations($activeLanguages, $filters));
-        $issues = array_merge($issues, $this->blockAuditor->audit($activeLanguages, $filters));
+        $issues = array_merge($issues, $this->blockAuditor->audit($activeLanguages, $filters, $defaultLanguageId));
 
         return array_values(array_filter($issues, function (array $issue) use ($filters): bool {
             $resource = (string) ($filters['resource'] ?? '');
             $status = (string) ($filters['status'] ?? '');
+            $scope = (string) ($filters['scope'] ?? '');
             $search = mb_strtolower((string) ($filters['search'] ?? ''));
 
             if ($resource !== '' && (string) ($issue['resource'] ?? '') !== $resource) {
                 return false;
             }
             if ($status !== '' && (string) ($issue['status'] ?? '') !== $status) {
+                return false;
+            }
+            if ($status === '' && $scope === 'actionable' && in_array((string) ($issue['status'] ?? ''), self::REVIEW_ONLY_STATUSES, true)) {
+                return false;
+            }
+            if ($status === '' && $scope === 'warnings' && ! in_array((string) ($issue['status'] ?? ''), self::REVIEW_ONLY_STATUSES, true)) {
                 return false;
             }
             if ($search !== '') {
@@ -190,6 +202,31 @@ class TranslationAuditService implements TranslationAuditServiceInterface
     /**
      * {@inheritdoc}
      */
+    public function getMissingTranslationsReportPage(array $filters, int $page, int $limit): array
+    {
+        $page = max(1, $page);
+        $limit = min(100, max(10, $limit));
+
+        $report = $this->getMissingTranslationsReport($filters);
+        $total = count($report);
+        $lastPage = $total > 0 ? (int) ceil($total / $limit) : 1;
+        $page = min($page, $lastPage);
+        $offset = ($page - 1) * $limit;
+
+        return [
+            'data' => array_slice($report, $offset, $limit),
+            'meta' => [
+                'current_page' => $page,
+                'last_page'    => $lastPage,
+                'per_page'     => $limit,
+                'total_items'  => $total,
+            ],
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function auditResource(string $resourceType, int $resourceId): array
     {
         $activeLanguages = $this->getActiveLanguages();
@@ -198,7 +235,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
         $valueResolver = static function (array $row, string $fieldKey, array $fieldDefinition): mixed {
             return $row[$fieldKey] ?? null;
         };
-        $defaultLanguageId = null;
+        $defaultLanguageId = $this->getDefaultLanguageId();
         $resourceRow = [];
 
         $descriptor = $this->findSimpleResourceDescriptor($resourceType);
@@ -226,7 +263,6 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 'setting_id'
             )[$resourceId] ?? [];
             $fieldDefinitions = TranslationResourceCatalog::fields('setting');
-            $defaultLanguageId = $this->getDefaultLanguageId();
             $resourceRow = $this->support->toArray($resource);
             if ($defaultLanguageId !== null) {
                 $translations[$defaultLanguageId] = ['setting_value' => $resourceRow['setting_value'] ?? null];
@@ -251,15 +287,21 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             } else {
                 $translation = $translations[$langId] ?? null;
             }
-            $isSettingDefaultLanguage = $resourceType === 'setting' && $defaultLanguageId === $langId;
-            [$status, $detail] = $this->support->evaluateTranslationState(
-                $translation,
-                $translations,
-                $fieldDefinitions,
-                $langId,
-                $valueResolver,
-                $isSettingDefaultLanguage ? null : (isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null)
-            );
+            [$status, $detail] = $resourceType === 'block_instance'
+                && $translation === null
+                && ! $this->blockAuditor->shouldReportMissing($translations, $fieldDefinitions, $valueResolver)
+                ? ['complete', '']
+                : $this->support->evaluateTranslationState(
+                    $translation,
+                    $translations,
+                    $fieldDefinitions,
+                    $langId,
+                    $valueResolver,
+                    $langId === $defaultLanguageId
+                        ? null
+                        : (isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null),
+                    $resourceType === 'setting' ? null : $defaultLanguageId
+                );
 
             // The admin's block-editor tab dots consume this same endpoint
             // (auditResource('block_instance', $id)) and use the same
@@ -291,7 +333,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             return ['blocks' => [], 'summary' => []];
         }
 
-        return $this->blockAuditor->auditForOwner($ownerType, $ownerId, $activeLanguages);
+        return $this->blockAuditor->auditForOwner($ownerType, $ownerId, $activeLanguages, $this->getDefaultLanguageId());
     }
 
     /**
@@ -493,7 +535,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
      * @param array<string, mixed> $filters
      * @return list<array<string, mixed>>
      */
-    private function auditSimpleResources(array $descriptor, array $activeLanguages, array $filters): array
+    private function auditSimpleResources(array $descriptor, array $activeLanguages, array $filters, ?int $defaultLanguageId): array
     {
         $resources = ($descriptor['fetch'])();
         $translationsByResource = $this->support->groupTranslationsByResource(
@@ -527,7 +569,10 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                     $fieldDefinitions,
                     $langId,
                     $valueResolver,
-                    isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null
+                    $langId === $defaultLanguageId
+                        ? null
+                        : (isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null),
+                    $defaultLanguageId
                 );
                 if ($status === 'complete') {
                     continue;

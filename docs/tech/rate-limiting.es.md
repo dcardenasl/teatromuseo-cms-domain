@@ -12,6 +12,8 @@ Variables de entorno:
 - `RATE_LIMIT_REQUESTS`
 - `RATE_LIMIT_USER_REQUESTS`
 - `RATE_LIMIT_WINDOW`
+- `PUBLIC_READ_RATE_LIMIT_REQUESTS`
+- `PUBLIC_READ_RATE_LIMIT_WINDOW`
 - `AUTH_RATE_LIMIT_REQUESTS`
 - `AUTH_RATE_LIMIT_WINDOW`
 - `API_KEY_RATE_LIMIT_DEFAULT`
@@ -24,3 +26,4 @@ Notas:
 - `throttle` se aplica a rutas generales de la API.
 - Las respuestas incluyen cabeceras de límite (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`).
 - Si llega `X-App-Key`, se aplican límites de API key tras validar la clave.
+- Las lecturas GET públicas se agrupan por una huella SHA-256 de la clave validada de la app Web, no por la IP compartida del hosting. El valor predeterminado es 600 solicitudes por 60 segundos; las escrituras públicas y las rutas protegidas conservan los límites por IP/usuario.

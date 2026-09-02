@@ -117,6 +117,173 @@ final class DoctorTest extends CIUnitTestCase
         $this->assertSame('skipped', $report['checks'][2]['status']);
     }
 
+    public function testReportsFailureWhenServiceTokenIsEmpty(): void
+    {
+        $stub = new class () extends HubClient {
+            public function __construct()
+            {
+            }
+
+            public function getServiceToken(): string
+            {
+                return '';
+            }
+        };
+
+        Services::injectMock('hubClient', $stub);
+
+        $report = $this->diagnose([]);
+
+        $this->assertTrue($report['hasErrors']);
+        $this->assertSame('fail', $report['checks'][0]['status']);
+        $this->assertSame('hub returned an empty service token', $report['checks'][0]['detail']);
+    }
+
+    public function testReportsFailureWhenServiceTokenThrows(): void
+    {
+        $stub = new class () extends HubClient {
+            public function __construct()
+            {
+            }
+
+            public function getServiceToken(): string
+            {
+                throw new \RuntimeException('hub unreachable');
+            }
+        };
+
+        Services::injectMock('hubClient', $stub);
+
+        $report = $this->diagnose([]);
+
+        $this->assertTrue($report['hasErrors']);
+        $this->assertSame('fail', $report['checks'][0]['status']);
+        $this->assertSame('hub unreachable', $report['checks'][0]['detail']);
+    }
+
+    public function testReportsFailureWhenIntrospectRejectsToken(): void
+    {
+        $stub = new class () extends HubClient {
+            public function __construct()
+            {
+            }
+
+            public function getServiceToken(): string
+            {
+                return 'service-token';
+            }
+
+            public function introspect(string $token): IntrospectResult
+            {
+                return new IntrospectResult(valid: false, uid: null, permissions: [], exp: null, error: 'invalid');
+            }
+        };
+
+        Services::injectMock('hubClient', $stub);
+
+        $report = $this->diagnose(['--token=bad-token']);
+
+        $this->assertTrue($report['hasErrors']);
+        $this->assertSame('fail', $report['checks'][1]['status']);
+        $this->assertSame('token was rejected by the hub', $report['checks'][1]['detail']);
+    }
+
+    public function testReportsFailureWhenIntrospectThrows(): void
+    {
+        $stub = new class () extends HubClient {
+            public function __construct()
+            {
+            }
+
+            public function getServiceToken(): string
+            {
+                return 'service-token';
+            }
+
+            public function introspect(string $token): IntrospectResult
+            {
+                throw new \RuntimeException('introspect timed out');
+            }
+        };
+
+        Services::injectMock('hubClient', $stub);
+
+        $report = $this->diagnose(['--token=jwt-token']);
+
+        $this->assertTrue($report['hasErrors']);
+        $this->assertSame('fail', $report['checks'][1]['status']);
+        $this->assertSame('introspect timed out', $report['checks'][1]['detail']);
+    }
+
+    public function testReportsFailureWhenRegisterPermissionThrows(): void
+    {
+        $stub = new class () extends HubClient {
+            public function __construct()
+            {
+            }
+
+            public function getServiceToken(): string
+            {
+                return 'service-token';
+            }
+
+            public function registerPermission(array $permission, string $bearerToken, ?int $applicationId = null): bool
+            {
+                throw new \RuntimeException('forbidden');
+            }
+        };
+
+        Services::injectMock('hubClient', $stub);
+
+        $report = $this->diagnose(['--admin-token=admin-token']);
+
+        $this->assertTrue($report['hasErrors']);
+        $this->assertSame('fail', $report['checks'][2]['status']);
+        $this->assertSame('forbidden', $report['checks'][2]['detail']);
+    }
+
+    public function testRunPrintsSuccessAndReturnsExitSuccessWhenAllChecksPass(): void
+    {
+        $stub = new class () extends HubClient {
+            public function __construct()
+            {
+            }
+
+            public function getServiceToken(): string
+            {
+                return 'service-token';
+            }
+        };
+
+        Services::injectMock('hubClient', $stub);
+
+        $command = new Doctor(service('logger'), service('commands'));
+        $result = $command->run([]);
+
+        $this->assertSame(EXIT_SUCCESS, $result);
+    }
+
+    public function testRunReturnsExitErrorWhenACheckFails(): void
+    {
+        $stub = new class () extends HubClient {
+            public function __construct()
+            {
+            }
+
+            public function getServiceToken(): string
+            {
+                return '';
+            }
+        };
+
+        Services::injectMock('hubClient', $stub);
+
+        $command = new Doctor(service('logger'), service('commands'));
+        $result = $command->run([]);
+
+        $this->assertSame(EXIT_ERROR, $result);
+    }
+
     /**
      * @param  list<string>  $params
      * @return array{checks: list<array{label: string, status: string, detail: string}>, hasErrors: bool}

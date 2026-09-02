@@ -13,4 +13,15 @@ interface RedirectServiceInterface extends CrudServiceContract
      * @return array{new_url: string, redirect_type: int}
      */
     public function resolvePublic(array $segments): array;
+
+    /**
+     * @param list<string> $segments
+     * @return array{
+     *     redirect: array{new_url: string, redirect_type: int},
+     *     manual: array{id: int, hit_count: int}|null
+     * }
+     */
+    public function resolvePublicWithMetadata(array $segments): array;
+
+    public function recordPublicHit(int $redirectId, int $currentHitCount): void;
 }

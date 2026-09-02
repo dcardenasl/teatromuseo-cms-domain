@@ -78,4 +78,29 @@ final class SlugRedirectRecorderTest extends CIUnitTestCase
         $count = $db->table('cms_slug_redirects')->countAllResults();
         $this->assertSame(1, $count);
     }
+
+    public function testRecordAllowsSameSlugWhenFullPathChanges(): void
+    {
+        $db = Database::connect();
+        $db->disableForeignKeyChecks();
+        $db->query("DELETE FROM `cms_slug_redirects`");
+        $db->query("DELETE FROM `cms_languages`");
+        $db->enableForeignKeyChecks();
+
+        $db->table('cms_languages')->insert([
+            'id'          => 1,
+            'code'        => 'es',
+            'name'        => 'Spanish',
+            'native_name' => 'Español',
+            'is_default'  => 1,
+            'is_active'   => 1,
+        ]);
+
+        $recorder = new SlugRedirectRecorder($db);
+        $recorder->record('page', 10, 1, 'slug-viejo', 'slug-viejo', 'seccion-vieja/slug-viejo', true);
+        $recorder->record('page', 10, 1, 'slug-viejo', 'slug-viejo', 'seccion-nueva/slug-viejo', true);
+
+        $count = $db->table('cms_slug_redirects')->countAllResults();
+        $this->assertSame(2, $count);
+    }
 }

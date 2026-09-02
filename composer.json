@@ -6,7 +6,7 @@
     "require": {
         "php": "^8.2",
         "codeigniter4/framework": "^4.7",
-        "dcardenasl/ci4-api-core": "^1.0",
+        "dcardenasl/ci4-api-core": "^1.5",
         "ezyang/htmlpurifier": "^4.17",
         "guzzlehttp/psr7": "^2.12.1",
         "monolog/monolog": "^3.5",
@@ -80,7 +80,7 @@
             "@test:prepare-db",
             "phpunit --testsuite=Unit,Architecture,Integration,Feature --configuration=phpunit.xml --testdox"
         ],
-        "coverage:check": "php scripts/check-coverage.php 35.05 tests/coverage/clover.xml",
+        "coverage:check": "php scripts/check-coverage.php 60 tests/coverage/clover.xml",
         "phpstan": "phpstan analyse --memory-limit=512M",
         "cs-fix": "php-cs-fixer fix",
         "cs-check": "php-cs-fixer fix --dry-run --diff --sequential",
@@ -111,6 +111,9 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
+        "platform": {
+            "php": "8.2.0"
+        },
         "allow-plugins": {
             "phpstan/extension-installer": true
         }

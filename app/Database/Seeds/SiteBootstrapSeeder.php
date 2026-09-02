@@ -8,9 +8,16 @@ use CodeIgniter\Database\Seeder;
 use Config\Services;
 
 /**
- * Seeds the full starter/demo site: content, forms, pages, block type examples,
- * collections, and menus. Migrations define the CMS structure; this seeder is not
- * required for the wizard to run.
+ * Seeds the TeatroMuseo bootstrap content: languages, settings, structural
+ * pages, institutional/legal pages, collections, menus. Migrations define
+ * the CMS structure; this seeder is not required for the wizard to run.
+ *
+ * The starter kit's block-coverage demo pages (portfolio, components, media,
+ * landing) and the synthetic pilot entries used to validate the public IA
+ * were removed 2026-08-02 — this project's public site must only ever show
+ * content that actually exists on the legacy teatromuseo.cl site or was
+ * migrated from it. Do not reintroduce a seeder that injects placeholder
+ * content into a real collection.
  */
 class SiteBootstrapSeeder extends Seeder
 {
@@ -19,28 +26,24 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(CmsLanguageSeeder::class);
         $this->call(CmsFormSeeder::class);
         $this->call(SiteIdentitySeeder::class);
-        $this->call(SiteContactDefaultsSeeder::class);
         $this->call(SiteIntegrationSettingsSeeder::class);
         $this->call(AnalyticsSeeder::class);
         $this->call(SiteSocialLinksSeeder::class);
         $this->call(CmsBlockTypeSeeder::class);
+        $this->call(CmsPageTypeSeeder::class);
+        $this->call(CmsCollectionGridSourceSeeder::class);
+        $this->call(TeatroMuseoBlockTypeSeeder::class);
+        $this->call(CmsTeatroMuseoCollectionSeeder::class);
+        $this->call(CmsTeatroMuseoPageStructureSeeder::class);
         $this->call(SitePagesSeeder::class);
-        $this->call(NewsCollectionSeeder::class);
-        $this->call(SiteNewsPageSeeder::class);
-        $this->call(WizardConfigSeeder::class);
+        $this->call(CmsTeatroMuseoInstitutionalPagesSeeder::class);
+        $this->call(CmsTeatroMuseoLegalPagesSeeder::class);
+        $this->call(CmsTeatroMuseoPublicListingPagesSeeder::class);
+        $this->call(CmsTeatroMuseoRouteAlignmentSeeder::class);
         $this->call(CmsPageBlockSeeder::class);
-        $this->call(CmsHeroSliderChildrenSeeder::class);
-        $this->call(CmsSocialLinksChildrenSeeder::class);
-        $this->call(SiteAboutPageSeeder::class);
-        $this->call(SiteHistoryPageSeeder::class);
-        $this->call(PortfolioCollectionSeeder::class);
-        $this->call(SitePortfolioPageSeeder::class);
-        $this->call(SiteComponentsPageSeeder::class);
-        $this->call(SiteMediaPageSeeder::class);
-        $this->call(SiteLandingPageSeeder::class);
-        $this->call(SiteLegalPagesSeederChile::class);
-        $this->call(SiteLegalMenuSeeder::class);
-        $this->call(SiteMenuSeeder::class);
+        $this->call(CmsTeatroMuseoNavigationSeeder::class);
+        $this->call(CmsTeatroMuseoRedirectSeeder::class);
+        $this->call(CmsContentSanitizationSeeder::class);
 
         // Seeders write directly for deterministic bootstrap performance, so
         // finish through the same canonical reference synchronizer used by the

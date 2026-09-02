@@ -26,19 +26,18 @@ class CmsPageBlockSeeder extends Seeder
             'contact_info',
             'map_embed',
             'social_links',
+            'social_link_item',
+            'container',
         ]);
 
-        $langIds = $this->langIds(['es', 'en']);
+        $langIds = $this->langIds(['es', 'en', 'fr', 'pt']);
         $homePageId = $this->pageIdByType('home');
         $contactPageId = $this->pageIdByType('contact');
 
-        if ($homePageId === null || $contactPageId === null || ! isset($langIds['es'], $langIds['en'])) {
+        if ($homePageId === null || $contactPageId === null || ! isset($langIds['es'], $langIds['en'], $langIds['fr'], $langIds['pt'])) {
             echo "CmsPageBlockSeeder: missing prerequisite pages, blocks or languages.\n";
             return;
         }
-
-        $this->resetPageBlocks($homePageId);
-        $this->resetPageBlocks($contactPageId);
 
         $homeBlocks = [
             [
@@ -62,11 +61,92 @@ class CmsPageBlockSeeder extends Seeder
                 'block_key' => 'collection_grid',
                 'sort_order' => 2,
                 'config'    => [
+                    'collection_key'  => 'cartelera',
+                    'source_type'     => 'event_items',
+                    'items_limit'     => 3,
+                    'order_by'        => 'published_at',
+                    'order_direction' => 'desc',
+                    'layout_variant'  => 'cards',
+                    'image_aspect_ratio' => '1/1',
+                    'css_class'       => '',
+                ],
+                'data'      => [
+                    'es' => [
+                        'section_title'    => 'Cartelera',
+                        'section_subtitle' => 'Descubre nuestra programación.',
+                        'view_all_label'   => 'Ver toda la cartelera',
+                        'empty_message'    => 'Aún no hay actividades publicadas.',
+                    ],
+                    'en' => [
+                        'section_title'    => 'What’s on',
+                        'section_subtitle' => 'Discover our programme.',
+                        'view_all_label'   => 'View all events',
+                        'empty_message'    => 'No events are available yet.',
+                    ],
+                    'fr' => [
+                        'section_title'    => 'Programmation',
+                        'section_subtitle' => 'Découvrez notre programmation.',
+                        'view_all_label'   => 'Voir toute la programmation',
+                        'empty_message'    => 'Aucune activité publiée pour le moment.',
+                    ],
+                    'pt' => [
+                        'section_title'    => 'Programação',
+                        'section_subtitle' => 'Descubra nossa programação.',
+                        'view_all_label'   => 'Ver toda a programação',
+                        'empty_message'    => 'Ainda não há atividades publicadas.',
+                    ],
+                ],
+            ],
+            [
+                'block_key' => 'collection_grid',
+                'sort_order' => 3,
+                'config'    => [
+                    'collection_key'  => 'teatroescuela',
+                    'items_limit'     => 3,
+                    'date_field'      => 'listing.start_date',
+                    'order_by'        => 'field:start_date',
+                    'order_direction' => 'upcoming',
+                    'layout_variant'  => 'cards',
+                    'image_aspect_ratio' => '3/4',
+                    'css_class'       => '',
+                ],
+                'data'      => [
+                    'es' => [
+                        'section_title'    => 'TeatroEscuela',
+                        'section_subtitle' => 'Aprende, crea y juega con el teatro.',
+                        'view_all_label'   => 'Ver TeatroEscuela',
+                        'empty_message'    => 'Aún no hay contenidos de TeatroEscuela publicados.',
+                    ],
+                    'en' => [
+                        'section_title'    => 'TeatroEscuela',
+                        'section_subtitle' => 'Learn, create and play through theatre.',
+                        'view_all_label'   => 'View TeatroEscuela',
+                        'empty_message'    => 'No TeatroEscuela content is available yet.',
+                    ],
+                    'fr' => [
+                        'section_title'    => 'TeatroEscuela',
+                        'section_subtitle' => 'Apprenez, créez et jouez avec le théâtre.',
+                        'view_all_label'   => 'Voir TeatroEscuela',
+                        'empty_message'    => 'Aucun contenu TeatroEscuela publié pour le moment.',
+                    ],
+                    'pt' => [
+                        'section_title'    => 'TeatroEscuela',
+                        'section_subtitle' => 'Aprenda, crie e brinque com o teatro.',
+                        'view_all_label'   => 'Ver TeatroEscuela',
+                        'empty_message'    => 'Ainda não há conteúdos de TeatroEscuela.',
+                    ],
+                ],
+            ],
+            [
+                'block_key' => 'collection_grid',
+                'sort_order' => 4,
+                'config'    => [
                     'collection_key'  => 'noticias',
                     'items_limit'     => 3,
                     'order_by'        => 'published_at',
                     'order_direction' => 'desc',
                     'layout_variant'  => 'cards',
+                    'image_aspect_ratio' => '1/1',
                     'css_class'       => '',
                 ],
                 'data'      => [
@@ -74,21 +154,31 @@ class CmsPageBlockSeeder extends Seeder
                         'section_title'    => 'Noticias',
                         'section_subtitle' => 'Mantente al día con las últimas publicaciones.',
                         'view_all_label'   => 'Ver todas las noticias',
-                        'view_all_url'     => '/noticias',
                         'empty_message'    => 'Aún no hay noticias publicadas.',
                     ],
                     'en' => [
                         'section_title'    => 'News',
                         'section_subtitle' => 'Stay up to date with the latest posts.',
                         'view_all_label'   => 'View all news',
-                        'view_all_url'     => '/news',
                         'empty_message'    => 'No news posts are available yet.',
+                    ],
+                    'fr' => [
+                        'section_title'    => 'Actualités',
+                        'section_subtitle' => 'Restez informé des dernières publications.',
+                        'view_all_label'   => 'Voir toutes les actualités',
+                        'empty_message'    => 'Aucune actualité publiée pour le moment.',
+                    ],
+                    'pt' => [
+                        'section_title'    => 'Notícias',
+                        'section_subtitle' => 'Acompanhe as publicações mais recentes.',
+                        'view_all_label'   => 'Ver todas as notícias',
+                        'empty_message'    => 'Ainda não há notícias publicadas.',
                     ],
                 ],
             ],
             [
                 'block_key' => 'cta',
-                'sort_order' => 3,
+                'sort_order' => 5,
                 'config'    => [
                     'variant'   => 'blue',
                     'css_class' => '',
@@ -106,6 +196,18 @@ class CmsPageBlockSeeder extends Seeder
                         'label'   => 'Go to contact',
                         'url'     => '/contact',
                     ],
+                    'fr' => [
+                        'heading' => 'Vous souhaitez nous parler ?',
+                        'text'    => 'Utilisez le formulaire de contact pour nous écrire. Nous vous répondrons dès que possible.',
+                        'label'   => 'Aller au contact',
+                        'url'     => '/contact',
+                    ],
+                    'pt' => [
+                        'heading' => 'Quer falar conosco?',
+                        'text'    => 'Use o formulário de contato para nos escrever. Responderemos o mais breve possível.',
+                        'label'   => 'Ir para contato',
+                        'url'     => '/contato',
+                    ],
                 ],
             ],
         ];
@@ -121,15 +223,23 @@ class CmsPageBlockSeeder extends Seeder
                 'data'      => [
                     'es' => [
                         'heading'          => 'Contacto',
-                        'subheading'       => 'Nos encantaría saber de ti.',
+                        'subheading'       => 'TeatroMuseo quiere saber de ti.',
                         'breadcrumb_label' => 'Inicio',
-                        'breadcrumb_url'   => '/',
                     ],
                     'en' => [
                         'heading'          => 'Contact',
-                        'subheading'       => 'We would love to hear from you.',
+                        'subheading'       => 'TeatroMuseo would love to hear from you.',
                         'breadcrumb_label' => 'Home',
-                        'breadcrumb_url'   => '/',
+                    ],
+                    'fr' => [
+                        'heading'          => 'Contact',
+                        'subheading'       => 'TeatroMuseo serait ravi de vous lire.',
+                        'breadcrumb_label' => 'Accueil',
+                    ],
+                    'pt' => [
+                        'heading'          => 'Contato',
+                        'subheading'       => 'O TeatroMuseo adoraria ouvir você.',
+                        'breadcrumb_label' => 'Início',
                     ],
                 ],
             ],
@@ -143,79 +253,216 @@ class CmsPageBlockSeeder extends Seeder
                 'data'      => [
                     'es' => [],
                     'en' => [],
+                    'fr' => [],
+                    'pt' => [],
                 ],
             ],
             [
-                'block_key' => 'contact_info',
+                'block_key' => 'container',
                 'sort_order' => 3,
                 'config'    => [
-                    'layout'    => 'stacked',
                     'css_class' => '',
+                    'layout'    => 'grid-2',
                 ],
-                'data'      => [
-                    'es' => [
-                        'section_title' => 'Dónde estamos',
-                        'address_label'  => 'Dirección',
-                        'address'        => 'Calle Falsa 123, Santiago, Chile',
-                        'phone_label'    => 'Teléfono',
-                        'phone'          => '+56 2 2345 6789',
-                        'email_label'    => 'Correo',
-                        'email'          => 'contacto@misitio.local',
-                        'hours_label'    => 'Horario',
-                        'hours'          => "Lunes a viernes: 09:00 - 18:00\nSábado: 10:00 - 14:00",
+                'data'      => [],
+                'children'  => [
+                    [
+                        'block_key' => 'contact_info',
+                        'sort_order' => 1,
+                        'config'    => [
+                            'layout'    => 'stacked',
+                            'css_class' => '',
+                        ],
+                        'data'      => [
+                            'es' => [
+                                'section_title' => 'Dónde está TeatroMuseo',
+                                'address_label'  => 'Dirección',
+                                'address'        => 'Avenida Providencia 1234, Santiago, Chile',
+                                'phone_label'    => 'Teléfono',
+                                'phone'          => '+56 2 2345 6789',
+                                'email_label'    => 'Correo',
+                                'email'          => 'contacto@teatromuseo.local',
+                                'hours_label'    => 'Horario',
+                                'hours'          => "Lunes a viernes: 09:00 - 18:00\nSábado: 10:00 - 14:00",
+                            ],
+                            'en' => [
+                                'section_title' => 'Where TeatroMuseo is located',
+                                'address_label'  => 'Address',
+                                'address'        => 'Avenida Providencia 1234, Santiago, Chile',
+                                'phone_label'    => 'Phone',
+                                'phone'          => '+56 2 2345 6789',
+                                'email_label'    => 'Email',
+                                'email'          => 'contact@teatromuseo.local',
+                                'hours_label'    => 'Hours',
+                                'hours'          => "Monday to Friday: 09:00 - 18:00\nSaturday: 10:00 - 14:00",
+                            ],
+                            'fr' => [
+                                'section_title' => 'Où se trouve TeatroMuseo',
+                                'address_label'  => 'Adresse',
+                                'address'        => 'Avenida Providencia 1234, Santiago, Chili',
+                                'phone_label'    => 'Téléphone',
+                                'phone'          => '+56 2 2345 6789',
+                                'email_label'    => 'Courriel',
+                                'email'          => 'contact@teatromuseo.local',
+                                'hours_label'    => 'Horaires',
+                                'hours'          => "Lundi au vendredi : 09:00 - 18:00\nSamedi : 10:00 - 14:00",
+                            ],
+                            'pt' => [
+                                'section_title' => 'Onde fica o TeatroMuseo',
+                                'address_label'  => 'Endereço',
+                                'address'        => 'Avenida Providencia 1234, Santiago, Chile',
+                                'phone_label'    => 'Telefone',
+                                'phone'          => '+56 2 2345 6789',
+                                'email_label'    => 'Email',
+                                'email'          => 'contacto@teatromuseo.local',
+                                'hours_label'    => 'Horário',
+                                'hours'          => "Segunda a sexta: 09:00 - 18:00\nSábado: 10:00 - 14:00",
+                            ],
+                        ],
                     ],
-                    'en' => [
-                        'section_title' => 'Where we are',
-                        'address_label'  => 'Address',
-                        'address'        => '123 Main Street, Santiago, Chile',
-                        'phone_label'    => 'Phone',
-                        'phone'          => '+56 2 2345 6789',
-                        'email_label'    => 'Email',
-                        'email'          => 'contact@example.local',
-                        'hours_label'    => 'Hours',
-                        'hours'          => "Monday to Friday: 09:00 - 18:00\nSaturday: 10:00 - 14:00",
-                    ],
-                ],
-            ],
-            [
-                'block_key' => 'map_embed',
-                'sort_order' => 4,
-                'config'    => [
-                    'embed_url'    => 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3329.0664974635676!2d-70.6508083!3d-33.4474867!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662c50f83733e8b%3A0xc38fa632e825a1e7!2sPalacio%20de%20La%20Moneda!5e0!3m2!1ses!2scl!4v1700000000000!5m2!1ses!2scl',
-                    'aspect_ratio' => '16/9',
-                    'height'       => 360,
-                    'css_class'    => '',
-                ],
-                'data'      => [
-                    'es' => [
-                        'title'   => 'Mapa de ubicación',
-                        'caption' => 'Encuéntranos en nuestro punto de atención principal.',
-                    ],
-                    'en' => [
-                        'title'   => 'Location map',
-                        'caption' => 'Find us at our main service point.',
+                    [
+                        'block_key' => 'map_embed',
+                        'sort_order' => 2,
+                        'config'    => [
+                            'embed_url'    => 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3329.0664974635676!2d-70.6508083!3d-33.4474867!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662c50f83733e8b%3A0xc38fa632e825a1e7!2sPalacio%20de%20La%20Moneda!5e0!3m2!1ses!2scl!4v1700000000000!5m2!1ses!2scl',
+                            'aspect_ratio' => '16/9',
+                            'height'       => 360,
+                            'css_class'    => '',
+                        ],
+                        'data'      => [
+                            'es' => [
+                                'title'   => 'Mapa de ubicación',
+                                'caption' => 'Encuéntranos en la sede principal de TeatroMuseo.',
+                            ],
+                            'en' => [
+                                'title'   => 'Location map',
+                                'caption' => 'Find us at TeatroMuseo’s main location.',
+                            ],
+                            'fr' => [
+                                'title'   => 'Carte d’emplacement',
+                                'caption' => 'Retrouvez-nous au siège principal de TeatroMuseo.',
+                            ],
+                            'pt' => [
+                                'title'   => 'Mapa de localização',
+                                'caption' => 'Encontre-nos na sede principal do TeatroMuseo.',
+                            ],
+                        ],
                     ],
                 ],
             ],
             [
                 'block_key' => 'social_links',
-                'sort_order' => 5,
+                'sort_order' => 4,
                 'config'    => [
                     'css_class' => '',
                 ],
                 'data'      => [
                     'es' => [
-                        'heading' => 'Síguenos',
+                        'heading' => 'Síguenos en TeatroMuseo',
                     ],
                     'en' => [
-                        'heading' => 'Follow us',
+                        'heading' => 'Follow TeatroMuseo',
+                    ],
+                    'fr' => [
+                        'heading' => 'Suivez TeatroMuseo',
+                    ],
+                    'pt' => [
+                        'heading' => 'Siga o TeatroMuseo',
+                    ],
+                ],
+                'children'  => [
+                    [
+                        'block_key' => 'social_link_item',
+                        'sort_order' => 1,
+                        'config' => [
+                            'network' => 'youtube',
+                            'url' => 'https://www.youtube.com/user/Teatromuseo1',
+                        ],
+                        'data' => $this->socialLinkTranslations('@Teatromuseo1'),
+                    ],
+                    [
+                        'block_key' => 'social_link_item',
+                        'sort_order' => 2,
+                        'config' => [
+                            'network' => 'facebook',
+                            'url' => 'https://www.facebook.com/teatromuseo/',
+                        ],
+                        'data' => $this->socialLinkTranslations('teatromuseo'),
+                    ],
+                    [
+                        'block_key' => 'social_link_item',
+                        'sort_order' => 3,
+                        'config' => [
+                            'network' => 'instagram',
+                            'url' => 'https://www.instagram.com/teatromuseo/',
+                        ],
+                        'data' => $this->socialLinkTranslations('@teatromuseo'),
                     ],
                 ],
             ],
         ];
 
+        // upsertRecord() preserves existing editorial rows, so this adds only
+        // missing canonical blocks and never replaces homepage advances.
+        $this->shiftLegacyHomeBlocks($homePageId, $blockIds);
         $this->seedBlocks($homePageId, 'page', $homeBlocks, $blockIds, $langIds);
         $this->seedBlocks($contactPageId, 'page', $contactBlocks, $blockIds, $langIds);
+    }
+
+    /**
+     * Move only the original untouched homepage defaults out of the way of the
+     * new sections. A manually reordered block is never changed.
+     *
+     * @param array<string, int> $blockIds
+     */
+    private function shiftLegacyHomeBlocks(int $homePageId, array $blockIds): void
+    {
+        $defaults = [
+            ['block_key' => 'collection_grid', 'collection_key' => 'noticias', 'from' => 2, 'to' => 4],
+            ['block_key' => 'cta', 'collection_key' => null, 'from' => 3, 'to' => 5],
+        ];
+
+        foreach ($defaults as $default) {
+            $blockId = $blockIds[$default['block_key']] ?? null;
+            if ($blockId === null) {
+                continue;
+            }
+
+            $rows = $this->db->table('cms_block_instances')
+                ->where('block_id', $blockId)
+                ->where('owner_type', 'page')
+                ->where('owner_id', $homePageId)
+                ->where('parent_instance_id IS NULL', null, false)
+                ->where('sort_order', $default['from'])
+                ->get()->getResultArray();
+
+            foreach ($rows as $row) {
+                if ($default['collection_key'] !== null) {
+                    $config = json_decode((string) ($row['block_config'] ?? '{}'), true);
+                    if (($config['collection_key'] ?? null) !== $default['collection_key']) {
+                        continue;
+                    }
+                }
+
+                $this->db->table('cms_block_instances')->where('id', (int) $row['id'])->update([
+                    'sort_order' => $default['to'],
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    private function socialLinkTranslations(string $handle): array
+    {
+        return [
+            'es' => ['handle' => $handle],
+            'en' => ['handle' => $handle],
+            'fr' => ['handle' => $handle],
+            'pt' => ['handle' => $handle],
+        ];
     }
 
     /**
@@ -271,7 +518,7 @@ class CmsPageBlockSeeder extends Seeder
      * @param array<string, int>               $blockIds
      * @param array<string, int>               $langIds
      */
-    private function seedBlocks(int $ownerId, string $ownerType, array $blocks, array $blockIds, array $langIds): void
+    private function seedBlocks(int $ownerId, string $ownerType, array $blocks, array $blockIds, array $langIds, ?int $parentInstanceId = null): void
     {
         foreach ($blocks as $block) {
             $blockKey = (string) $block['block_key'];
@@ -284,7 +531,7 @@ class CmsPageBlockSeeder extends Seeder
                 'block_id'           => $blockId,
                 'owner_type'       => $ownerType,
                 'owner_id'         => $ownerId,
-                'parent_instance_id' => null,
+                'parent_instance_id' => $parentInstanceId,
                 'sort_order'       => (int) $block['sort_order'],
             ], [
                 'column_index'     => null,
@@ -303,6 +550,10 @@ class CmsPageBlockSeeder extends Seeder
                 }
 
                 $this->upsertBlockTranslation($instanceId, $langId, $data);
+            }
+
+            if (!empty($block['children']) && is_array($block['children'])) {
+                $this->seedBlocks($ownerId, $ownerType, $block['children'], $blockIds, $langIds, $instanceId);
             }
         }
     }

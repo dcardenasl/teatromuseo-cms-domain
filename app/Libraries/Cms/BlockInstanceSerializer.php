@@ -8,9 +8,18 @@ class BlockInstanceSerializer
 {
     private FileUrlResolver $fileUrlResolver;
 
-    public function __construct(FileUrlResolver $fileUrlResolver)
-    {
+    private ?EntryReferenceResolver $entryReferenceResolver;
+
+    private ?BlockNavigationResolver $blockNavigationResolver;
+
+    public function __construct(
+        FileUrlResolver $fileUrlResolver,
+        ?EntryReferenceResolver $entryReferenceResolver = null,
+        ?BlockNavigationResolver $blockNavigationResolver = null
+    ) {
         $this->fileUrlResolver = $fileUrlResolver;
+        $this->entryReferenceResolver = $entryReferenceResolver;
+        $this->blockNavigationResolver = $blockNavigationResolver;
     }
 
     /**
@@ -72,6 +81,65 @@ class BlockInstanceSerializer
 
         $translationsMap = $this->batchResolveBlockTranslations($instanceIds, $langCode, $db);
 
+        $referenceMap = [];
+        if ($this->entryReferenceResolver !== null) {
+            $references = [];
+            foreach ($instances as $instance) {
+                $translationData = $translationsMap[(int) $instance['id']] ?? [];
+                $rawData = $translationData['block_data'] ?? null;
+                $blockData = is_string($rawData) ? (json_decode($rawData, true) ?? []) : (array) $rawData;
+                $schemaDefinition = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
+                $references = array_merge(
+                    $references,
+                    $this->entryReferenceResolver->collectReferences($blockData, (array) ($schemaDefinition['fields'] ?? []))
+                );
+            }
+            $referenceMap = $this->entryReferenceResolver->resolve($references, $langCode);
+        }
+
+        $navigationMap = [];
+        if ($this->blockNavigationResolver !== null) {
+            $navigationConfigs = [];
+            $navigationDefinitions = [];
+            $navigationInstanceIds = [];
+            $navigationOwnerIds = [];
+            foreach ($instances as $instance) {
+                $schemaDefinition = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
+                $navigationDefinition = is_array($schemaDefinition['navigation'] ?? null)
+                    ? $schemaDefinition['navigation']
+                    : [];
+                if ($navigationDefinition === []) {
+                    continue;
+                }
+
+                $rawConfig = $instance['block_config'] ?? [];
+                $config = is_string($rawConfig)
+                    ? (json_decode($rawConfig, true) ?? [])
+                    : (array) $rawConfig;
+                $navigationInstanceIds[] = (int) $instance['id'];
+                $navigationConfigs[] = $config;
+                $navigationDefinitions[] = $navigationDefinition;
+                $navigationOwnerIds[] = (int) ($instance['owner_id'] ?? 0);
+            }
+
+            $resolvedNavigation = $this->blockNavigationResolver->resolveMany(
+                $navigationConfigs,
+                $langCode,
+                $navigationDefinitions,
+                $ownerType,
+                $navigationOwnerIds,
+            );
+            foreach ($navigationInstanceIds as $index => $instanceId) {
+                $navigationMap[$instanceId] = $resolvedNavigation[$index] ?? [
+                    'status' => 'unresolved',
+                    'target_type' => null,
+                    'target_id' => null,
+                    'route_key' => null,
+                    'url' => null,
+                ];
+            }
+        }
+
         // Collect all file IDs in a single pre-pass via schema field declarations
         $allFileIds = [];
         foreach ($instances as $instance) {
@@ -82,6 +150,9 @@ class BlockInstanceSerializer
             $schemaDefinition = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
             $schemaFields = (array) ($schemaDefinition['fields'] ?? []);
             $schemaConfigFields = (array) ($schemaDefinition['config_fields'] ?? []);
+            $presentation = is_array($schemaDefinition['presentation'] ?? null)
+                ? $schemaDefinition['presentation']
+                : [];
 
             $allFileIds = array_merge($allFileIds, $this->fileUrlResolver->collectBlockFileIds($blockData, $schemaFields));
 
@@ -122,6 +193,13 @@ class BlockInstanceSerializer
             $schemaFields = (array) ($schemaDefinition['fields'] ?? []);
             $schemaConfigFields = (array) ($schemaDefinition['config_fields'] ?? []);
 
+            $navigation = $navigationMap[$instanceId] ?? null;
+
+            if ($navigation !== null) {
+                $label = $blockData['view_all_label'] ?? null;
+                $navigation['label'] = is_scalar($label) ? trim((string) $label) : '';
+            }
+
             $blockConfig = SchemaDefaults::applyConfigDefaults($schemaDefinition, $blockConfig);
             $blockData = SchemaDefaults::apply($blockData, $schemaFields);
 
@@ -132,6 +210,19 @@ class BlockInstanceSerializer
                 $blockConfig = $this->mergeFileMetadata($blockConfig, $schemaConfigFields, $fileMetaMap);
             }
 
+            $listingFields = is_array($schemaDefinition['listing_fields'] ?? null)
+                ? $schemaDefinition['listing_fields']
+                : [];
+            foreach ($schemaFields as $fieldKey => $fieldDefinition) {
+                if (! is_array($fieldDefinition) || ! in_array((string) ($fieldDefinition['type'] ?? ''), ['string', 'text', 'textarea', 'richtext', 'date', 'datetime', 'number', 'integer', 'select', 'boolean', 'media_reference'], true)) {
+                    continue;
+                }
+                $listingFields[(string) $fieldKey] = array_merge([
+                    'label' => (string) ($fieldDefinition['label'] ?? $fieldKey),
+                    'type' => (string) ($fieldDefinition['type'] ?? 'string'),
+                ], is_array($listingFields[(string) $fieldKey] ?? null) ? $listingFields[(string) $fieldKey] : []);
+            }
+
             $blockPayload = [
                 'id'                 => $instanceId,
                 'block_key'          => $instance['block_key'],
@@ -140,9 +231,15 @@ class BlockInstanceSerializer
                 'parent_instance_id' => isset($instance['parent_instance_id']) ? (int) $instance['parent_instance_id'] : null,
                 'block_config'       => $blockConfig,
                 'block_data'         => $blockData,
+                'listing_fields'     => $listingFields,
+                'presentation'       => $presentation,
                 'is_fallback'        => $translation['is_fallback'] ?? true,
                 'children'           => [],
             ];
+
+            if ($navigation !== null) {
+                $blockPayload['navigation'] = $navigation;
+            }
 
             // Resolve media fields and expand file IDs inside nested structures.
             $blockPayload['block_data'] = $this->mergeFileMetadata(
@@ -150,6 +247,13 @@ class BlockInstanceSerializer
                 $schemaFields,
                 $fileMetaMap
             );
+            if ($this->entryReferenceResolver !== null) {
+                $blockPayload['block_data'] = $this->entryReferenceResolver->hydrateBlockData(
+                    $blockPayload['block_data'],
+                    $schemaFields,
+                    $referenceMap
+                );
+            }
 
             $serializedMap[$instanceId] = $blockPayload;
             $ownerByInstanceId[$instanceId] = (int) $instance['owner_id'];
@@ -296,7 +400,7 @@ class BlockInstanceSerializer
             $blockData[$fieldKey] = [
                 'source_kind' => 'external_url',
                 'file_id'     => null,
-                'url'         => $url,
+                'url'         => $this->fileUrlResolver->publicUrl($url),
                 'variants'    => null,
             ];
             return;
@@ -308,7 +412,7 @@ class BlockInstanceSerializer
             $blockData[$fieldKey] = [
                 'source_kind' => 'hub_file',
                 'file_id'     => $fileId,
-                'url'         => $meta['url'] ?? $url,
+                'url'         => $this->fileUrlResolver->publicUrl($meta['url'] ?? $url),
                 'variants'    => $meta['variants'] ?? $variants,
             ];
             return;
@@ -317,7 +421,7 @@ class BlockInstanceSerializer
         $blockData[$fieldKey] = [
             'source_kind' => $sourceKind === 'hub_file' ? 'hub_file' : 'external_url',
             'file_id'     => null,
-            'url'         => $url,
+            'url'         => $this->fileUrlResolver->publicUrl($url),
             'variants'    => null,
         ];
     }
@@ -347,6 +451,7 @@ class BlockInstanceSerializer
         $result = $db->table('cms_block_instance_translations')
             ->whereIn('instance_id', $instanceIds)
             ->whereIn('language_id', $langIds)
+            ->where('is_published', 1)
             ->get();
         $rows = $result ? $result->getResultArray() : [];
 

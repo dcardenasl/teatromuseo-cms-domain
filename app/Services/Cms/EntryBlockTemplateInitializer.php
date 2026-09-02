@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\Libraries\Cms\EntryFacetValueSynchronizer;
+
 /**
  * Transactionally creates BlockInstances (and their translations) for every
  * block defined in an entry's parent collection `block_template`, optionally
@@ -13,6 +15,10 @@ namespace App\Services\Cms;
  */
 class EntryBlockTemplateInitializer
 {
+    public function __construct(private readonly EntryFacetValueSynchronizer $entryFacetValueSynchronizer)
+    {
+    }
+
     /**
      * @param array<string, mixed>|null $wizardExtra
      * @return list<string> wizard_extra keys that were consumed (mapped to block_data)
@@ -59,8 +65,20 @@ class EntryBlockTemplateInitializer
 
             /** @var list<\App\Entities\LanguageEntity> $activeLanguages */
             $activeLanguages = $languageModel->where('is_active', 1)->findAll();
+            $createdBlockCount = 0;
+            // A required block created for an already-published entry is part of
+            // that public entry. Draft and review entries remain private until
+            // their workflow reaches `published`; optional blocks added later
+            // keep their own publication decision through the normal block API.
+            $initialBlockPublication = (string) ($entry->workflow_status ?? 'draft') === 'published' ? 1 : 0;
 
             foreach ($blocks as $blockDef) {
+                // Legacy templates did not carry this flag and therefore keep
+                // the historical behavior of creating every declared block.
+                if (array_key_exists('auto_create', $blockDef) && ! (bool) $blockDef['auto_create']) {
+                    continue;
+                }
+
                 $blockKey = (string) ($blockDef['block_key'] ?? '');
                 $blockType = $blockTypeModel->where('block_key', $blockKey)->first();
 
@@ -85,8 +103,10 @@ class EntryBlockTemplateInitializer
                 }
 
                 // Derive initial block_data from wizard_extra if provided (once per block, shared across languages)
-                $rawSchema   = $blockType->schema_definition ?? null;
-                $schemaDef   = is_array($rawSchema) ? $rawSchema : [];
+                // `schema_definition` is cast as 'json' on BlockTypeEntity, which CI4 decodes to
+                // stdClass (recursively) rather than array — go through the normalizer instead of
+                // an `is_array()` check, which would always be false and silently drop every field.
+                $schemaDef   = \dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer::toArray($blockType->schema_definition ?? null);
                 $schemaFields = is_array($schemaDef['fields'] ?? null) ? (array) $schemaDef['fields'] : [];
 
                 $extraction   = $wizardExtra !== null
@@ -106,13 +126,24 @@ class EntryBlockTemplateInitializer
                         'instance_id'  => (int) $instanceId,
                         'language_id'  => (int) $language->id,
                         'block_data'   => $blockDataJson,
-                        'is_published' => 0,
+                        'is_published' => $initialBlockPublication,
                     ]);
 
                     if (!$inserted) {
                         throw new \RuntimeException(lang('Entries.block_translation_insert_failed', [$language->id]));
                     }
+
+                    $this->entryFacetValueSynchronizer->sync(
+                        (int) $entry->id,
+                        (int) $instanceId,
+                        $blockKey,
+                        (int) $language->id,
+                        $extraction['data'],
+                        $schemaFields
+                    );
                 }
+
+                $createdBlockCount++;
             }
 
             $db->transComplete();
@@ -121,8 +152,7 @@ class EntryBlockTemplateInitializer
                 throw new \RuntimeException(lang('Entries.block_template_init_tx_failed'));
             }
 
-            $blockCount = count($blocks);
-            log_message('info', "[EntryBlockTemplateInitializer] Initialized {$blockCount} block(s) for entry {$entry->id} (collection {$collectionId}).");
+            log_message('info', "[EntryBlockTemplateInitializer] Initialized {$createdBlockCount} block(s) for entry {$entry->id} (collection {$collectionId}).");
 
             if ($wizardExtra !== null && $wizardExtra !== []) {
                 $unconsumed = array_diff(array_keys($wizardExtra), $consumedKeys);

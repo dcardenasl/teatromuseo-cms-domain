@@ -22,6 +22,17 @@ interface TranslationAuditServiceInterface
     public function getMissingTranslationsReport(array $filters = []): array;
 
     /**
+     * Get a paginated page of the missing-translations report, along with
+     * pagination metadata (current_page/last_page/per_page/total_items).
+     * Slicing lives here rather than in the controller so the controller
+     * only shapes the HTTP response.
+     *
+     * @param array<string, mixed> $filters
+     * @return array{data: array<int, array<string, mixed>>, meta: array{current_page:int,last_page:int,per_page:int,total_items:int}}
+     */
+    public function getMissingTranslationsReportPage(array $filters, int $page, int $limit): array;
+
+    /**
      * Audit a single resource instance for translation completeness.
      *
      * @param string $resourceType

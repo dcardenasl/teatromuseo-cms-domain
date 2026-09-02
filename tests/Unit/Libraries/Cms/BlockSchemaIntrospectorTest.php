@@ -21,6 +21,8 @@ final class BlockSchemaIntrospectorTest extends CIUnitTestCase
         $this->assertSame('textarea', $registry->normalize('text'));
         $this->assertSame('richtext', $registry->normalize('rich_text'));
         $this->assertSame('media_reference', $registry->normalize('media_reference'));
+        $this->assertSame('entry_reference', $registry->normalize('entry_reference'));
+        $this->assertSame('entry_reference_list', $registry->normalize('entry_reference_list'));
         $this->assertSame('unsupported', $registry->normalize('file'));
     }
 

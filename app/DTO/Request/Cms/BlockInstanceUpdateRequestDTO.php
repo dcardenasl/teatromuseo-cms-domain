@@ -36,6 +36,9 @@ readonly class BlockInstanceUpdateRequestDTO extends BaseRequestDTO
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'))]
     public ?array $translations;
 
+    /** @var array<string, mixed> */
+    private array $mappedFields;
+
     /**
      * Mirrors BaseRequestDTO's own promoted `$validation` property. Needed
      * because our validate() override (see below) must access the injected
@@ -123,24 +126,66 @@ readonly class BlockInstanceUpdateRequestDTO extends BaseRequestDTO
     }
 
     /**
+     * NOT NULL columns (block_id, owner_type, owner_id, sort_order,
+     * is_active) never accept an explicit null — treated the same as
+     * omitting the field, matching the DB constraint. Nullable columns
+     * (parent_instance_id, column_index, block_config) preserve an
+     * explicit null so it reaches toArray() and actually clears the
+     * column — the bug this fixes is array_filter() silently dropping
+     * every null, which made it impossible to ever clear a nullable field
+     * via update.
+     *
      * @param array<string, mixed> $data
      */
     protected function map(array $data): void
     {
-        $this->block_id = isset($data['block_id']) ? (int) $data['block_id'] : null;
-        $this->owner_type = $data['owner_type'] ?? null;
-        $this->owner_id = isset($data['owner_id']) ? (int) $data['owner_id'] : null;
-        $this->parent_instance_id = isset($data['parent_instance_id']) ? (int) $data['parent_instance_id'] : null;
-        $this->sort_order = isset($data['sort_order']) ? (int) $data['sort_order'] : null;
-        $this->column_index = isset($data['column_index']) ? (int) $data['column_index'] : null;
-        $this->is_active = isset($data['is_active']) ? (bool) $data['is_active'] : null;
-        $blockConfig = $data['block_config'] ?? null;
-        if (is_string($blockConfig) && trim($blockConfig) !== '') {
-            $decoded = json_decode($blockConfig, true);
-            $blockConfig = json_last_error() === JSON_ERROR_NONE ? $decoded : null;
+        $this->block_id = array_key_exists('block_id', $data) && $data['block_id'] !== null && $data['block_id'] !== '' ? (int) $data['block_id'] : null;
+        $this->owner_type = array_key_exists('owner_type', $data) && $data['owner_type'] !== null ? (string) $data['owner_type'] : null;
+        $this->owner_id = array_key_exists('owner_id', $data) && $data['owner_id'] !== null && $data['owner_id'] !== '' ? (int) $data['owner_id'] : null;
+        $this->parent_instance_id = array_key_exists('parent_instance_id', $data) && $data['parent_instance_id'] !== null && $data['parent_instance_id'] !== '' ? (int) $data['parent_instance_id'] : null;
+        $this->sort_order = array_key_exists('sort_order', $data) && $data['sort_order'] !== null && $data['sort_order'] !== '' ? (int) $data['sort_order'] : null;
+        $this->column_index = array_key_exists('column_index', $data) && $data['column_index'] !== null && $data['column_index'] !== '' ? (int) $data['column_index'] : null;
+        $this->is_active = array_key_exists('is_active', $data) && $data['is_active'] !== null ? (bool) $data['is_active'] : null;
+
+        $blockConfigRaw = array_key_exists('block_config', $data) ? $data['block_config'] : null;
+        if (is_string($blockConfigRaw) && trim($blockConfigRaw) !== '') {
+            $decoded = json_decode($blockConfigRaw, true);
+            $blockConfigRaw = json_last_error() === JSON_ERROR_NONE ? $decoded : null;
         }
-        $this->block_config = is_array($blockConfig) ? $blockConfig : null;
-        $this->translations = isset($data['translations']) ? (array) $data['translations'] : null;
+        $this->block_config = is_array($blockConfigRaw) ? $blockConfigRaw : null;
+
+        $this->translations = array_key_exists('translations', $data) ? (array) $data['translations'] : null;
+
+        $mappedFields = [];
+        if ($this->block_id !== null) {
+            $mappedFields['block_id'] = $this->block_id;
+        }
+        if ($this->owner_type !== null) {
+            $mappedFields['owner_type'] = $this->owner_type;
+        }
+        if ($this->owner_id !== null) {
+            $mappedFields['owner_id'] = $this->owner_id;
+        }
+        if (array_key_exists('parent_instance_id', $data)) {
+            $mappedFields['parent_instance_id'] = $this->parent_instance_id;
+        }
+        if ($this->sort_order !== null) {
+            $mappedFields['sort_order'] = $this->sort_order;
+        }
+        if (array_key_exists('column_index', $data)) {
+            $mappedFields['column_index'] = $this->column_index;
+        }
+        if ($this->is_active !== null) {
+            $mappedFields['is_active'] = $this->is_active;
+        }
+        if (array_key_exists('block_config', $data)) {
+            $mappedFields['block_config'] = $this->block_config;
+        }
+        if ($this->translations !== null) {
+            $mappedFields['translations'] = $this->translations;
+        }
+
+        $this->mappedFields = $mappedFields;
     }
 
     /**
@@ -148,16 +193,6 @@ readonly class BlockInstanceUpdateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        return array_filter([
-            'block_id' => $this->block_id,
-            'owner_type' => $this->owner_type,
-            'owner_id' => $this->owner_id,
-            'parent_instance_id' => $this->parent_instance_id,
-            'sort_order' => $this->sort_order,
-            'column_index' => $this->column_index,
-            'is_active' => $this->is_active,
-            'block_config' => $this->block_config,
-            'translations' => $this->translations,
-        ], static fn (mixed $value): bool => $value !== null);
+        return $this->mappedFields;
     }
 }

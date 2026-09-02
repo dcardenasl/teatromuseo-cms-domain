@@ -51,6 +51,9 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'))]
     public ?array $translations;
 
+    /** @var array<string, mixed> */
+    private array $mappedFields;
+
     /**
      * @return array<string, string>
      */
@@ -80,26 +83,84 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
     }
 
     /**
+     * NOT NULL columns (collection_type, collection_key, is_active,
+     * requires_approval, enables_categories, enables_tags, sort_order)
+     * never accept an explicit null — treated the same as omitting the
+     * field, matching the DB constraint. Nullable columns
+     * (default_sitemap_priority, default_changefreq, block_template,
+     * wizard_config) preserve an explicit null so it reaches toArray() and
+     * actually clears the column — the bug this fixes is array_filter()
+     * silently dropping every null, which made it impossible to ever clear
+     * a nullable field via update. block_template/wizard_config are JSON
+     * columns encoded manually (not via the Entity's json cast, which
+     * would json_encode(null) into the literal string "null" instead of a
+     * real SQL NULL) — a real PHP null is passed through so the repository
+     * writes an actual NULL when the client explicitly clears the field.
+     *
      * @param array<string, mixed> $data
      */
     protected function map(array $data): void
     {
-        $this->collection_type = $data['collection_type'] ?? null;
-        $this->collection_key = $data['collection_key'] ?? null;
-        $this->is_active = isset($data['is_active']) ? (bool) $data['is_active'] : null;
-        $this->requires_approval = isset($data['requires_approval']) ? (bool) $data['requires_approval'] : null;
-        $this->enables_categories = isset($data['enables_categories']) ? (bool) $data['enables_categories'] : null;
-        $this->enables_tags = isset($data['enables_tags']) ? (bool) $data['enables_tags'] : null;
-        $this->default_sitemap_priority = isset($data['default_sitemap_priority']) ? (float) $data['default_sitemap_priority'] : null;
-        $this->default_changefreq = $data['default_changefreq'] ?? null;
-        $this->sort_order = isset($data['sort_order']) ? (int) $data['sort_order'] : null;
+        $this->collection_type = array_key_exists('collection_type', $data) && $data['collection_type'] !== null ? (string) $data['collection_type'] : null;
+        $this->collection_key = array_key_exists('collection_key', $data) && $data['collection_key'] !== null ? (string) $data['collection_key'] : null;
+        $this->is_active = array_key_exists('is_active', $data) && $data['is_active'] !== null ? (bool) $data['is_active'] : null;
+        $this->requires_approval = array_key_exists('requires_approval', $data) && $data['requires_approval'] !== null ? (bool) $data['requires_approval'] : null;
+        $this->enables_categories = array_key_exists('enables_categories', $data) && $data['enables_categories'] !== null ? (bool) $data['enables_categories'] : null;
+        $this->enables_tags = array_key_exists('enables_tags', $data) && $data['enables_tags'] !== null ? (bool) $data['enables_tags'] : null;
+        $this->default_sitemap_priority = array_key_exists('default_sitemap_priority', $data) && $data['default_sitemap_priority'] !== null && $data['default_sitemap_priority'] !== '' ? (float) $data['default_sitemap_priority'] : null;
+        $this->default_changefreq = array_key_exists('default_changefreq', $data) && $data['default_changefreq'] !== null && $data['default_changefreq'] !== '' ? (string) $data['default_changefreq'] : null;
+        $this->sort_order = array_key_exists('sort_order', $data) && $data['sort_order'] !== null && $data['sort_order'] !== '' ? (int) $data['sort_order'] : null;
         $this->block_template = array_key_exists('block_template', $data)
             ? $this->parseBlockTemplate($data['block_template'])
             : null;
         $this->wizard_config = array_key_exists('wizard_config', $data)
             ? $this->parseWizardConfig($data['wizard_config'])
             : null;
-        $this->translations = $data['translations'] ?? null;
+        $this->translations = array_key_exists('translations', $data) ? $data['translations'] : null;
+
+        $mappedFields = [];
+        if ($this->collection_type !== null) {
+            $mappedFields['collection_type'] = $this->collection_type;
+        }
+        if ($this->collection_key !== null) {
+            $mappedFields['collection_key'] = $this->collection_key;
+        }
+        if ($this->is_active !== null) {
+            $mappedFields['is_active'] = $this->is_active;
+        }
+        if ($this->requires_approval !== null) {
+            $mappedFields['requires_approval'] = $this->requires_approval;
+        }
+        if ($this->enables_categories !== null) {
+            $mappedFields['enables_categories'] = $this->enables_categories;
+        }
+        if ($this->enables_tags !== null) {
+            $mappedFields['enables_tags'] = $this->enables_tags;
+        }
+        if (array_key_exists('default_sitemap_priority', $data)) {
+            $mappedFields['default_sitemap_priority'] = $this->default_sitemap_priority;
+        }
+        if (array_key_exists('default_changefreq', $data)) {
+            $mappedFields['default_changefreq'] = $this->default_changefreq;
+        }
+        if ($this->sort_order !== null) {
+            $mappedFields['sort_order'] = $this->sort_order;
+        }
+        if (array_key_exists('block_template', $data)) {
+            $mappedFields['block_template'] = $this->block_template !== null
+                ? json_encode($this->block_template, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : null;
+        }
+        if (array_key_exists('wizard_config', $data)) {
+            $mappedFields['wizard_config'] = $this->wizard_config !== null
+                ? json_encode($this->wizard_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : null;
+        }
+        if ($this->translations !== null) {
+            $mappedFields['translations'] = $this->translations;
+        }
+
+        $this->mappedFields = $mappedFields;
     }
 
     /**
@@ -107,28 +168,7 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        $data = array_filter([
-            'collection_type' => $this->collection_type,
-            'collection_key' => $this->collection_key,
-            'is_active' => $this->is_active,
-            'requires_approval' => $this->requires_approval,
-            'enables_categories' => $this->enables_categories,
-            'enables_tags' => $this->enables_tags,
-            'default_sitemap_priority' => $this->default_sitemap_priority,
-            'default_changefreq' => $this->default_changefreq,
-            'sort_order' => $this->sort_order,
-            'translations' => $this->translations,
-        ], static fn (mixed $value): bool => $value !== null);
-
-        if ($this->block_template !== null) {
-            $data['block_template'] = json_encode($this->block_template, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        }
-
-        if ($this->wizard_config !== null) {
-            $data['wizard_config'] = json_encode($this->wizard_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        }
-
-        return $data;
+        return $this->mappedFields;
     }
 
     /**

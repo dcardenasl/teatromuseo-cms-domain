@@ -43,7 +43,7 @@ class CreateCmsMenus extends Migration
             'id'            => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],
             'menu_id'       => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true],
             'parent_id'     => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
-            'link_type'     => ['type' => 'ENUM', 'constraint' => ['page', 'entry', 'collection_listing', 'custom_url', 'no_link']],
+            'link_type'     => ['type' => 'ENUM', 'constraint' => ['page', 'entry', 'collection_listing', 'event_listing', 'custom_url', 'no_link']],
             'page_id'       => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
             'entry_id'      => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
             'collection_id' => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
@@ -60,6 +60,7 @@ class CreateCmsMenus extends Migration
                 (`link_type` = 'page' AND `page_id` IS NOT NULL AND `entry_id` IS NULL AND `collection_id` IS NULL)
                 OR (`link_type` = 'entry' AND `entry_id` IS NOT NULL AND `page_id` IS NULL AND `collection_id` IS NULL)
                 OR (`link_type` = 'collection_listing' AND `collection_id` IS NOT NULL AND `page_id` IS NULL AND `entry_id` IS NULL)
+                OR (`link_type` = 'event_listing' AND `page_id` IS NULL AND `entry_id` IS NULL AND `collection_id` IS NULL)
                 OR (`link_type` = 'custom_url' AND `page_id` IS NULL AND `entry_id` IS NULL AND `collection_id` IS NULL)
                 OR (`link_type` = 'no_link' AND `page_id` IS NULL AND `entry_id` IS NULL AND `collection_id` IS NULL)
             )"
@@ -71,12 +72,16 @@ class CreateCmsMenus extends Migration
         $this->forge->addKey('entry_id', false, false, 'idx_menuitem_entry');
         $this->forge->addKey('collection_id', false, false, 'idx_menuitem_collection');
         $this->forge->addForeignKey('menu_id', 'cms_menus', 'id', '', 'CASCADE', 'fk_menuitem_menu');
-        $this->forge->addForeignKey('parent_id', 'cms_menu_items', 'id', '', 'CASCADE', 'fk_menuitem_parent');
         $this->forge->addForeignKey('page_id', 'cms_pages', 'id', '', 'CASCADE', 'fk_menuitem_page');
         $this->forge->addForeignKey('entry_id', 'cms_entries', 'id', '', 'CASCADE', 'fk_menuitem_entry');
         $this->forge->addForeignKey('collection_id', 'cms_collections', 'id', '', 'CASCADE', 'fk_menuitem_collection');
 
         $this->forge->createTable('cms_menu_items', false, ['ENGINE' => 'InnoDB']);
+
+        // Add the self-reference after CREATE TABLE for MySQL/MariaDB
+        // compatibility; those engines may reject it in the initial DDL.
+        $this->forge->addForeignKey('parent_id', 'cms_menu_items', 'id', '', 'CASCADE', 'fk_menuitem_parent');
+        $this->forge->processIndexes('cms_menu_items');
 
         $this->forge->addField([
             'id'           => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],
